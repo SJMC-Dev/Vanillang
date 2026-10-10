@@ -1,17 +1,12 @@
-#include "ast/declaration/ClassDeclarationNode.hpp"
-#include "ast/declaration/ConstructorDeclarationNode.hpp"
 #include "ast/declaration/DeclarationItem.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
-#include "ast/declaration/FunctionDeclarationKind.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
-#include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
-#include "ast/statement/BlockStatementNode.hpp"
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "config/Config.hpp"
@@ -19,9 +14,7 @@
 #include "error/ModuleInterfaceReaderError.hpp"
 #include "error/PackageReaderError.hpp"
 #include "token/Token.hpp"
-#include "type/CustomizedTypeKind.hpp"
 #include "type/PrimitiveType.hpp"
-#include "type/VoidType.hpp"
 #include "vni/export/ModuleInterfaceFileGenerator.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
@@ -58,7 +51,6 @@ namespace vnlc {
     namespace {
 
         const Token testToken(TokenKind::IDENTIFIER, "test", 1, 1, 0);
-        const VoidType testVoidType;
 
         using TypeMap = std::unordered_map<const TypeReferenceNode*, const Type*>;
         using InferredValueTypeMap = std::unordered_map<const ValueDeclarationNode*, const Type*>;
@@ -101,100 +93,6 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadata
         ) {
             return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), std::nullopt, testToken, testToken, std::move(metadata));
-        }
-
-        std::unique_ptr<FunctionDeclarationNode> makeFunction(
-            FunctionDeclarationKind::Kind kind,
-            FunctionDeclarationKind::Context context,
-            FunctionDeclarationKind::AccessModifier accessModifier,
-            FunctionDeclarationKind::Binding binding,
-            std::string_view name,
-            std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::vector<DeclarationItem::MetadataTerm>&& metadata = {}
-        ) {
-            return std::make_unique<FunctionDeclarationNode>(
-                kind,
-                context,
-                accessModifier,
-                binding,
-                makeIdentifier(name),
-                std::move(parameters),
-                std::move(returnType),
-                std::nullopt,
-                testToken,
-                testToken,
-                std::move(metadata)
-            );
-        }
-
-        std::unique_ptr<ConstructorDeclarationNode> makeConstructor(
-            ConstructorDeclarationKind::AccessModifier accessModifier,
-            std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::vector<DeclarationItem::MetadataTerm>&& metadata = {}
-        ) {
-            return std::make_unique<ConstructorDeclarationNode>(
-                accessModifier,
-                std::move(parameters),
-                std::make_unique<BlockStatementNode>(std::vector<std::unique_ptr<StatementNode>>{}, testToken, testToken),
-                testToken,
-                testToken,
-                std::move(metadata)
-            );
-        }
-
-        std::unique_ptr<OperatorDeclarationNode> makeOperator(
-            OperatorDeclarationKind::Kind kind,
-            OperatorDeclarationKind::Context context,
-            OperatorDeclarationKind::AccessModifier accessModifier,
-            std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::vector<DeclarationItem::MetadataTerm>&& metadata = {}
-        ) {
-            std::optional<std::unique_ptr<BlockStatementNode>> body = std::nullopt;
-            if (context == OperatorDeclarationKind::Context::CLASS) {
-                body = std::make_unique<BlockStatementNode>(std::vector<std::unique_ptr<StatementNode>>{}, testToken, testToken);
-            }
-
-            return std::make_unique<
-                OperatorDeclarationNode>(kind, context, accessModifier, std::move(parameters), std::move(returnType), std::move(body), testToken, testToken, std::move(metadata));
-        }
-
-        std::unique_ptr<ClassDeclarationNode> makeClass(
-            bool final,
-            std::string_view name,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& baseClass,
-            std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
-            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
-            std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
-            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
-            std::vector<std::unique_ptr<ConstructorDeclarationNode>>&& constructorDeclarations,
-            std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operatorDeclarations,
-            std::vector<DeclarationItem::MetadataTerm>&& metadata = {}
-        ) {
-            return std::make_unique<ClassDeclarationNode>(
-                final,
-                makeIdentifier(name),
-                std::move(baseClass),
-                std::move(implementedInterfaces),
-                std::move(genericParameters),
-                std::move(propertyDeclarations),
-                std::move(methodDeclarations),
-                std::move(constructorDeclarations),
-                std::move(operatorDeclarations),
-                testToken,
-                testToken,
-                std::move(metadata)
-            );
-        }
-
-        std::unique_ptr<InterfaceDeclarationNode> makeInterface(
-            std::string_view name,
-            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
-            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
-            std::vector<DeclarationItem::MetadataTerm>&& metadata = {}
-        ) {
-            return std::make_unique<InterfaceDeclarationNode>(makeIdentifier(name), std::move(genericParameters), std::move(methodDeclarations), testToken, testToken, std::move(metadata));
         }
 
         std::unique_ptr<EnumDeclarationNode>
@@ -370,9 +268,8 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
         parameters.emplace("amount", std::make_unique<ImportedParameter>("amount", "int"));
 
-        const ImportedFunc function("__vnl_function_add--int__", "add", "int", std::move(parameters), true);
+        const ImportedFunc function("add", "add", "int", std::move(parameters), true);
 
-        EXPECT_EQ(function.getName(), "__vnl_function_add--int__");
         EXPECT_EQ(function.getOriginalName(), "add");
         EXPECT_EQ(function.getReturnType(), "int");
         EXPECT_TRUE(function.isNative());
@@ -384,9 +281,8 @@ namespace vnlc {
     }
 
     TEST_F(VniTest, ImportedMethodDistinguishesStaticFromNative) {
-        const ImportedMethod method("__vnl_function_run__", "run", "void", {}, true, false, "public");
+        const ImportedMethod method("run", "run", "void", {}, true, false, "public");
 
-        EXPECT_EQ(method.getName(), "__vnl_function_run__");
         EXPECT_EQ(method.getOriginalName(), "run");
         EXPECT_TRUE(method.isStatic());
         EXPECT_FALSE(method.isNative());
@@ -398,7 +294,6 @@ namespace vnlc {
 
         const ImportedConstructor constructor("init", std::move(parameters), "protected");
 
-        EXPECT_EQ(constructor.getName(), "init");
         EXPECT_EQ(constructor.getAccessModifier(), "protected");
         ASSERT_EQ(constructor.getParameters().size(), 1);
         const auto* parameter = constructor.getParameterByName("amount");
@@ -411,9 +306,8 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
         parameters.emplace("other", std::make_unique<ImportedParameter>("other", "Vec3"));
 
-        const ImportedOperator operatorNode("__vnl_operator_addition--Vec3__", "Vec3", std::move(parameters), "protected");
+        const ImportedOperator operatorNode("addition", "Vec3", std::move(parameters), "protected");
 
-        EXPECT_EQ(operatorNode.getName(), "__vnl_operator_addition--Vec3__");
         EXPECT_EQ(operatorNode.getReturnType(), "Vec3");
         EXPECT_EQ(operatorNode.getAccessModifier(), "protected");
         ASSERT_EQ(operatorNode.getParameters().size(), 1);
@@ -429,16 +323,13 @@ namespace vnlc {
 
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>> methods;
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
-        methods.emplace("__vnl_function_read__", std::make_unique<ImportedMethod>("__vnl_function_read__", "read", "string", std::move(parameters), false, false, "public"));
+        methods.emplace("read", std::make_unique<ImportedMethod>("read", "read", "string", std::move(parameters), false, false, "public"));
 
         std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>> constructors;
         constructors.emplace("init", std::make_unique<ImportedConstructor>("init", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
 
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
-        operators.emplace(
-            "__vnl_operator_addition__",
-            std::make_unique<ImportedOperator>("__vnl_operator_addition__", "Box<T>", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public")
-        );
+        operators.emplace("addition", std::make_unique<ImportedOperator>("addition", "Box<T>", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
 
         const ImportedClass
             importedClass("Box", std::optional<std::string>("Base"), { "Readable" }, true, { "T" }, std::move(properties), std::move(methods), std::move(constructors), std::move(operators));
@@ -455,9 +346,8 @@ namespace vnlc {
         EXPECT_EQ(property->getType(), "int");
         EXPECT_TRUE(property->isStatic());
 
-        const auto* method = importedClass.getMethodByName("__vnl_function_read__");
+        const auto* method = importedClass.getMethodByName("read");
         ASSERT_NE(method, nullptr);
-        EXPECT_EQ(method->getName(), "__vnl_function_read__");
         EXPECT_EQ(method->getOriginalName(), "read");
         EXPECT_EQ(method->getReturnType(), "string");
         EXPECT_FALSE(method->isStatic());
@@ -467,7 +357,7 @@ namespace vnlc {
         ASSERT_NE(constructor, nullptr);
         EXPECT_EQ(constructor->getAccessModifier(), "public");
 
-        const auto* operatorNode = importedClass.getOperatorByName("__vnl_operator_addition__");
+        const auto* operatorNode = importedClass.getOperatorByName("addition");
         ASSERT_NE(operatorNode, nullptr);
         EXPECT_EQ(operatorNode->getReturnType(), "Box<T>");
     }
@@ -488,24 +378,20 @@ namespace vnlc {
     TEST_F(VniTest, ImportedInterfaceStoresGenericParametersAndMethods) {
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>> methods;
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
-        methods.emplace("__vnl_function_read__", std::make_unique<ImportedMethod>("__vnl_function_read__", "read", "string", std::move(parameters), false, false, "public"));
+        methods.emplace("read", std::make_unique<ImportedMethod>("read", "read", "string", std::move(parameters), false, false, "public"));
 
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
-        operators.emplace(
-            "__vnl_operator_equality__",
-            std::make_unique<ImportedOperator>("__vnl_operator_equality__", "bool", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public")
-        );
+        operators.emplace("equality", std::make_unique<ImportedOperator>("equality", "bool", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
 
         const ImportedInterface importedInterface("Readable", { "T" }, std::move(methods), std::move(operators));
 
         EXPECT_EQ(importedInterface.getGenericParameters(), std::vector<std::string>({ "T" }));
-        const auto* method = importedInterface.getMethodByName("__vnl_function_read__");
+        const auto* method = importedInterface.getMethodByName("read");
         ASSERT_NE(method, nullptr);
-        EXPECT_EQ(method->getName(), "__vnl_function_read__");
         EXPECT_EQ(method->getOriginalName(), "read");
         EXPECT_EQ(method->getReturnType(), "string");
 
-        const auto* operatorNode = importedInterface.getOperatorByName("__vnl_operator_equality__");
+        const auto* operatorNode = importedInterface.getOperatorByName("equality");
         ASSERT_NE(operatorNode, nullptr);
         EXPECT_EQ(operatorNode->getReturnType(), "bool");
     }
@@ -551,18 +437,6 @@ namespace vnlc {
         EXPECT_EQ(dynamic_cast<const ImportedLet*>(identifier)->getType(), "int");
     }
 
-    TEST_F(VniTest, ImportedModuleIndexesFunctionsByInternalName) {
-        ImportedModule module("module", {});
-
-        module.addIdentifier(std::make_unique<ImportedFunc>("__vnl_function_add--int__", "add", "int", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false));
-        module.addIdentifier(std::make_unique<ImportedFunc>("__vnl_function_add--string__", "add", "string", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false));
-
-        ASSERT_EQ(module.getIdentifiers().size(), 2);
-        EXPECT_NE(module.getIdentifierByName("__vnl_function_add--int__"), nullptr);
-        EXPECT_NE(module.getIdentifierByName("__vnl_function_add--string__"), nullptr);
-        EXPECT_EQ(module.getIdentifierByName("add"), nullptr);
-    }
-
     TEST_F(VniTest, ImportedPackageExposesSubPackagesAndModules) {
         std::unordered_map<std::string, std::unique_ptr<ImportedModule>> modules;
         modules.emplace("api", std::make_unique<ImportedModule>("api", std::unordered_map<std::string, std::unique_ptr<ImportedIdentifier>>{}));
@@ -597,7 +471,7 @@ namespace vnlc {
             "draft": null
         }
     },
-    "__vnl_function_run--int__": {
+    "run": {
         "category": "func",
         "name": "run",
         "returnType": "void",
@@ -609,7 +483,7 @@ namespace vnlc {
         },
         "native": true
     },
-    "__vnl_function_standaloneMethod__": {
+    "standaloneMethod": {
         "category": "method",
         "name": "standaloneMethod",
         "returnType": "string",
@@ -630,7 +504,7 @@ namespace vnlc {
             }
         },
         "methods": {
-            "__vnl_function_read--int__": {
+            "read": {
                 "category": "method",
                 "name": "read",
                 "returnType": "T",
@@ -658,7 +532,7 @@ namespace vnlc {
             }
         },
         "operators": {
-            "__vnl_operator_addition--int__": {
+            "addition": {
                 "category": "operator",
                 "returnType": "Box<T>",
                 "parameters": {
@@ -678,7 +552,7 @@ namespace vnlc {
         "category": "interface",
         "genericParameters": ["T"],
         "methods": {
-            "__vnl_function_read__": {
+            "read": {
                 "category": "method",
                 "name": "read",
                 "returnType": "T",
@@ -689,7 +563,7 @@ namespace vnlc {
             }
         },
         "operators": {
-            "__vnl_operator_equality__": {
+            "equality": {
                 "category": "operator",
                 "returnType": "bool",
                 "parameters": {},
@@ -744,11 +618,10 @@ namespace vnlc {
         ASSERT_NE(value, nullptr);
         EXPECT_EQ(dynamic_cast<const ImportedLet*>(value)->getType(), "int");
 
-        const auto* function = module->getIdentifierByName("__vnl_function_run--int__");
+        const auto* function = module->getIdentifierByName("run");
         ASSERT_NE(function, nullptr);
         const auto* importedFunction = dynamic_cast<const ImportedFunc*>(function);
         ASSERT_NE(importedFunction, nullptr);
-        EXPECT_EQ(importedFunction->getName(), "__vnl_function_run--int__");
         EXPECT_EQ(importedFunction->getOriginalName(), "run");
         EXPECT_EQ(importedFunction->getReturnType(), "void");
         EXPECT_TRUE(importedFunction->isNative());
@@ -756,11 +629,10 @@ namespace vnlc {
         ASSERT_NE(parameter, nullptr);
         EXPECT_EQ(parameter->getType(), "int");
 
-        const auto* standaloneMethod = module->getIdentifierByName("__vnl_function_standaloneMethod__");
+        const auto* standaloneMethod = module->getIdentifierByName("standaloneMethod");
         ASSERT_NE(standaloneMethod, nullptr);
         const auto* importedStandaloneMethod = dynamic_cast<const ImportedMethod*>(standaloneMethod);
         ASSERT_NE(importedStandaloneMethod, nullptr);
-        EXPECT_EQ(importedStandaloneMethod->getName(), "__vnl_function_standaloneMethod__");
         EXPECT_EQ(importedStandaloneMethod->getOriginalName(), "standaloneMethod");
 
         const auto* importedClassIdentifier = module->getIdentifierByName("Box");
@@ -775,9 +647,8 @@ namespace vnlc {
         ASSERT_NE(property, nullptr);
         EXPECT_TRUE(property->isStatic());
         EXPECT_EQ(property->getAccessModifier(), "protected");
-        const auto* method = importedClass->getMethodByName("__vnl_function_read--int__");
+        const auto* method = importedClass->getMethodByName("read");
         ASSERT_NE(method, nullptr);
-        EXPECT_EQ(method->getName(), "__vnl_function_read--int__");
         EXPECT_EQ(method->getOriginalName(), "read");
         EXPECT_EQ(method->getReturnType(), "T");
         EXPECT_FALSE(method->isStatic());
@@ -789,7 +660,7 @@ namespace vnlc {
         ASSERT_NE(constructorParameter, nullptr);
         EXPECT_EQ(constructorParameter->getType(), "int");
 
-        const auto* classOperator = importedClass->getOperatorByName("__vnl_operator_addition--int__");
+        const auto* classOperator = importedClass->getOperatorByName("addition");
         ASSERT_NE(classOperator, nullptr);
         EXPECT_EQ(classOperator->getReturnType(), "Box<T>");
         const auto* operatorParameter = classOperator->getParameterByName("index");
@@ -801,11 +672,10 @@ namespace vnlc {
         const auto* importedInterface = dynamic_cast<const ImportedInterface*>(importedInterfaceIdentifier);
         ASSERT_NE(importedInterface, nullptr);
         EXPECT_EQ(importedInterface->getGenericParameters(), std::vector<std::string>({ "T" }));
-        const auto* interfaceMethod = importedInterface->getMethodByName("__vnl_function_read__");
+        const auto* interfaceMethod = importedInterface->getMethodByName("read");
         ASSERT_NE(interfaceMethod, nullptr);
-        EXPECT_EQ(interfaceMethod->getName(), "__vnl_function_read__");
         EXPECT_EQ(interfaceMethod->getOriginalName(), "read");
-        const auto* interfaceOperator = importedInterface->getOperatorByName("__vnl_operator_equality__");
+        const auto* interfaceOperator = importedInterface->getOperatorByName("equality");
         ASSERT_NE(interfaceOperator, nullptr);
         EXPECT_EQ(interfaceOperator->getReturnType(), "bool");
 
@@ -876,8 +746,8 @@ namespace vnlc {
 
     TEST_F(VniTest, ModuleInterfaceFileReaderThrowsWhenFunctionOrMethodLacksName) {
         for (const auto contents : {
-                 R"({"__vnl_function_run__":{"category":"func","returnType":"void","parameters":{},"native":false}})",
-                 R"({"__vnl_function_run__":{"category":"method","returnType":"void","parameters":{},"native":false,"static":false,"accessModifier":"public"}})",
+                 R"({"run":{"category":"func","returnType":"void","parameters":{},"native":false}})",
+                 R"({"run":{"category":"method","returnType":"void","parameters":{},"native":false,"static":false,"accessModifier":"public"}})",
              }) {
             SCOPED_TRACE(contents);
             const auto filePath = writeFile("module.vni", contents);
@@ -956,278 +826,6 @@ namespace vnlc {
         EXPECT_EQ(json["count"]["type"], "int");
         EXPECT_EQ(json["count"]["metadata"]["since"], "1.0");
         EXPECT_TRUE(json["count"]["metadata"]["draft"].is_null());
-    }
-
-    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesNativeFuncWithParameter) {
-        const auto config = makeGeneratorConfig(testDirectory);
-        auto parameterType = makeType("int");
-        const auto* parameterTypeReferenceNode = parameterType.get();
-        auto returnType = makeType("void");
-        const auto* returnTypeReferenceNode = returnType.get();
-
-        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        parameters.push_back(makeValue(
-            ValueDeclarationKind::Kind::PARAMETER,
-            ValueDeclarationKind::Context::FUNCTION,
-            ValueDeclarationKind::AccessModifier::PUBLIC,
-            "amount",
-            std::make_optional(std::move(parameterType))
-        ));
-        auto declaration = makeFunction(
-            FunctionDeclarationKind::Kind::NATIVE,
-            FunctionDeclarationKind::Context::TOP_LEVEL,
-            FunctionDeclarationKind::AccessModifier::PUBLIC,
-            FunctionDeclarationKind::Binding::INSTANCE,
-            "add",
-            std::move(parameters),
-            std::make_optional(std::move(returnType))
-        );
-        declaration->setInternalName("__vnl_function_add--int__");
-        const auto* declarationNode = declaration.get();
-        const auto semantic = makeSemanticResult(
-            {
-                { parameterTypeReferenceNode, PrimitiveType::intType() },
-                { returnTypeReferenceNode, &testVoidType },
-            }
-        );
-
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
-        generator.generate();
-        const auto json = readJson(generatedOutputPath(config));
-
-        EXPECT_EQ(json["__vnl_function_add--int__"]["category"], "func");
-        EXPECT_EQ(json["__vnl_function_add--int__"]["name"], "add");
-        EXPECT_EQ(json["__vnl_function_add--int__"]["returnType"], "void");
-        EXPECT_TRUE(json["__vnl_function_add--int__"]["native"]);
-        EXPECT_EQ(json["__vnl_function_add--int__"]["parameters"]["amount"]["category"], "parameter");
-        EXPECT_EQ(json["__vnl_function_add--int__"]["parameters"]["amount"]["type"], "int");
-    }
-
-    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesClassWithMembersAndModifiers) {
-        const auto config = makeGeneratorConfig(testDirectory);
-        CustomizedType baseType(CustomizedTypeKind::CLASS, "package.Base", std::vector<const Type*>{}, static_cast<const TypeDeclarationNode*>(nullptr));
-        CustomizedType interfaceType(CustomizedTypeKind::INTERFACE, "package.Readable", std::vector<const Type*>{}, static_cast<const TypeDeclarationNode*>(nullptr));
-        auto baseClass = makeType("Base");
-        const auto* baseClassNode = baseClass.get();
-        auto implementedInterface = makeType("Readable");
-        const auto* implementedInterfaceNode = implementedInterface.get();
-        auto propertyType = makeType("int");
-        const auto* propertyTypeReferenceNode = propertyType.get();
-        auto methodReturnType = makeType("string");
-        const auto* methodReturnTypeReferenceNode = methodReturnType.get();
-        auto constructorParameterType = makeType("int");
-        const auto* constructorParameterTypeReferenceNode = constructorParameterType.get();
-        auto operatorParameterType = makeType("int");
-        const auto* operatorParameterTypeReferenceNode = operatorParameterType.get();
-        auto secondOperatorParameterType = makeType("string");
-        const auto* secondOperatorParameterTypeReferenceNode = secondOperatorParameterType.get();
-        auto secondOperatorReturnType = makeType("string");
-        const auto* secondOperatorReturnTypeReferenceNode = secondOperatorReturnType.get();
-        auto operatorReturnType = makeType("string");
-        const auto* operatorReturnTypeReferenceNode = operatorReturnType.get();
-
-        std::vector<std::unique_ptr<TypeReferenceNode>> implementedInterfaces;
-        implementedInterfaces.push_back(std::move(implementedInterface));
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        genericParameters.push_back(makeIdentifier("T"));
-
-        std::vector<std::unique_ptr<ValueDeclarationNode>> properties;
-        properties.push_back(makeValue(
-            ValueDeclarationKind::Kind::STATIC_PROPERTY,
-            ValueDeclarationKind::Context::CLASS,
-            ValueDeclarationKind::AccessModifier::PROTECTED,
-            "count",
-            std::make_optional(std::move(propertyType))
-        ));
-        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
-        methods.push_back(makeFunction(
-            FunctionDeclarationKind::Kind::NATIVE,
-            FunctionDeclarationKind::Context::CLASS,
-            FunctionDeclarationKind::AccessModifier::PUBLIC,
-            FunctionDeclarationKind::Binding::STATIC,
-            "reset",
-            {},
-            std::nullopt
-        ));
-        methods.push_back(makeFunction(
-            FunctionDeclarationKind::Kind::REGULAR,
-            FunctionDeclarationKind::Context::CLASS,
-            FunctionDeclarationKind::AccessModifier::PRIVATE,
-            FunctionDeclarationKind::Binding::INSTANCE,
-            "label",
-            {},
-            std::make_optional(std::move(methodReturnType))
-        ));
-        std::vector<std::unique_ptr<ConstructorDeclarationNode>> constructors;
-        std::vector<std::unique_ptr<ValueDeclarationNode>> constructorParameters;
-        constructorParameters.push_back(makeValue(
-            ValueDeclarationKind::Kind::PARAMETER,
-            ValueDeclarationKind::Context::FUNCTION,
-            ValueDeclarationKind::AccessModifier::PUBLIC,
-            "amount",
-            std::make_optional(std::move(constructorParameterType))
-        ));
-        constructors.push_back(makeConstructor(ConstructorDeclarationKind::AccessModifier::PROTECTED, std::move(constructorParameters), makeMetadata()));
-        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
-        std::vector<std::unique_ptr<ValueDeclarationNode>> operatorParameters;
-        operatorParameters.push_back(makeValue(
-            ValueDeclarationKind::Kind::PARAMETER,
-            ValueDeclarationKind::Context::FUNCTION,
-            ValueDeclarationKind::AccessModifier::PUBLIC,
-            "other",
-            std::make_optional(std::move(operatorParameterType))
-        ));
-        operators.push_back(makeOperator(
-            OperatorDeclarationKind::Kind::ADDITION,
-            OperatorDeclarationKind::Context::CLASS,
-            OperatorDeclarationKind::AccessModifier::PROTECTED,
-            std::move(operatorParameters),
-            std::make_optional(std::move(operatorReturnType))
-        ));
-        std::vector<std::unique_ptr<ValueDeclarationNode>> secondOperatorParameters;
-        secondOperatorParameters.push_back(makeValue(
-            ValueDeclarationKind::Kind::PARAMETER,
-            ValueDeclarationKind::Context::FUNCTION,
-            ValueDeclarationKind::AccessModifier::PUBLIC,
-            "other",
-            std::make_optional(std::move(secondOperatorParameterType))
-        ));
-        operators.push_back(makeOperator(
-            OperatorDeclarationKind::Kind::ADDITION,
-            OperatorDeclarationKind::Context::CLASS,
-            OperatorDeclarationKind::AccessModifier::PUBLIC,
-            std::move(secondOperatorParameters),
-            std::make_optional(std::move(secondOperatorReturnType))
-        ));
-
-        auto declaration = makeClass(
-            true,
-            "Box",
-            std::make_optional(std::move(baseClass)),
-            std::move(implementedInterfaces),
-            std::move(genericParameters),
-            std::move(properties),
-            std::move(methods),
-            std::move(constructors),
-            std::move(operators),
-            makeMetadata()
-        );
-        declaration->getMethodDeclarations()[0]->setInternalName("__vnl_function_reset__");
-        declaration->getMethodDeclarations()[1]->setInternalName("__vnl_function_label__");
-        declaration->getConstructorDeclarations()[0]->setInternalName("__vnl_constructor--int__");
-        declaration->getOperatorDeclarations()[0]->setInternalName("__vnl_operator_addition--int__");
-        declaration->getOperatorDeclarations()[1]->setInternalName("__vnl_operator_addition--string__");
-        const auto* declarationNode = declaration.get();
-        const auto semantic = makeSemanticResult(
-            {
-                { baseClassNode, &baseType },
-                { implementedInterfaceNode, &interfaceType },
-                { propertyTypeReferenceNode, PrimitiveType::intType() },
-                { methodReturnTypeReferenceNode, PrimitiveType::stringType() },
-                { constructorParameterTypeReferenceNode, PrimitiveType::intType() },
-                { operatorParameterTypeReferenceNode, PrimitiveType::intType() },
-                { secondOperatorParameterTypeReferenceNode, PrimitiveType::stringType() },
-                { secondOperatorReturnTypeReferenceNode, PrimitiveType::stringType() },
-                { operatorReturnTypeReferenceNode, PrimitiveType::stringType() },
-            }
-        );
-
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
-        generator.generate();
-        const auto json = readJson(generatedOutputPath(config));
-
-        EXPECT_EQ(json["Box"]["category"], "class");
-        EXPECT_EQ(json["Box"]["baseClass"], "package.Base");
-        EXPECT_EQ(json["Box"]["implementedInterfaces"].size(), 1);
-        EXPECT_EQ(json["Box"]["implementedInterfaces"][0], "package.Readable");
-        EXPECT_TRUE(json["Box"]["final"]);
-        EXPECT_EQ(json["Box"]["genericParameters"].size(), 1);
-        EXPECT_EQ(json["Box"]["genericParameters"][0], "T");
-        EXPECT_EQ(json["Box"]["metadata"]["since"], "1.0");
-        EXPECT_EQ(json["Box"]["properties"]["count"]["type"], "int");
-        EXPECT_TRUE(json["Box"]["properties"]["count"]["static"]);
-        EXPECT_EQ(json["Box"]["properties"]["count"]["accessModifier"], "protected");
-        EXPECT_EQ(json["Box"]["methods"]["__vnl_function_reset__"]["name"], "reset");
-        EXPECT_TRUE(json["Box"]["methods"]["__vnl_function_reset__"]["static"]);
-        EXPECT_TRUE(json["Box"]["methods"]["__vnl_function_reset__"]["native"]);
-        EXPECT_EQ(json["Box"]["methods"]["__vnl_function_label__"]["name"], "label");
-        EXPECT_FALSE(json["Box"]["methods"]["__vnl_function_label__"]["static"]);
-        EXPECT_FALSE(json["Box"]["methods"]["__vnl_function_label__"]["native"]);
-        EXPECT_EQ(json["Box"]["methods"]["__vnl_function_label__"]["returnType"], "string");
-        EXPECT_EQ(json["Box"]["methods"]["__vnl_function_label__"]["accessModifier"], "private");
-        ASSERT_EQ(json["Box"]["constructors"].size(), 1);
-        const auto& constructor = json["Box"]["constructors"]["__vnl_constructor--int__"];
-        EXPECT_EQ(constructor["category"], "constructor");
-        EXPECT_EQ(constructor["parameters"]["amount"]["category"], "parameter");
-        EXPECT_EQ(constructor["parameters"]["amount"]["type"], "int");
-        EXPECT_EQ(constructor["accessModifier"], "protected");
-        EXPECT_EQ(constructor["metadata"]["since"], "1.0");
-        ASSERT_EQ(json["Box"]["operators"].size(), 2);
-        const auto& operatorNode = json["Box"]["operators"]["__vnl_operator_addition--int__"];
-        EXPECT_EQ(operatorNode["category"], "operator");
-        EXPECT_EQ(operatorNode["returnType"], "string");
-        EXPECT_EQ(operatorNode["parameters"]["other"]["type"], "int");
-        EXPECT_EQ(operatorNode["accessModifier"], "protected");
-        const auto& secondOperatorNode = json["Box"]["operators"]["__vnl_operator_addition--string__"];
-        EXPECT_EQ(secondOperatorNode["returnType"], "string");
-        EXPECT_EQ(secondOperatorNode["parameters"]["other"]["type"], "string");
-        EXPECT_EQ(secondOperatorNode["accessModifier"], "public");
-    }
-
-    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesInterfaceWithMethod) {
-        const auto config = makeGeneratorConfig(testDirectory);
-        auto returnType = makeType("void");
-        const auto* returnTypeReferenceNode = returnType.get();
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        genericParameters.push_back(makeIdentifier("T"));
-
-        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
-        methods.push_back(makeFunction(
-            FunctionDeclarationKind::Kind::REGULAR,
-            FunctionDeclarationKind::Context::INTERFACE,
-            FunctionDeclarationKind::AccessModifier::PUBLIC,
-            FunctionDeclarationKind::Binding::INSTANCE,
-            "run",
-            {},
-            std::make_optional(std::move(returnType))
-        ));
-        methods.front()->setInternalName("__vnl_function_run__");
-        auto operatorReturnType = makeType("bool");
-        const auto* operatorReturnTypeReferenceNode = operatorReturnType.get();
-        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
-        operators.push_back(makeOperator(
-            OperatorDeclarationKind::Kind::EQUAL,
-            OperatorDeclarationKind::Context::INTERFACE,
-            OperatorDeclarationKind::AccessModifier::PUBLIC,
-            {},
-            std::make_optional(std::move(operatorReturnType))
-        ));
-        operators.front()->setInternalName("__vnl_operator_equality__");
-        auto declaration = std::make_unique<InterfaceDeclarationNode>(makeIdentifier("Task"), std::move(genericParameters), std::move(methods), std::move(operators), testToken, testToken);
-        const auto* declarationNode = declaration.get();
-        const auto semantic = makeSemanticResult(
-            {
-                { returnTypeReferenceNode, &testVoidType },
-                { operatorReturnTypeReferenceNode, PrimitiveType::booleanType() },
-            }
-        );
-
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
-        generator.generate();
-        const auto json = readJson(generatedOutputPath(config));
-
-        EXPECT_EQ(json["Task"]["category"], "interface");
-        EXPECT_EQ(json["Task"]["genericParameters"].size(), 1);
-        EXPECT_EQ(json["Task"]["genericParameters"][0], "T");
-        EXPECT_EQ(json["Task"]["methods"]["__vnl_function_run__"]["name"], "run");
-        EXPECT_EQ(json["Task"]["methods"]["__vnl_function_run__"]["returnType"], "void");
-        EXPECT_FALSE(json["Task"]["methods"]["__vnl_function_run__"]["native"]);
-        EXPECT_FALSE(json["Task"]["methods"]["__vnl_function_run__"]["static"]);
-        EXPECT_EQ(json["Task"]["operators"]["__vnl_operator_equality__"]["category"], "operator");
-        EXPECT_EQ(json["Task"]["operators"]["__vnl_operator_equality__"]["returnType"], "bool");
-        EXPECT_EQ(json["Task"]["operators"]["__vnl_operator_equality__"]["accessModifier"], "public");
     }
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesEnumWithMemberAndValue) {

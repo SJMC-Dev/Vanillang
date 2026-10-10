@@ -159,46 +159,10 @@ namespace vnlc {
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
 
         const auto* constructor = classDeclaration->getConstructorDeclarations().front().get();
-        EXPECT_TRUE(constructor->getInternalName().empty());
         EXPECT_EQ(constructor->getAccessModifier(), ConstructorDeclarationKind::AccessModifier::PROTECTED);
         ASSERT_EQ(constructor->getParameters().size(), 1);
         EXPECT_EQ(constructor->getParameters().front()->getName().getIdentifierString(), "value");
         EXPECT_EQ(constructor->getBody().getStatements().size(), 1);
-    }
-
-    TEST(ParserTest, FunctionDeclarationsLeaveInternalNamesUnset) {
-        std::stringstream input(
-            "func combine(value: int) {}\n"
-            "func combine(first: string, second: Vec3) {}\n"
-            "func reset() {}\n"
-        );
-
-        Config config{
-            .mode = RunningMode::COMPILE,
-            .vanillangVersion = "1.0",
-            .minecraftVersion = "26.1.2",
-            .packageRootPath = std::filesystem::current_path(),
-            .inputFilePath = std::filesystem::current_path() / "test.vnl",
-            .outputDirectory = std::nullopt,
-            .dependencyPackageRootPaths = {},
-            .optimizationLevel = std::nullopt,
-        };
-
-        auto result = parseModule(input, config);
-        const auto& module = result.getModuleNode();
-        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 3);
-
-        const auto* first = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[0].get());
-        ASSERT_NE(first, nullptr);
-        EXPECT_TRUE(first->getInternalName().empty());
-
-        const auto* second = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
-        ASSERT_NE(second, nullptr);
-        EXPECT_TRUE(second->getInternalName().empty());
-
-        const auto* third = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[2].get());
-        ASSERT_NE(third, nullptr);
-        EXPECT_TRUE(third->getInternalName().empty());
     }
 
     TEST(ParserTest, OperatorDeclarationsUseOperatorDeclarationNode) {
@@ -244,7 +208,6 @@ namespace vnlc {
         EXPECT_EQ(addition->getContext(), OperatorDeclarationKind::Context::CLASS);
         EXPECT_EQ(addition->getAccessModifier(), OperatorDeclarationKind::AccessModifier::PROTECTED);
         EXPECT_EQ(addition->getOperatorName(), "addition");
-        EXPECT_TRUE(addition->getInternalName().empty());
         ASSERT_EQ(addition->getParameters().size(), 1);
         EXPECT_EQ(addition->getParameters().front()->getName().getIdentifierString(), "other");
         EXPECT_TRUE(addition->getReturnType().has_value());
@@ -253,12 +216,10 @@ namespace vnlc {
         const auto* subscript = classDeclaration->getOperatorDeclarations()[1].get();
         EXPECT_EQ(subscript->getKind(), OperatorDeclarationKind::Kind::SUBSCRIPT);
         EXPECT_EQ(subscript->getOperatorName(), "subscript");
-        EXPECT_TRUE(subscript->getInternalName().empty());
 
         const auto* equality = classDeclaration->getOperatorDeclarations()[2].get();
         EXPECT_EQ(equality->getKind(), OperatorDeclarationKind::Kind::EQUAL);
         EXPECT_EQ(equality->getOperatorName(), "equality");
-        EXPECT_TRUE(equality->getInternalName().empty());
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
@@ -273,7 +234,6 @@ namespace vnlc {
         const auto& call = interfaceDeclaration->getOperatorDeclarations()[1];
         EXPECT_EQ(call->getKind(), OperatorDeclarationKind::Kind::CALL);
         EXPECT_EQ(call->getOperatorName(), "call");
-        EXPECT_TRUE(call->getInternalName().empty());
     }
 
     TEST(ParserTest, DistributesClassMembersIntoDeclarationKinds) {

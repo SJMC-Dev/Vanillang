@@ -215,52 +215,6 @@ func test() {
         ASSERT_FALSE(result.hasErrors());
     }
 
-    TEST(SemanticAnalyzerTest, ChecksOperatorDeclarationScopesParametersAndTypes) {
-        constexpr std::string_view source = R"(
-class Vec3 {
-    op +(other: Vec3) -> Vec3 {
-        return this
-    }
-    op +(other: int) -> Vec3 {
-        return this
-    }
-    op [](index: int) -> int {
-        return index
-    }
-}
-interface Addable {
-    op +(other: Addable) -> Addable
-}
-)";
-        const auto config = makeConfig("operators.vnl");
-        auto module = parseModule(source, config);
-
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations()[0].get());
-        ASSERT_NE(classDeclaration, nullptr);
-        classDeclaration->getOperatorDeclarations()[0]->setInternalName("__vnl_operator_addition--Vec3__");
-        classDeclaration->getOperatorDeclarations()[1]->setInternalName("__vnl_operator_addition--int__");
-        classDeclaration->getOperatorDeclarations()[2]->setInternalName("__vnl_operator_subscript--int__");
-
-        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module->getTopIdentifierDeclarations()[1].get());
-        ASSERT_NE(interfaceDeclaration, nullptr);
-        interfaceDeclaration->getOperatorDeclarations().front()->setInternalName("__vnl_operator_addition--Addable__");
-
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_FALSE(result.hasErrors());
-
-        const auto* classScope = result.getScopeByAstNode(*classDeclaration);
-        ASSERT_NE(classScope, nullptr);
-        EXPECT_EQ(classScope->lookupLocal("__vnl_operator_addition--Vec3__"), nullptr);
-        EXPECT_EQ(classScope->lookupLocal("__vnl_operator_addition--int__"), nullptr);
-
-        const auto* interfaceScope = result.getScopeByAstNode(*interfaceDeclaration);
-        ASSERT_NE(interfaceScope, nullptr);
-        EXPECT_EQ(interfaceScope->lookupLocal("__vnl_operator_addition--Addable__"), nullptr);
-    }
-
     TEST(SemanticAnalyzerTest, RejectsDuplicateOperatorParameterDeclarations) {
         constexpr std::string_view source = R"(
 class Vec3 {
@@ -279,202 +233,6 @@ class Vec3 {
         ASSERT_TRUE(result.hasErrors());
         ASSERT_EQ(result.getErrors().size(), 1);
         EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of parameter 'value'");
-    }
-
-    TEST(SemanticAnalyzerTest, RejectsDuplicateOperatorDeclarationsWithTheSameSignature) {
-        constexpr std::string_view source = R"(
-class Vec3 {
-    op +(other: int) -> Vec3 {
-        return this
-    }
-    op +(other: int) -> Vec3 {
-        return this
-    }
-}
-)";
-        const auto config = makeConfig("duplicate_operators.vnl");
-        auto module = parseModule(source, config);
-
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
-        ASSERT_NE(classDeclaration, nullptr);
-        for (const auto& operatorDeclaration : classDeclaration->getOperatorDeclarations()) {
-            operatorDeclaration->setInternalName("__vnl_operator_addition--int__");
-        }
-
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_TRUE(result.hasErrors());
-        ASSERT_EQ(result.getErrors().size(), 1);
-        EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of class member '__vnl_operator_addition--int__'");
-    }
-
-    TEST(SemanticAnalyzerTest, CollectsFunctionAndMethodOverloadings) {
-        constexpr std::string_view source = R"(
-func convert(value: int) {}
-func convert(value: string) {}
-class Converter {
-    func convert(value: int) {}
-    func convert(value: string) {}
-}
-interface Readable {
-    func convert(value: int) -> void
-    func convert(value: string) -> void
-}
-)";
-        const auto config = makeConfig("overloads.vnl");
-        auto module = parseModule(source, config);
-
-        const auto& topLevelDeclarations = module->getTopIdentifierDeclarations();
-        dynamic_cast<const FunctionDeclarationNode*>(topLevelDeclarations[0].get())->setInternalName("__vnl_function_convert--int__");
-        dynamic_cast<const FunctionDeclarationNode*>(topLevelDeclarations[1].get())->setInternalName("__vnl_function_convert--string__");
-
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(topLevelDeclarations[2].get());
-        ASSERT_NE(classDeclaration, nullptr);
-        classDeclaration->getMethodDeclarations()[0]->setInternalName("__vnl_function_convert--int__");
-        classDeclaration->getMethodDeclarations()[1]->setInternalName("__vnl_function_convert--string__");
-
-        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(topLevelDeclarations[3].get());
-        ASSERT_NE(interfaceDeclaration, nullptr);
-        interfaceDeclaration->getMethodDeclarations()[0]->setInternalName("__vnl_function_convert--int__");
-        interfaceDeclaration->getMethodDeclarations()[1]->setInternalName("__vnl_function_convert--string__");
-
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_FALSE(result.hasErrors());
-
-        const auto* moduleScope = result.getScopeByAstNode(*module);
-        ASSERT_NE(moduleScope, nullptr);
-        const auto* moduleFunction = dynamic_cast<const FunctionSymbol*>(moduleScope->lookupLocal("convert"));
-        ASSERT_NE(moduleFunction, nullptr);
-        EXPECT_EQ(moduleFunction->getOverloadings().size(), 2);
-        EXPECT_NE(moduleFunction->getOverloadingByInternalName("__vnl_function_convert--int__"), nullptr);
-        EXPECT_NE(moduleFunction->getOverloadingByInternalName("__vnl_function_convert--string__"), nullptr);
-
-        const auto* classScope = result.getScopeByAstNode(*classDeclaration);
-        ASSERT_NE(classScope, nullptr);
-        const auto* classFunction = dynamic_cast<const FunctionSymbol*>(classScope->lookupLocal("convert"));
-        ASSERT_NE(classFunction, nullptr);
-        EXPECT_EQ(classFunction->getOverloadings().size(), 2);
-        EXPECT_NE(classFunction->getOverloadingByInternalName("__vnl_function_convert--int__"), nullptr);
-        EXPECT_NE(classFunction->getOverloadingByInternalName("__vnl_function_convert--string__"), nullptr);
-
-        const auto* interfaceScope = result.getScopeByAstNode(*interfaceDeclaration);
-        ASSERT_NE(interfaceScope, nullptr);
-        const auto* interfaceFunction = dynamic_cast<const FunctionSymbol*>(interfaceScope->lookupLocal("convert"));
-        ASSERT_NE(interfaceFunction, nullptr);
-        EXPECT_EQ(interfaceFunction->getOverloadings().size(), 2);
-        EXPECT_NE(interfaceFunction->getOverloadingByInternalName("__vnl_function_convert--int__"), nullptr);
-        EXPECT_NE(interfaceFunction->getOverloadingByInternalName("__vnl_function_convert--string__"), nullptr);
-    }
-
-    TEST(SemanticAnalyzerTest, RejectsDuplicateFunctionOverloadings) {
-        constexpr std::string_view source = R"(
-func duplicate(value: int) {}
-func duplicate(value: int) {}
-class Duplicator {
-    func duplicate(value: int) {}
-    func duplicate(value: int) {}
-}
-interface Duplicable {
-    func duplicate(value: int) -> void
-    func duplicate(value: int) -> void
-}
-)";
-        const auto config = makeConfig("duplicate_overloads.vnl");
-        auto module = parseModule(source, config);
-
-        const auto& topLevelDeclarations = module->getTopIdentifierDeclarations();
-        dynamic_cast<const FunctionDeclarationNode*>(topLevelDeclarations[0].get())->setInternalName("__vnl_function_duplicate--int__");
-        dynamic_cast<const FunctionDeclarationNode*>(topLevelDeclarations[1].get())->setInternalName("__vnl_function_duplicate--int__");
-
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(topLevelDeclarations[2].get());
-        ASSERT_NE(classDeclaration, nullptr);
-        classDeclaration->getMethodDeclarations()[0]->setInternalName("__vnl_function_duplicate--int__");
-        classDeclaration->getMethodDeclarations()[1]->setInternalName("__vnl_function_duplicate--int__");
-
-        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(topLevelDeclarations[3].get());
-        ASSERT_NE(interfaceDeclaration, nullptr);
-        interfaceDeclaration->getMethodDeclarations()[0]->setInternalName("__vnl_function_duplicate--int__");
-        interfaceDeclaration->getMethodDeclarations()[1]->setInternalName("__vnl_function_duplicate--int__");
-
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_TRUE(result.hasErrors());
-        ASSERT_EQ(result.getErrors().size(), 3);
-        EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of symbol '__vnl_function_duplicate--int__'");
-        EXPECT_EQ(result.getErrors()[1].getMessage(), "Redeclaration of class member '__vnl_function_duplicate--int__'");
-        EXPECT_EQ(result.getErrors()[2].getMessage(), "Redeclaration of interface method '__vnl_function_duplicate--int__'");
-    }
-
-    TEST(SemanticAnalyzerTest, CollectsRegularSymbolsThroughoutModuleBeforeFunctionSymbols) {
-        constexpr std::string_view source = R"(
-func duplicate(moduleParameter: int, moduleParameter: int) {}
-func duplicate(first: int, second: int) {}
-class Duplicator<T, T> {
-    property: int
-    property: int
-    func duplicate(classParameter: int, classParameter: int) {}
-    func duplicate(first: int, second: int) {}
-    init(constructorParameter: int, constructorParameter: int) {}
-    op +(operatorParameter: int, operatorParameter: int) {}
-}
-interface Duplicable<U, U> {
-    func duplicate(interfaceParameter: int, interfaceParameter: int) -> void
-    func duplicate(first: int, second: int) -> void
-}
-type Identity<V, V> = V
-)";
-        const auto config = makeConfig("symbol_collection_order.vnl");
-        auto module = parseModule(source, config);
-
-        const auto& declarations = module->getTopIdentifierDeclarations();
-        ASSERT_EQ(declarations.size(), 5);
-        for (std::size_t index = 0; index < 2; ++index) {
-            const auto* function = dynamic_cast<const FunctionDeclarationNode*>(declarations[index].get());
-            ASSERT_NE(function, nullptr);
-            function->setInternalName("__vnl_function_duplicate--int-int__");
-        }
-
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[2].get());
-        ASSERT_NE(classDeclaration, nullptr);
-        for (const auto& method : classDeclaration->getMethodDeclarations()) {
-            method->setInternalName("__vnl_function_duplicate--int-int__");
-        }
-
-        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[3].get());
-        ASSERT_NE(interfaceDeclaration, nullptr);
-        for (const auto& method : interfaceDeclaration->getMethodDeclarations()) {
-            method->setInternalName("__vnl_function_duplicate--int-int__");
-        }
-
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        const std::vector<std::string_view> expectedErrors = {
-            "Redeclaration of parameter 'moduleParameter'",
-            "Redeclaration of class member 'property'",
-            "Redeclaration of generic parameter 'T'",
-            "Redeclaration of parameter 'classParameter'",
-            "Redeclaration of parameter 'constructorParameter'",
-            "Redeclaration of parameter 'operatorParameter'",
-            "Redeclaration of generic parameter 'U'",
-            "Redeclaration of parameter 'interfaceParameter'",
-            "Redeclaration of generic parameter 'V'",
-            "Redeclaration of symbol '__vnl_function_duplicate--int-int__'",
-            "Redeclaration of class member '__vnl_function_duplicate--int-int__'",
-            "Redeclaration of interface method '__vnl_function_duplicate--int-int__'",
-        };
-        ASSERT_EQ(result.getErrors().size(), expectedErrors.size());
-        for (std::size_t index = 0; index < expectedErrors.size(); ++index) {
-            EXPECT_EQ(result.getErrors()[index].getMessage(), expectedErrors[index]);
-        }
     }
 
     TEST(SemanticAnalyzerTest, RetainsRegularSymbolsAndScopesWhenCollectingFunctionSymbols) {
@@ -499,15 +257,12 @@ class Later {}
         ASSERT_EQ(declarations.size(), 4);
         const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[0].get());
         ASSERT_NE(functionDeclaration, nullptr);
-        functionDeclaration->setInternalName("__vnl_function_read--Later__");
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
         ASSERT_NE(classDeclaration, nullptr);
         ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
-        classDeclaration->getMethodDeclarations().front()->setInternalName("__vnl_function_read--T__");
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
         ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
-        interfaceDeclaration->getMethodDeclarations().front()->setInternalName("__vnl_function_read--T__");
 
         const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
         SemanticAnalyzer analyzer(*module, imports);
@@ -688,23 +443,23 @@ func value(input: int) {}
         void writeScopedModule() const {
             writeFile("dependency_source/api.vni", R"({
     "value": {"category": "let", "type": "int"},
-    "__vnl_function_run--int__": {"category": "func", "name": "run", "returnType": "void", "native": false,
+    "run": {"category": "func", "name": "run", "returnType": "void", "native": false,
         "parameters": {"amount": {"category": "parameter", "type": "int"}}},
     "Box": {"category": "class", "genericParameters": ["T"], "baseClass": null, "implementedInterfaces": [], "final": false,
         "properties": {
             "visible": {"category": "property", "type": "T", "static": false, "accessModifier": "public"},
             "secret": {"category": "property", "type": "int", "static": true, "accessModifier": "private"}},
-        "methods": {"__vnl_function_apply--T__": {"category": "method", "name": "apply", "returnType": "T", "native": false, "static": false, "accessModifier": "protected",
+        "methods": {"apply": {"category": "method", "name": "apply", "returnType": "T", "native": false, "static": false, "accessModifier": "protected",
             "parameters": {"input": {"category": "parameter", "type": "T"}}}},
         "constructors": {}, "operators": {}},
     "Readable": {"category": "interface", "genericParameters": ["R"],
-        "methods": {"__vnl_function_read--R__": {"category": "method", "name": "read", "returnType": "R", "native": false, "static": false, "accessModifier": "public",
+        "methods": {"read": {"category": "method", "name": "read", "returnType": "R", "native": false, "static": false, "accessModifier": "public",
             "parameters": {"input": {"category": "parameter", "type": "R"}}}}, "operators": {}},
     "State": {"category": "enum", "genericParameters": ["E"],
         "members": {"Ready": {"category": "enummember", "associatedValues": {"payload": {"category": "enumvalue", "type": "E"}}}}},
     "Alias": {"category": "typealias", "genericParameters": ["A"], "originalType": "A"},
     "External": {"category": "imported", "source": "extra.tools.enabled"},
-    "__vnl_function_method__": {"category": "method", "name": "method", "returnType": "void", "native": false, "static": true, "accessModifier": "public",
+    "method": {"category": "method", "name": "method", "returnType": "void", "native": false, "static": true, "accessModifier": "public",
         "parameters": {"amount": {"category": "parameter", "type": "int"}}},
     "Ready": {"category": "enummember", "associatedValues": {"payload": {"category": "enumvalue", "type": "int"}}},
     "property": {"category": "property", "type": "int", "static": true, "accessModifier": "public"},
@@ -1120,10 +875,9 @@ func value(input: int) {}
         EXPECT_EQ(visible->getAccessModifier(), RegularSymbolAccessModifier::PUBLIC);
         EXPECT_EQ(secret->getAccessModifier(), RegularSymbolAccessModifier::PRIVATE);
         EXPECT_EQ(method->getName(), "apply");
-        const auto* methodOverloading = method->getOverloadingByInternalName("__vnl_function_apply--T__");
-        ASSERT_NE(methodOverloading, nullptr);
-        EXPECT_EQ(methodOverloading->getKind(), RegularSymbolKind::METHOD);
-        EXPECT_EQ(methodOverloading->getAccessModifier(), RegularSymbolAccessModifier::PROTECTED);
+        const auto& methodOverloading = method->getOverloadings().begin()->second;
+        EXPECT_EQ(methodOverloading.getKind(), RegularSymbolKind::METHOD);
+        EXPECT_EQ(methodOverloading.getAccessModifier(), RegularSymbolAccessModifier::PROTECTED);
         EXPECT_EQ(result.getScopeByImportedNode(*visible->getImportedNode()), nullptr);
         const auto* methodScope = expectChildScope(*boxScope, "apply", ScopeKind::FUNCTION);
         ASSERT_NE(methodScope, nullptr);
@@ -1185,12 +939,8 @@ func value(input: int) {}
             ScopeKind kind;
         };
         const std::vector<ScopedIdentifier> scopedIdentifiers = {
-            { "Box", "Box", ScopeKind::CLASS },
-            { "Readable", "Readable", ScopeKind::INTERFACE },
-            { "State", "State", ScopeKind::ENUM },
-            { "Alias", "Alias", ScopeKind::TYPE_ALIAS },
-            { "__vnl_function_method__", "method", ScopeKind::FUNCTION },
-            { "Ready", "Ready", ScopeKind::ENUM_MEMBER },
+            { "Box", "Box", ScopeKind::CLASS },          { "Readable", "Readable", ScopeKind::INTERFACE }, { "State", "State", ScopeKind::ENUM },
+            { "Alias", "Alias", ScopeKind::TYPE_ALIAS }, { "method", "method", ScopeKind::FUNCTION },      { "Ready", "Ready", ScopeKind::ENUM_MEMBER },
         };
         for (const auto& [path, name, kind] : scopedIdentifiers) {
             SCOPED_TRACE(path);
@@ -1379,84 +1129,18 @@ func value(input: int) {}
         EXPECT_EQ(scope->lookupLocal("count"), nullptr);
     }
 
-    TEST_F(SemanticAnalyzerImportTest, CollectsImportedFunctionAndMethodOverloadings) {
-        writeFile(
-            "dependency_source/api.vni",
-            R"({
-    "__vnl_function_convert--int__": {"category": "func", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "int"}}, "native": false},
-    "__vnl_function_convert--string__": {"category": "func", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "string"}}, "native": false},
-    "Converter": {"category": "class", "genericParameters": [], "properties": {}, "methods": {
-        "__vnl_function_convert--int__": {"category": "method", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "int"}}, "native": false, "static": false, "accessModifier": "public"},
-        "__vnl_function_convert--string__": {"category": "method", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "string"}}, "native": false, "static": false, "accessModifier": "public"}
-    }, "constructors": {}, "operators": {}, "baseClass": null, "implementedInterfaces": [], "final": false},
-    "Readable": {"category": "interface", "genericParameters": [], "methods": {
-        "__vnl_function_convert--int__": {"category": "method", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "int"}}, "native": false, "static": false, "accessModifier": "public"},
-        "__vnl_function_convert--string__": {"category": "method", "name": "convert", "returnType": "void", "parameters": {"value": {"category": "parameter", "type": "string"}}, "native": false, "static": false, "accessModifier": "public"}
-    }, "operators": {}}
-})"
-        );
-
-        const auto wildcardResult = analyze("import pkg.api.*\n");
-        ASSERT_FALSE(wildcardResult.hasErrors());
-        const auto* localScope = wildcardResult.getScopeByAstNode(*module);
-        ASSERT_NE(localScope, nullptr);
-        const auto* moduleFunction = dynamic_cast<const FunctionSymbol*>(localScope->lookupLocal("convert"));
-        ASSERT_NE(moduleFunction, nullptr);
-        EXPECT_EQ(moduleFunction->getOverloadings().size(), 2);
-
-        const auto* package = getImportedRootPackageByName("pkg");
-        ASSERT_NE(package, nullptr);
-        const auto* importedModule = package->getModuleByName("api");
-        ASSERT_NE(importedModule, nullptr);
-        const auto* classDeclaration = importedModule->getIdentifierByName("Converter");
-        ASSERT_NE(classDeclaration, nullptr);
-        const auto* classScope = wildcardResult.getScopeByImportedNode(*classDeclaration);
-        ASSERT_NE(classScope, nullptr);
-        const auto* classFunction = dynamic_cast<const FunctionSymbol*>(classScope->lookupLocal("convert"));
-        ASSERT_NE(classFunction, nullptr);
-        EXPECT_EQ(classFunction->getOverloadings().size(), 2);
-
-        const auto* interfaceDeclaration = importedModule->getIdentifierByName("Readable");
-        ASSERT_NE(interfaceDeclaration, nullptr);
-        const auto* interfaceScope = wildcardResult.getScopeByImportedNode(*interfaceDeclaration);
-        ASSERT_NE(interfaceScope, nullptr);
-        const auto* interfaceFunction = dynamic_cast<const FunctionSymbol*>(interfaceScope->lookupLocal("convert"));
-        ASSERT_NE(interfaceFunction, nullptr);
-        EXPECT_EQ(interfaceFunction->getOverloadings().size(), 2);
-
-        const auto directResult = analyze("import pkg.api.convert\n");
-        ASSERT_FALSE(directResult.hasErrors());
-        const auto* directScope = directResult.getScopeByAstNode(*module);
-        ASSERT_NE(directScope, nullptr);
-        const auto* directFunction = dynamic_cast<const FunctionSymbol*>(directScope->lookupLocal("convert"));
-        ASSERT_NE(directFunction, nullptr);
-        EXPECT_EQ(directFunction->getOverloadings().size(), 2);
-
-        const auto aliasResult = analyze("import pkg.api.convert as parse\n");
-        ASSERT_FALSE(aliasResult.hasErrors());
-        const auto* aliasScope = aliasResult.getScopeByAstNode(*module);
-        ASSERT_NE(aliasScope, nullptr);
-        const auto* aliasFunction = dynamic_cast<const FunctionSymbol*>(aliasScope->lookupLocal("parse"));
-        ASSERT_NE(aliasFunction, nullptr);
-        EXPECT_EQ(aliasFunction->getOverloadings().size(), 2);
-
-        const auto duplicateResult = analyze("import pkg.api.convert\nimport pkg.api.convert\n");
-        ASSERT_EQ(duplicateResult.getErrors().size(), 1);
-        EXPECT_EQ(duplicateResult.getErrors().front().getMessage(), "Redeclaration of symbol 'convert'");
-    }
-
     TEST_F(SemanticAnalyzerImportTest, DeclaresImportedSymbolsWithTheirKindsAndOriginalTargets) {
         writeFile(
             "dependency_source/api.vni",
             R"({
     "value": {"category": "let", "type": "int"},
-    "__vnl_function_run__": {"category": "func", "name": "run", "returnType": "void", "parameters": {}, "native": false},
+    "run": {"category": "func", "name": "run", "returnType": "void", "parameters": {}, "native": false},
     "Box": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {}, "baseClass": null, "implementedInterfaces": [], "final": false},
     "Readable": {"category": "interface", "genericParameters": [], "methods": {}, "operators": {}},
     "State": {"category": "enum", "genericParameters": [], "members": {}},
     "Alias": {"category": "typealias", "genericParameters": [], "originalType": "int"},
     "External": {"category": "imported", "source": "extra.tools.enabled"},
-    "__vnl_function_method__": {"category": "method", "name": "method", "returnType": "void", "parameters": {}, "native": false, "static": true, "accessModifier": "public"},
+    "method": {"category": "method", "name": "method", "returnType": "void", "parameters": {}, "native": false, "static": true, "accessModifier": "public"},
     "Ready": {"category": "enummember", "associatedValues": {}},
     "property": {"category": "property", "type": "int", "static": true, "accessModifier": "public"},
     "parameter": {"category": "parameter", "type": "int"}
@@ -1470,13 +1154,13 @@ func value(input: int) {}
         };
         const std::vector<ImportedIdentifier> identifiers = {
             { "value", "value", RegularSymbolKind::VARIABLE, false },
-            { "__vnl_function_run__", "run", RegularSymbolKind::FUNCTION, true },
+            { "run", "run", RegularSymbolKind::FUNCTION, true },
             { "Box", "Box", RegularSymbolKind::CLASS, false },
             { "Readable", "Readable", RegularSymbolKind::INTERFACE, false },
             { "State", "State", RegularSymbolKind::ENUM, false },
             { "Alias", "Alias", RegularSymbolKind::TYPE_ALIAS, false },
             { "External", "External", RegularSymbolKind::VARIABLE, false },
-            { "__vnl_function_method__", "method", RegularSymbolKind::METHOD, true },
+            { "method", "method", RegularSymbolKind::METHOD, true },
             { "Ready", "Ready", RegularSymbolKind::ENUM_MEMBER, false },
             { "property", "property", RegularSymbolKind::PROPERTY, false },
             { "parameter", "parameter", RegularSymbolKind::PARAMETER, false },
@@ -1886,10 +1570,7 @@ func value(input: int) {}
     }
 
     TEST_F(SemanticAnalyzerImportTest, RejectsFunctionRedeclarationsAcrossImportsAndLocalDeclarations) {
-        writeFile(
-            "dependency_source/api.vni",
-            R"({"__vnl_function_add--int__":{"category":"func","name":"add","returnType":"void","parameters":{"value":{"category":"parameter","type":"int"}},"native":false}})"
-        );
+        writeFile("dependency_source/api.vni", R"({"add":{"category":"func","name":"add","returnType":"void","parameters":{"value":{"category":"parameter","type":"int"}},"native":false}})");
 
         const auto result = analyze("import pkg.api.add\nfunc add(value: string) {}\n");
 

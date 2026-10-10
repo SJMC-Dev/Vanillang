@@ -18,7 +18,7 @@
             }
         },
         "methods": {
-            "__vnl_function_ExampleMethod__": {
+            "ExampleMethod": {
                 "category": "method",
                 "name": "ExampleMethod",
                 "returnType": "void",
@@ -33,7 +33,7 @@
         "baseClass": null,
         "implementedInterfaces": []
     },
-    "__vnl_function_ExampleFunction__": {
+    "ExampleFunction": {
         "category": "func",
         "name": "ExampleFunction",
         "returnType": "void",
