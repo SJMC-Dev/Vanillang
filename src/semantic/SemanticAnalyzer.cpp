@@ -430,7 +430,7 @@ namespace vnlc {
         }
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInModule(const ModuleNode& moduleNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode) {
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
@@ -465,33 +465,21 @@ namespace vnlc {
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
-            if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
-                collectLocalSymbolsInEnum(*enumDecl);
-            } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
-                collectLocalSymbolsInTypeAlias(*typeAliasDecl);
-            }
-        }
-
-        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
-            if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(topIdentifierDecl.get())) {
-                declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol");
-            }
-        }
-
-        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
-            DeclarationNode* declNode = topIdentifierDecl.get();
-
             if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(declNode)) {
-                collectLocalSymbolsInFunction(*funcDecl);
+                collectLocalRegularSymbolsInFunction(*funcDecl);
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
-                collectLocalSymbolsInClass(*classDecl);
+                collectLocalRegularSymbolsInClass(*classDecl);
             } else if (auto* interfaceDecl = dynamic_cast<InterfaceDeclarationNode*>(declNode)) {
-                collectLocalSymbolsInInterface(*interfaceDecl);
+                collectLocalRegularSymbolsInInterface(*interfaceDecl);
+            } else if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
+                collectLocalRegularSymbolsInEnum(*enumDecl);
+            } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
+                collectLocalRegularSymbolsInTypeAlias(*typeAliasDecl);
             }
         }
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInFunction(const FunctionDeclarationNode& functionNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &functionNode));
 
         for (const auto& parameter : functionNode.getParameters()) {
@@ -504,7 +492,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &constructorNode));
 
         for (const auto& parameter : constructorNode.getParameters()) {
@@ -517,7 +505,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInOperator(const OperatorDeclarationNode& operatorNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &operatorNode));
 
         for (const auto& parameter : operatorNode.getParameters()) {
@@ -530,7 +518,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInClass(const ClassDeclarationNode& classNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::CLASS, &context.currentScope(), &classNode));
         std::unordered_set<std::string> operatorNames;
         std::unordered_set<std::string> constructorNames;
@@ -554,10 +542,6 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
-        }
-
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
             if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
                 context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
@@ -571,21 +555,21 @@ namespace vnlc {
         }
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            collectLocalSymbolsInFunction(*methodDecl);
+            collectLocalRegularSymbolsInFunction(*methodDecl);
         }
 
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            collectLocalSymbolsInConstructor(*constructorDecl);
+            collectLocalRegularSymbolsInConstructor(*constructorDecl);
         }
 
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            collectLocalSymbolsInOperator(*operatorDecl);
+            collectLocalRegularSymbolsInOperator(*operatorDecl);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::INTERFACE, &context.currentScope(), &interfaceNode));
         std::unordered_set<std::string> operatorNames;
 
@@ -596,10 +580,6 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
-        }
-
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
             if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
                 context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
@@ -607,17 +587,17 @@ namespace vnlc {
         }
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            collectLocalSymbolsInFunction(*methodDecl);
+            collectLocalRegularSymbolsInFunction(*methodDecl);
         }
 
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            collectLocalSymbolsInOperator(*operatorDecl);
+            collectLocalRegularSymbolsInOperator(*operatorDecl);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInEnum(const EnumDeclarationNode& enumNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::ENUM, &context.currentScope(), &enumNode));
 
         for (const auto& member : enumNode.getMemberDeclarations()) {
@@ -635,13 +615,13 @@ namespace vnlc {
         }
 
         for (const auto& member : enumNode.getMemberDeclarations()) {
-            collectLocalSymbolsInEnumMember(*member);
+            collectLocalRegularSymbolsInEnumMember(*member);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::ENUM_MEMBER, &context.currentScope(), &enumMemberNode));
 
         for (const auto& associatedValue : enumMemberNode.getAssociatedValues()) {
@@ -654,7 +634,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
+    void SemanticAnalyzer::collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::TYPE_ALIAS, &context.currentScope(), &typeAliasNode));
 
         for (const auto& genericParamName : typeAliasNode.getGenericParameterNames()) {
@@ -667,6 +647,44 @@ namespace vnlc {
         context.popScope();
     }
 
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode) {
+        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
+            const DeclarationNode* declNode = topIdentifierDecl.get();
+
+            if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
+                declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol");
+            } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
+                collectLocalFunctionSymbolsInClass(*classDecl);
+            } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
+                collectLocalFunctionSymbolsInInterface(*interfaceDecl);
+            }
+        }
+    }
+
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode) {
+        if (!context.pushExistingScope(&classNode)) {
+            return;
+        }
+
+        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
+        }
+
+        context.popScope();
+    }
+
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        if (!context.pushExistingScope(&interfaceNode)) {
+            return;
+        }
+
+        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
+        }
+
+        context.popScope();
+    }
+
     void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, &moduleNode));
 
@@ -674,7 +692,8 @@ namespace vnlc {
             checkImport(*importDecl, config);
         }
 
-        collectLocalSymbolsInModule(moduleNode);
+        collectLocalRegularSymbolsInModule(moduleNode);
+        collectLocalFunctionSymbolsInModule(moduleNode);
 
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();

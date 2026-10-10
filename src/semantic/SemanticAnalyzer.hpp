@@ -56,15 +56,19 @@ namespace vnlc {
         void registerImportedTypeReferences(const ImportedItem& importedItem);
         void registerImportedScopes(const ImportedItem& item, const Scope* parent);
 
-        void collectLocalSymbolsInModule(const ModuleNode& moduleNode);
-        void collectLocalSymbolsInFunction(const FunctionDeclarationNode& functionNode);
-        void collectLocalSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode);
-        void collectLocalSymbolsInOperator(const OperatorDeclarationNode& operatorNode);
-        void collectLocalSymbolsInClass(const ClassDeclarationNode& classNode);
-        void collectLocalSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
-        void collectLocalSymbolsInEnum(const EnumDeclarationNode& enumNode);
-        void collectLocalSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
-        void collectLocalSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
+        void collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode);
+        void collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode);
+        void collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode);
+        void collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode);
+        void collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode);
+        void collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode);
+        void collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
+        void collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
+
+        void collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode);
+        void collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode);
+        void collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
 
         void checkIdentifierExpressionUse(const IdentifierLikeExpressionNode& exprNode, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
 
