@@ -412,6 +412,156 @@ interface Duplicable {
         EXPECT_EQ(result.getErrors()[2].getMessage(), "Redeclaration of interface method '__vnl_function_duplicate--int__'");
     }
 
+    TEST(SemanticAnalyzerTest, CollectsRegularSymbolsThroughoutModuleBeforeFunctionSymbols) {
+        constexpr std::string_view source = R"(
+func duplicate(moduleParameter: int, moduleParameter: int) {}
+func duplicate(first: int, second: int) {}
+class Duplicator<T, T> {
+    property: int
+    property: int
+    func duplicate(classParameter: int, classParameter: int) {}
+    func duplicate(first: int, second: int) {}
+    init(constructorParameter: int, constructorParameter: int) {}
+    op +(operatorParameter: int, operatorParameter: int) {}
+}
+interface Duplicable<U, U> {
+    func duplicate(interfaceParameter: int, interfaceParameter: int) -> void
+    func duplicate(first: int, second: int) -> void
+}
+type Identity<V, V> = V
+)";
+        const auto config = makeConfig("symbol_collection_order.vnl");
+        auto module = parseModule(source, config);
+
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 5);
+        for (std::size_t index = 0; index < 2; ++index) {
+            const auto* function = dynamic_cast<const FunctionDeclarationNode*>(declarations[index].get());
+            ASSERT_NE(function, nullptr);
+            function->setInternalName("__vnl_function_duplicate--int-int__");
+        }
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[2].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        for (const auto& method : classDeclaration->getMethodDeclarations()) {
+            method->setInternalName("__vnl_function_duplicate--int-int__");
+        }
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[3].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        for (const auto& method : interfaceDeclaration->getMethodDeclarations()) {
+            method->setInternalName("__vnl_function_duplicate--int-int__");
+        }
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        const std::vector<std::string_view> expectedErrors = {
+            "Redeclaration of parameter 'moduleParameter'",
+            "Redeclaration of class member 'property'",
+            "Redeclaration of generic parameter 'T'",
+            "Redeclaration of parameter 'classParameter'",
+            "Redeclaration of parameter 'constructorParameter'",
+            "Redeclaration of parameter 'operatorParameter'",
+            "Redeclaration of generic parameter 'U'",
+            "Redeclaration of parameter 'interfaceParameter'",
+            "Redeclaration of generic parameter 'V'",
+            "Redeclaration of symbol '__vnl_function_duplicate--int-int__'",
+            "Redeclaration of class member '__vnl_function_duplicate--int-int__'",
+            "Redeclaration of interface method '__vnl_function_duplicate--int-int__'",
+        };
+        ASSERT_EQ(result.getErrors().size(), expectedErrors.size());
+        for (std::size_t index = 0; index < expectedErrors.size(); ++index) {
+            EXPECT_EQ(result.getErrors()[index].getMessage(), expectedErrors[index]);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RetainsRegularSymbolsAndScopesWhenCollectingFunctionSymbols) {
+        constexpr std::string_view source = R"(
+func read(input: Later) -> Later { return input }
+class Box<T> {
+    value: T
+    func read(input: T) -> T { return input }
+    init(input: T) {}
+    op +(input: T) -> T { return input }
+}
+interface Readable<T> {
+    func read(input: T) -> T
+    op +(input: T) -> T
+}
+class Later {}
+)";
+        const auto config = makeConfig("symbol_collection_scopes.vnl");
+        auto module = parseModule(source, config);
+
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 4);
+        const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[0].get());
+        ASSERT_NE(functionDeclaration, nullptr);
+        functionDeclaration->setInternalName("__vnl_function_read--Later__");
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        classDeclaration->getMethodDeclarations().front()->setInternalName("__vnl_function_read--T__");
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        interfaceDeclaration->getMethodDeclarations().front()->setInternalName("__vnl_function_read--T__");
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* moduleScope = result.getScopeByAstNode(*module);
+        ASSERT_NE(moduleScope, nullptr);
+        const auto* functionScope = result.getScopeByAstNode(*functionDeclaration);
+        ASSERT_NE(functionScope, nullptr);
+        EXPECT_EQ(functionScope->findParent(), moduleScope);
+        EXPECT_NE(functionScope->lookupLocal("input"), nullptr);
+        EXPECT_EQ(functionScope->lookup("Later"), moduleScope->lookupLocal("Later"));
+
+        const auto* classScope = result.getScopeByAstNode(*classDeclaration);
+        ASSERT_NE(classScope, nullptr);
+        EXPECT_EQ(classScope->findParent(), moduleScope);
+        EXPECT_NE(classScope->lookupLocal("value"), nullptr);
+        EXPECT_NE(classScope->lookupLocal("T"), nullptr);
+        EXPECT_NE(dynamic_cast<const FunctionSymbol*>(classScope->lookupLocal("read")), nullptr);
+        ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
+        const std::vector<const AstNode*> classCallables = {
+            classDeclaration->getMethodDeclarations().front().get(),
+            classDeclaration->getConstructorDeclarations().front().get(),
+            classDeclaration->getOperatorDeclarations().front().get(),
+        };
+        for (const auto* callable : classCallables) {
+            const auto* scope = result.getScopeByAstNode(*callable);
+            ASSERT_NE(scope, nullptr);
+            EXPECT_EQ(scope->findParent(), classScope);
+            EXPECT_NE(scope->lookupLocal("input"), nullptr);
+            EXPECT_EQ(scope->lookup("T"), classScope->lookupLocal("T"));
+        }
+
+        const auto* interfaceScope = result.getScopeByAstNode(*interfaceDeclaration);
+        ASSERT_NE(interfaceScope, nullptr);
+        EXPECT_EQ(interfaceScope->findParent(), moduleScope);
+        EXPECT_NE(interfaceScope->lookupLocal("T"), nullptr);
+        EXPECT_NE(dynamic_cast<const FunctionSymbol*>(interfaceScope->lookupLocal("read")), nullptr);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
+        const std::vector<const AstNode*> interfaceCallables = {
+            interfaceDeclaration->getMethodDeclarations().front().get(),
+            interfaceDeclaration->getOperatorDeclarations().front().get(),
+        };
+        for (const auto* callable : interfaceCallables) {
+            const auto* scope = result.getScopeByAstNode(*callable);
+            ASSERT_NE(scope, nullptr);
+            EXPECT_EQ(scope->findParent(), interfaceScope);
+            EXPECT_NE(scope->lookupLocal("input"), nullptr);
+            EXPECT_EQ(scope->lookup("T"), interfaceScope->lookupLocal("T"));
+        }
+    }
+
     TEST(SemanticAnalyzerTest, RejectsFunctionAndNonFunctionNameCollisions) {
         constexpr std::string_view source = R"(
 let value = 0
