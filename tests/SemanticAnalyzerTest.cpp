@@ -235,6 +235,242 @@ class Vec3 {
         EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of parameter 'value'");
     }
 
+    TEST(SemanticAnalyzerTest, GeneratesInternalNamesForParameterlessCallables) {
+        constexpr std::string_view source = R"(
+func reset() {}
+class Counter {
+    func reset() {}
+    init() {}
+    op ()() -> int { return 0 }
+}
+interface Resettable {
+    func reset()
+    op ()() -> int
+}
+)";
+        const auto config = makeConfig("parameterless_internal_names.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 3);
+        const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[0].get());
+        ASSERT_NE(functionDeclaration, nullptr);
+        EXPECT_EQ(functionDeclaration->getInternalName(), "vnl-function-reset()");
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(classDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-reset()");
+        EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor()");
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call()");
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-reset()");
+        EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call()");
+    }
+
+    TEST(SemanticAnalyzerTest, GeneratesInternalNamesFromResolvedParameterTypes) {
+        constexpr std::string_view source = R"(
+func combine(first: Alias, second: Box<int>, third: string) {}
+class Holder {
+    func combine(first: Alias, second: Box<int>, third: string) {}
+    init(first: Alias, second: Box<int>, third: string) {}
+    op ()(first: Alias, second: Box<int>, third: string) -> int { return 0 }
+}
+interface Combiner {
+    func combine(first: Alias, second: Box<int>, third: string)
+    op ()(first: Alias, second: Box<int>, third: string) -> int
+}
+type Alias = Later
+class Box<T> {}
+class Later {}
+)";
+        const auto config = makeConfig("resolved_parameter_internal_names.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 6);
+        const std::string signature = "(" + std::string(module->getFullName()) + ".Later, " + std::string(module->getFullName()) + ".Box<int>, string)";
+        const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[0].get());
+        ASSERT_NE(functionDeclaration, nullptr);
+        EXPECT_EQ(functionDeclaration->getInternalName(), "vnl-function-combine" + signature);
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(classDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-combine" + signature);
+        EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor" + signature);
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call" + signature);
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-combine" + signature);
+        EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call" + signature);
+    }
+
+    TEST(SemanticAnalyzerTest, RetainsFunctionOverloadsWithDifferentParameterSignatures) {
+        constexpr std::string_view source = R"(
+func convert() {}
+func convert(value: int) {}
+func convert(value: string) {}
+func convert(first: int, second: string) {}
+func convert(first: string, second: int) {}
+)";
+        const auto config = makeConfig("function_overload_signatures.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* moduleScope = result.getScopeByAstNode(*module);
+        ASSERT_NE(moduleScope, nullptr);
+        const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(moduleScope->lookupLocal("convert"));
+        ASSERT_NE(functionSymbol, nullptr);
+        const std::vector<std::string_view> expectedNames = {
+            "vnl-function-convert()", "vnl-function-convert(int)", "vnl-function-convert(string)", "vnl-function-convert(int, string)", "vnl-function-convert(string, int)",
+        };
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), expectedNames.size());
+        ASSERT_EQ(functionSymbol->getOverloadings().size(), expectedNames.size());
+        for (std::size_t index = 0; index < expectedNames.size(); ++index) {
+            SCOPED_TRACE(expectedNames[index]);
+            const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[index].get());
+            ASSERT_NE(functionDeclaration, nullptr);
+            EXPECT_EQ(functionDeclaration->getInternalName(), expectedNames[index]);
+            const auto* overloading = functionSymbol->getOverloadingByInternalName(expectedNames[index]);
+            ASSERT_NE(overloading, nullptr);
+            EXPECT_EQ(overloading->getLocalNode(), functionDeclaration);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, GeneratesMemberInternalNamesInTheirDeclaringScopes) {
+        constexpr std::string_view source = R"(
+type T = int
+class Box<T> {
+    func read(input: T) -> T { return input }
+    func read(input: string) -> string { return input }
+    init(input: T) {}
+    op +(input: T) -> T { return input }
+}
+func afterClass(input: T) {}
+interface Readable<R> {
+    func read(input: R) -> R
+    func read(input: string) -> string
+    op +(input: R) -> R
+}
+func afterInterface(input: T) {}
+)";
+        const auto config = makeConfig("member_internal_name_scopes.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 5);
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 2);
+        ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(classDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(T)");
+        EXPECT_EQ(classDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(string)");
+        EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor(T)");
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(T)");
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[3].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 2);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(R)");
+        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(string)");
+        EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(R)");
+
+        const auto* moduleScope = result.getScopeByAstNode(*module);
+        ASSERT_NE(moduleScope, nullptr);
+        EXPECT_EQ(moduleScope->lookupLocal("read"), nullptr);
+        for (const auto* declaration : { declarations[2].get(), declarations[4].get() }) {
+            const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declaration);
+            ASSERT_NE(functionDeclaration, nullptr);
+            const std::string expectedName = "vnl-function-" + std::string(functionDeclaration->getName().getIdentifierString()) + "(int)";
+            EXPECT_EQ(functionDeclaration->getInternalName(), expectedName);
+            const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(moduleScope->lookupLocal(functionDeclaration->getName().getIdentifierString()));
+            ASSERT_NE(functionSymbol, nullptr);
+            const auto* overloading = functionSymbol->getOverloadingByInternalName(expectedName);
+            ASSERT_NE(overloading, nullptr);
+            EXPECT_EQ(overloading->getLocalNode(), functionDeclaration);
+        }
+
+        for (const auto* declaration : { declarations[1].get(), declarations[3].get() }) {
+            const auto* scope = result.getScopeByAstNode(*declaration);
+            ASSERT_NE(scope, nullptr);
+            EXPECT_EQ(scope->findParent(), moduleScope);
+            const auto* methodSymbol = dynamic_cast<const FunctionSymbol*>(scope->lookupLocal("read"));
+            ASSERT_NE(methodSymbol, nullptr);
+            EXPECT_EQ(methodSymbol->getOverloadings().size(), 2);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, ContinuesGeneratingInternalNamesAfterInvalidParameterTypes) {
+        const std::vector<std::string_view> sources = {
+            "func broken(first: int, second: Missing) {}",
+            "class Box {\n    func broken(first: int, second: Missing) {}\n}",
+            "class Box {\n    init(first: int, second: Missing) {}\n}",
+            "class Box {\n    op +(first: int, second: Missing) -> int { return 0 }\n}",
+            "interface Readable {\n    func broken(first: int, second: Missing)\n}",
+            "interface Readable {\n    op +(first: int, second: Missing) -> int\n}",
+        };
+        for (const auto source : sources) {
+            SCOPED_TRACE(source);
+            const auto config = makeConfig("invalid_parameter_internal_names.vnl");
+            auto module = parseModule(std::string(source) + "\nfunc after(value: int) {}\n", config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_TRUE(result.hasErrors());
+            for (const auto& error : result.getErrors()) {
+                EXPECT_EQ(error.getMessage(), "Use of undeclared type 'Missing'");
+            }
+            const auto& declarations = module->getTopIdentifierDeclarations();
+            ASSERT_EQ(declarations.size(), 2);
+            const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations.back().get());
+            ASSERT_NE(functionDeclaration, nullptr);
+            EXPECT_EQ(functionDeclaration->getInternalName(), "vnl-function-after(int)");
+            const auto* moduleScope = result.getScopeByAstNode(*module);
+            ASSERT_NE(moduleScope, nullptr);
+            const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(moduleScope->lookupLocal("after"));
+            ASSERT_NE(functionSymbol, nullptr);
+            const auto* overloading = functionSymbol->getOverloadingByInternalName("vnl-function-after(int)");
+            ASSERT_NE(overloading, nullptr);
+            EXPECT_EQ(overloading->getLocalNode(), functionDeclaration);
+        }
+    }
+
     TEST(SemanticAnalyzerTest, RetainsRegularSymbolsAndScopesWhenCollectingFunctionSymbols) {
         constexpr std::string_view source = R"(
 func read(input: Later) -> Later { return input }
@@ -332,6 +568,212 @@ func value(input: int) {}
         ASSERT_TRUE(result.hasErrors());
         ASSERT_EQ(result.getErrors().size(), 1);
         EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of symbol 'value'");
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsDuplicateFunctionSignaturesAfterResolvingAliases) {
+        struct TestCase {
+            std::string_view source;
+            std::string_view expectedMessage;
+        };
+        constexpr TestCase testCases[] = {
+            {
+                R"(
+type Count = int
+func read(first: Count) -> int { return 0 }
+func read(second: int) -> string { return "value" }
+)",
+                "Redeclaration of symbol 'vnl-function-read(int)'",
+            },
+            {
+                R"(
+type Count = int
+class Reader {
+    func read(first: Count) -> int { return 0 }
+    func read(second: int) -> string { return "value" }
+}
+)",
+                "Redeclaration of class member 'vnl-function-read(int)'",
+            },
+            {
+                R"(
+type Count = int
+interface Reader {
+    func read(first: Count) -> int
+    func read(second: int) -> string
+}
+)",
+                "Redeclaration of interface method 'vnl-function-read(int)'",
+            },
+        };
+
+        for (const auto& testCase : testCases) {
+            SCOPED_TRACE(testCase.source);
+            const auto config = makeConfig("duplicate_function_signatures.vnl");
+            auto module = parseModule(testCase.source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_TRUE(result.hasErrors());
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), testCase.expectedMessage);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsDuplicateConstructorSignatures) {
+        struct TestCase {
+            std::string_view source;
+            std::string_view expectedMessage;
+        };
+        constexpr TestCase testCases[] = {
+            {
+                R"(
+class Value {
+    init() {}
+    init() {}
+}
+)",
+                "Redeclaration of class member 'vnl-constructor()'",
+            },
+            {
+                R"(
+type Count = int
+class Value {
+    init(first: Count) {}
+    init(second: int) {}
+}
+)",
+                "Redeclaration of class member 'vnl-constructor(int)'",
+            },
+        };
+
+        for (const auto& testCase : testCases) {
+            SCOPED_TRACE(testCase.source);
+            const auto config = makeConfig("duplicate_constructor_signatures.vnl");
+            auto module = parseModule(testCase.source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_TRUE(result.hasErrors());
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), testCase.expectedMessage);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsDuplicateOperatorSignatures) {
+        struct TestCase {
+            std::string_view source;
+            std::string_view expectedMessage;
+        };
+        constexpr TestCase testCases[] = {
+            {
+                R"(
+class Callable {
+    op ()() -> int { return 0 }
+    op ()() -> string { return "value" }
+}
+)",
+                "Redeclaration of class member 'vnl-operator-call()'",
+            },
+            {
+                R"(
+interface Callable {
+    op ()() -> int
+    op ()() -> string
+}
+)",
+                "Redeclaration of interface operator 'vnl-operator-call()'",
+            },
+            {
+                R"(
+type Count = int
+class Addable {
+    op +(first: Count) -> int { return 0 }
+    op +(second: int) -> string { return "value" }
+}
+)",
+                "Redeclaration of class member 'vnl-operator-addition(int)'",
+            },
+            {
+                R"(
+type Count = int
+interface Addable {
+    op +(first: Count) -> int
+    op +(second: int) -> string
+}
+)",
+                "Redeclaration of interface operator 'vnl-operator-addition(int)'",
+            },
+        };
+
+        for (const auto& testCase : testCases) {
+            SCOPED_TRACE(testCase.source);
+            const auto config = makeConfig("duplicate_operator_signatures.vnl");
+            auto module = parseModule(testCase.source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_TRUE(result.hasErrors());
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), testCase.expectedMessage);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, AcceptsDistinctConstructorAndOperatorSignatures) {
+        constexpr std::string_view source = R"(
+class Callable {
+    init() {}
+    init(value: int) {}
+    init(value: string) {}
+    op ()() -> int { return 0 }
+    op ()(value: int) -> int { return value }
+    op ()(value: string) -> string { return value }
+}
+interface Invocable {
+    op ()() -> int
+    op ()(value: int) -> int
+    op ()(value: string) -> string
+}
+)";
+        const auto config = makeConfig("distinct_constructor_operator_signatures.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto& declarations = module->getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 2);
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[0].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 3);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 3);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 3);
+
+        constexpr std::string_view constructorNames[] = {
+            "vnl-constructor()",
+            "vnl-constructor(int)",
+            "vnl-constructor(string)",
+        };
+        constexpr std::string_view operatorNames[] = {
+            "vnl-operator-call()",
+            "vnl-operator-call(int)",
+            "vnl-operator-call(string)",
+        };
+        for (std::size_t index = 0; index < 3; ++index) {
+            SCOPED_TRACE(index);
+            EXPECT_EQ(classDeclaration->getConstructorDeclarations()[index]->getInternalName(), constructorNames[index]);
+            EXPECT_EQ(classDeclaration->getOperatorDeclarations()[index]->getInternalName(), operatorNames[index]);
+            EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations()[index]->getInternalName(), operatorNames[index]);
+        }
     }
 
     TEST(SemanticContextTest, RetainsPoppedScopesAndTheirParents) {
