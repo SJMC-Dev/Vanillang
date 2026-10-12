@@ -522,8 +522,6 @@ namespace vnlc {
 
     void SemanticAnalyzer::collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::CLASS, &context.currentScope(), &classNode));
-        std::unordered_set<std::string> operatorNames;
-        std::unordered_set<std::string> constructorNames;
 
         for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
             RegularSymbol memberSymbol(
@@ -544,18 +542,6 @@ namespace vnlc {
             }
         }
 
-        for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
-                context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
-            }
-        }
-
-        for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName()));
-            }
-        }
-
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
             collectLocalRegularSymbolsInFunction(*methodDecl);
         }
@@ -573,18 +559,11 @@ namespace vnlc {
 
     void SemanticAnalyzer::collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::INTERFACE, &context.currentScope(), &interfaceNode));
-        std::unordered_set<std::string> operatorNames;
 
         for (const auto& genericParamName : interfaceNode.getGenericParameterNames()) {
             RegularSymbol genericParamSymbol(RegularSymbolKind::GENERIC_PARAMETER, RegularSymbolAccessModifier::PUBLIC, genericParamName->getIdentifierString(), &interfaceNode);
             if (!context.currentScope().declare(std::move(genericParamSymbol))) {
                 context.reportError(interfaceNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString()));
-            }
-        }
-
-        for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
             }
         }
 
@@ -667,6 +646,20 @@ namespace vnlc {
         if (!context.pushExistingScope(&classNode)) {
             return;
         }
+        std::unordered_set<std::string> operatorNames;
+        std::unordered_set<std::string> constructorNames;
+
+        for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
+            if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
+                context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
+            }
+        }
+
+        for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
+            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
+                context.reportError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName()));
+            }
+        }
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
             declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
@@ -678,6 +671,13 @@ namespace vnlc {
     void SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
         if (!context.pushExistingScope(&interfaceNode)) {
             return;
+        }
+        std::unordered_set<std::string> operatorNames;
+
+        for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
+            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
+                context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
+            }
         }
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
@@ -695,10 +695,14 @@ namespace vnlc {
             name.append((functionNode->getName().getIdentifierString()));
             name.append("(");
             for (const auto& param : functionNode->getParameters()) {
-                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                const TypeReferenceNode* typeRef = param->getType()->get();
+                const Type* semanticType = checkType(*typeRef);
+                if (!semanticType) return;
+
+                name.append(semanticType->getFullTypeName());
                 name.append(", ");
             }
-            name.erase(name.size() - 2);
+            if (name.ends_with(", ")) name.erase(name.size() - 2);
             name.append(")");
 
             functionNode->setInternalName(name);
@@ -706,10 +710,14 @@ namespace vnlc {
             name.append("vnl-constructor");
             name.append("(");
             for (const auto& param : constructorNode->getParameters()) {
-                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                const TypeReferenceNode* typeRef = param->getType()->get();
+                const Type* semanticType = checkType(*typeRef);
+                if (!semanticType) return;
+
+                name.append(semanticType->getFullTypeName());
                 name.append(", ");
             }
-            name.erase(name.size() - 2);
+            if (name.ends_with(", ")) name.erase(name.size() - 2);
             name.append(")");
 
             constructorNode->setInternalName(name);
@@ -718,10 +726,14 @@ namespace vnlc {
             name.append((operatorNode->getOperatorName()));
             name.append("(");
             for (const auto& param : operatorNode->getParameters()) {
-                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                const TypeReferenceNode* typeRef = param->getType()->get();
+                const Type* semanticType = checkType(*typeRef);
+                if (!semanticType) return;
+
+                name.append(semanticType->getFullTypeName());
                 name.append(", ");
             }
-            name.erase(name.size() - 2);
+            if (name.ends_with(", ")) name.erase(name.size() - 2);
             name.append(")");
 
             operatorNode->setInternalName(name);
@@ -743,6 +755,8 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode) {
+        if (!context.pushExistingScope(&classNode)) return;
+
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
             generateInternalName(*methodDecl);
         }
@@ -754,9 +768,13 @@ namespace vnlc {
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
             generateInternalName(*operatorDecl);
         }
+
+        context.popScope();
     }
 
     void SemanticAnalyzer::generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        if (!context.pushExistingScope(&interfaceNode)) return;
+
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
             generateInternalName(*methodDecl);
         }
@@ -764,6 +782,8 @@ namespace vnlc {
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
             generateInternalName(*operatorDecl);
         }
+
+        context.popScope();
     }
 
     void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
