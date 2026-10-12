@@ -1,8 +1,10 @@
 #include "SemanticAnalyzer.hpp"
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
+#include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
+#include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
@@ -685,6 +687,85 @@ namespace vnlc {
         context.popScope();
     }
 
+    void SemanticAnalyzer::generateInternalName(const DeclarationNode& node) {
+        std::string name;
+
+        if (const FunctionDeclarationNode* functionNode = dynamic_cast<const FunctionDeclarationNode*>(&node)) {
+            name.append("vnl-function-");
+            name.append((functionNode->getName().getIdentifierString()));
+            name.append("(");
+            for (const auto& param : functionNode->getParameters()) {
+                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                name.append(", ");
+            }
+            name.erase(name.size() - 2);
+            name.append(")");
+
+            functionNode->setInternalName(name);
+        } else if (const ConstructorDeclarationNode* constructorNode = dynamic_cast<const ConstructorDeclarationNode*>(&node)) {
+            name.append("vnl-constructor");
+            name.append("(");
+            for (const auto& param : constructorNode->getParameters()) {
+                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                name.append(", ");
+            }
+            name.erase(name.size() - 2);
+            name.append(")");
+
+            constructorNode->setInternalName(name);
+        } else if (const OperatorDeclarationNode* operatorNode = dynamic_cast<const OperatorDeclarationNode*>(&node)) {
+            name.append("vnl-operator-");
+            name.append((operatorNode->getOperatorName()));
+            name.append("(");
+            for (const auto& param : operatorNode->getParameters()) {
+                name.append(context.getTypeByTypeReferenceNode(param->getType()->get())->getFullTypeName());
+                name.append(", ");
+            }
+            name.erase(name.size() - 2);
+            name.append(")");
+
+            operatorNode->setInternalName(name);
+        }
+    }
+
+    void SemanticAnalyzer::generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode) {
+        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
+            const DeclarationNode* declNode = topIdentifierDecl.get();
+
+            if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
+                generateInternalName(*funcDecl);
+            } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
+                generateInternalNameForOverloadablesInClass(*classDecl);
+            } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
+                generateInternalNameForOverloadablesInInterface(*interfaceDecl);
+            }
+        }
+    }
+
+    void SemanticAnalyzer::generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode) {
+        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+            generateInternalName(*methodDecl);
+        }
+
+        for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
+            generateInternalName(*constructorDecl);
+        }
+
+        for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
+            generateInternalName(*operatorDecl);
+        }
+    }
+
+    void SemanticAnalyzer::generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+            generateInternalName(*methodDecl);
+        }
+
+        for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
+            generateInternalName(*operatorDecl);
+        }
+    }
+
     void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, &moduleNode));
 
@@ -693,6 +774,7 @@ namespace vnlc {
         }
 
         collectLocalRegularSymbolsInModule(moduleNode);
+        generateInternalNameForOverloadablesInModule(moduleNode);
         collectLocalFunctionSymbolsInModule(moduleNode);
 
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {

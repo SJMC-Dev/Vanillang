@@ -3,6 +3,7 @@
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
+#include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
 #include "ast/declaration/ExportDeclarationNode.hpp"
@@ -69,6 +70,11 @@ namespace vnlc {
         void collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode);
         void collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode);
         void collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
+
+        void generateInternalName(const DeclarationNode& node);
+        void generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode);
+        void generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode);
+        void generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode);
 
         void checkIdentifierExpressionUse(const IdentifierLikeExpressionNode& exprNode, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
 
