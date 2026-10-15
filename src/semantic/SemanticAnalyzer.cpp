@@ -47,7 +47,6 @@
 #include "type/CustomizedTypeKind.hpp"
 #include "type/PrimitiveType.hpp"
 #include "type/Type.hpp"
-#include "type/typeinf/TypeInferenceResult.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
@@ -1941,18 +1940,6 @@ namespace vnlc {
         };
 
         return checkTypeWithCyclicDetection(type, TypeSubstitutionMap{}, {});
-    }
-
-    TypeInferenceResult SemanticAnalyzer::inferExpressionType(const ExpressionNode& expression) {
-        // TODO: Implement expression type inference
-
-        return TypeInferenceResult::failed();
-    }
-
-    TypeInferenceResult SemanticAnalyzer::inferReturnType(const BlockStatementNode& statement) {
-        // TODO: Implement return type inference
-
-        return TypeInferenceResult::failed();
     }
 
     SemanticResult SemanticAnalyzer::analyze(const Config& config) {

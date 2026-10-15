@@ -16,7 +16,6 @@
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/expression/IdentifierLikeExpressionNode.hpp"
 #include "ast/module/ModuleNode.hpp"
-#include "ast/statement/BlockStatementNode.hpp"
 #include "ast/statement/StatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "config/Config.hpp"
@@ -26,7 +25,6 @@
 #include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
 #include "type/Type.hpp"
-#include "type/typeinf/TypeInferenceResult.hpp"
 #include "vni/import/ImportedItem.hpp"
 #include "vni/import/ImportedPackage.hpp"
 #include <memory>
@@ -94,9 +92,6 @@ namespace vnlc {
         void checkStatement(const StatementNode& statement);
         void checkExpression(const ExpressionNode& expression);
         const Type* checkType(const TypeReferenceNode& type);
-
-        [[nodiscard]] TypeInferenceResult inferExpressionType(const ExpressionNode& expression);
-        [[nodiscard]] TypeInferenceResult inferReturnType(const BlockStatementNode& statement);
 
     public:
         explicit SemanticAnalyzer(const ModuleNode& module);
