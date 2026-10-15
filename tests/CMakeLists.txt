@@ -117,6 +117,13 @@ add_executable(
     SymbolTest.cpp
 )
 
+add_executable(
+    vnlctest_type
+    ${PROJECT_SOURCE_DIR}/src/type/PrimitiveType.cpp
+    ${PROJECT_SOURCE_DIR}/src/type/CustomizedType.cpp
+    TypeTest.cpp
+)
+
 target_include_directories(
     vnlctest_lexer
     PRIVATE
@@ -153,6 +160,12 @@ target_include_directories(
     "${PROJECT_SOURCE_DIR}/src"
 )
 
+target_include_directories(
+    vnlctest_type
+    PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
+)
+
 target_link_libraries(
     vnlctest_lexer
     PRIVATE
@@ -200,6 +213,12 @@ target_link_libraries(
 
 target_link_libraries(
     vnlctest_symbol
+    PRIVATE
+    GTest::gtest_main
+)
+
+target_link_libraries(
+    vnlctest_type
     PRIVATE
     GTest::gtest_main
 )
@@ -217,3 +236,4 @@ gtest_discover_tests(vnlctest_collector)
 gtest_discover_tests(vnlctest_semantic)
 gtest_discover_tests(vnlctest_vni)
 gtest_discover_tests(vnlctest_symbol)
+gtest_discover_tests(vnlctest_type)
