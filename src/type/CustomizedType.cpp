@@ -1,5 +1,6 @@
 #include "CustomizedType.hpp"
 #include "type/CustomizedTypeOrigin.hpp"
+#include "type/PrimitiveType.hpp"
 
 namespace vnlc {
     CustomizedType::CustomizedType(CustomizedTypeKind customizedKind, std::string_view fullTypeName, std::vector<const Type*>&& genericArguments, const TypeDeclarationNode* localNode)
@@ -31,8 +32,16 @@ namespace vnlc {
     }
 
     bool CustomizedType::canConvertTo(const Type& other) const noexcept {
-        // TODO
+        if (dynamic_cast<const PrimitiveType*>(&other) != nullptr) {
+            // TODO: Support customized conversions to primitive types.
+            return false;
+        }
 
+        const auto* customizedType = dynamic_cast<const CustomizedType*>(&other);
+        if (customizedType == nullptr) return false;
+        if (fullTypeName == customizedType->fullTypeName) return true;
+
+        // TODO: Check base classes and interfaces once the inheritance graph is available.
         return false;
     }
 

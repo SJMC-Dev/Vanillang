@@ -43,9 +43,26 @@ namespace vnlc {
     }
 
     bool PrimitiveType::canConvertTo(const Type& other) const noexcept {
-        // TODO
+        const auto* primitiveType = dynamic_cast<const PrimitiveType*>(&other);
+        if (primitiveType == nullptr) return false;
 
-        return false;
+        const PrimitiveTypeKind targetKind = primitiveType->primitiveKind;
+        if (primitiveKind == targetKind) return true;
+        if (primitiveKind == PrimitiveTypeKind::STRING || targetKind == PrimitiveTypeKind::STRING) return false;
+        if (primitiveKind == PrimitiveTypeKind::BOOLEAN || targetKind == PrimitiveTypeKind::BOOLEAN) return true;
+
+        switch (primitiveKind) {
+            case PrimitiveTypeKind::BYTE:
+                return targetKind == PrimitiveTypeKind::SHORT || targetKind == PrimitiveTypeKind::INT || targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::SHORT:
+                return targetKind == PrimitiveTypeKind::INT || targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::INT:
+                return targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::FLOAT:
+                return targetKind == PrimitiveTypeKind::DOUBLE;
+            default:
+                return false;
+        }
     }
 
     const PrimitiveType* PrimitiveType::BYTE_TYPE = nullptr;
