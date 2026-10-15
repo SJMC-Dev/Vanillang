@@ -29,6 +29,7 @@ namespace vnlc {
 
         [[nodiscard]] PrimitiveTypeKind getPrimitiveKind() const noexcept;
         [[nodiscard]] std::string_view getFullTypeName() const noexcept override;
+        [[nodiscard]] bool canConvertTo(const Type& other) const noexcept override;
 
         [[nodiscard]] static const PrimitiveType* byteType();
         [[nodiscard]] static const PrimitiveType* shortType();

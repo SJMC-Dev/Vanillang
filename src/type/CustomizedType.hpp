@@ -26,6 +26,7 @@ namespace vnlc {
         CustomizedType(CustomizedTypeKind customizedKind, std::string_view fullTypeName, std::vector<const Type*>&& genericArguments, const ImportedIdentifier* importedNode);
 
         [[nodiscard]] std::string_view getFullTypeName() const noexcept override;
+        [[nodiscard]] bool canConvertTo(const Type& other) const noexcept override;
         [[nodiscard]] const std::vector<const Type*> getGenericArguments() const noexcept;
         [[nodiscard]] CustomizedTypeKind getCustomizedKind() const noexcept;
         [[nodiscard]] CustomizedTypeOrigin getOrigin() const noexcept;

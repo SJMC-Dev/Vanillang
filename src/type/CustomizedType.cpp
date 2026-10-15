@@ -30,6 +30,12 @@ namespace vnlc {
         return fullTypeName;
     }
 
+    bool CustomizedType::canConvertTo(const Type& other) const noexcept {
+        // TODO
+
+        return false;
+    }
+
     const std::vector<const Type*> CustomizedType::getGenericArguments() const noexcept {
         return genericArguments;
     }

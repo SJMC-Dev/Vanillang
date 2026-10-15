@@ -42,6 +42,12 @@ namespace vnlc {
         return "unknown"; // should never reach here
     }
 
+    bool PrimitiveType::canConvertTo(const Type& other) const noexcept {
+        // TODO
+
+        return false;
+    }
+
     const PrimitiveType* PrimitiveType::BYTE_TYPE = nullptr;
     const PrimitiveType* PrimitiveType::SHORT_TYPE = nullptr;
     const PrimitiveType* PrimitiveType::INT_TYPE = nullptr;
