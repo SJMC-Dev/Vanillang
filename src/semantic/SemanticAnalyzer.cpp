@@ -4,6 +4,7 @@
 #include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
+#include "ast/declaration/FunctionDeclarationKind.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
@@ -39,6 +40,7 @@
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
+#include "fmt/format.h"
 #include "symbol/RegularSymbol.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
@@ -1030,6 +1032,8 @@ namespace vnlc {
 
     void SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl, MetadataInfo metadataInfo) {
         auto kind = varDecl.getKind();
+
+        const bool hasTypeReference = varDecl.getType().has_value();
         const bool hasInitializer = varDecl.getInitializer().has_value();
         const bool requiresInitializer = kind == ValueDeclarationKind::Kind::LET || kind == ValueDeclarationKind::Kind::STATIC_PROPERTY;
 
@@ -1046,11 +1050,18 @@ namespace vnlc {
             checkExpression(*varDecl.getInitializer().value());
         }
 
-        if (varDecl.getType().has_value()) {
+        if (hasTypeReference) {
             checkType(*varDecl.getType()->get());
-        }
 
-        // TODO: Implement type inference
+            if (hasInitializer) {
+                const Type* exprType = context.getInferredExpressionType(varDecl.getInitializer()->get());
+                const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
+
+                if (exprType && declType && !exprType->canConvertTo(*declType)) {
+                    context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
+                }
+            }
+        }
     }
 
     void SemanticAnalyzer::checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl, MetadataInfo metadataInfo) {
@@ -1058,19 +1069,34 @@ namespace vnlc {
             return;
         }
 
+        const bool hasReturnTypeReference = funcDecl.getReturnType().has_value();
+        const bool hasFunctionBody = funcDecl.getBody().has_value();
+
         for (const auto& param : funcDecl.getParameters()) {
             checkValueDeclaration(*param);
         }
 
-        if (funcDecl.getKind() == FunctionDeclarationKind::Kind::REGULAR && funcDecl.getContext() != FunctionDeclarationKind::Context::INTERFACE) {
-            if (funcDecl.getBody().has_value()) {
-                checkStatement(*funcDecl.getBody().value());
-            } else {
-                context.reportError(funcDecl, "Regular functions must have a body");
+        if (funcDecl.getContext() == FunctionDeclarationKind::Context::INTERFACE) {
+            if (hasFunctionBody) {
+                context.reportError(funcDecl, "Interface methods cannot have a body");
+            }
+        } else {
+            if (funcDecl.getKind() == FunctionDeclarationKind::Kind::NATIVE) {
+                if (hasFunctionBody) {
+                    context.reportError(funcDecl, "Native functions cannot have a body");
+                }
+            }
+
+            if (funcDecl.getKind() == FunctionDeclarationKind::Kind::REGULAR) {
+                if (hasFunctionBody) {
+                    checkStatement(*funcDecl.getBody().value());
+                } else {
+                    context.reportError(funcDecl, "Regular functions must have a body");
+                }
             }
         }
 
-        if (funcDecl.getReturnType().has_value()) {
+        if (hasReturnTypeReference) {
             checkType(*funcDecl.getReturnType()->get());
         }
 
@@ -1098,6 +1124,8 @@ namespace vnlc {
             return;
         }
 
+        const bool hasBody = operatorDecl.getBody().has_value();
+
         for (const auto& param : operatorDecl.getParameters()) {
             checkValueDeclaration(*param);
         }
@@ -1108,13 +1136,15 @@ namespace vnlc {
             } else {
                 context.reportError(operatorDecl, "Class operators must have a body");
             }
-        } else if (operatorDecl.getBody().has_value()) {
+        } else if (hasBody) {
             context.reportError(operatorDecl, "Interface operators cannot have a body");
         }
 
         if (operatorDecl.getReturnType().has_value()) {
             checkType(*operatorDecl.getReturnType().value());
         }
+
+        // TODO: Implement return type inference
 
         context.popScope();
     }
