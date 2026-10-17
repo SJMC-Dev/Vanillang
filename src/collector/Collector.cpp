@@ -19,6 +19,8 @@
 #include "vni/import/ImportedProperty.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
 #include "vni/import/PackageReader.hpp"
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -491,8 +493,10 @@ namespace vnlc {
             fullPath.erase(0, 1);
         }
 
-        if (fullPath.ends_with(".vnl")) {
-            fullPath.erase(fullPath.length() - 4);
+        std::string extension = config.inputFilePath.extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+        if (extension == ".vnl") {
+            fullPath.erase(fullPath.length() - extension.length());
         }
 
         std::stringstream pathStream(fullPath);
