@@ -1,10 +1,23 @@
 #include "PackageReader.hpp"
 #include "error/PackageReaderError.hpp"
 #include "vni/import/ModuleInterfaceFileReader.hpp"
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
+#include <optional>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace vnlc {
+    namespace {
+        bool isModuleInterfaceFile(const std::filesystem::directory_entry& entry) {
+            std::string extension = entry.path().extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+            return entry.is_regular_file() && extension == ".vni";
+        }
+    } // namespace
+
     PackageReader::PackageReader(std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& packages) : packages(packages) {}
 
     void PackageReader::readPackageFromPath(std::string_view path, const Config& config) {
@@ -50,15 +63,26 @@ namespace vnlc {
 
         for (std::size_t index = 1; index < names.size(); ++index) {
             const std::string& name = names[index];
-            std::filesystem::path packagePath = currentPath / name;
-            if (!std::filesystem::is_directory(packagePath)) {
+            std::optional<std::filesystem::path> packagePath;
+            std::optional<std::filesystem::path> modulePath;
+            for (const auto& entry : std::filesystem::directory_iterator(currentPath)) {
+                if (entry.is_directory() && entry.path().filename().string() == name) {
+                    packagePath = entry.path();
+                } else if (isModuleInterfaceFile(entry) && entry.path().stem().string() == name) {
+                    if (modulePath.has_value()) {
+                        throw PackageReaderError(fmt::format("Found multiple module interface files for module: {}", name));
+                    }
+                    modulePath = entry.path();
+                }
+            }
+
+            if (!packagePath.has_value()) {
                 if (currentPackage->getModules().contains(name)) return;
 
-                std::filesystem::path modulePath = currentPath / (name + ".vni");
-                if (!std::filesystem::is_regular_file(modulePath)) {
+                if (!modulePath.has_value()) {
                     throw PackageReaderError(fmt::format("Could not find package or module with name: {}", name));
                 }
-                ModuleInterfaceFileReader moduleReader(modulePath);
+                ModuleInterfaceFileReader moduleReader(modulePath.value());
                 currentPackage->addModule(moduleReader.read());
                 return;
             }
@@ -73,7 +97,7 @@ namespace vnlc {
                 );
             }
             currentPackage = currentPackage->getSubPackages().at(name).get();
-            currentPath = std::move(packagePath);
+            currentPath = std::move(packagePath.value());
         }
 
         std::unordered_set<std::filesystem::path> activePackagePaths;
@@ -85,6 +109,7 @@ namespace vnlc {
         if (!activePackagePaths.insert(canonicalPath).second) {
             throw PackageReaderError(fmt::format("Package directory cycle detected at {}", packagePath.string()));
         }
+        std::unordered_set<std::string> moduleNames;
         for (const auto& entry : std::filesystem::directory_iterator(packagePath)) {
             if (entry.is_directory()) {
                 std::string name = entry.path().filename().string();
@@ -98,9 +123,15 @@ namespace vnlc {
                     );
                 }
                 readPackageContents(entry.path(), *package.getSubPackages().at(name), activePackagePaths);
-            } else if (entry.is_regular_file() && entry.path().extension() == ".vni" && !package.getModules().contains(entry.path().stem().string())) {
-                ModuleInterfaceFileReader moduleReader(entry.path());
-                package.addModule(moduleReader.read());
+            } else if (isModuleInterfaceFile(entry)) {
+                std::string name = entry.path().stem().string();
+                if (!moduleNames.insert(name).second) {
+                    throw PackageReaderError(fmt::format("Found multiple module interface files for module: {}", name));
+                }
+                if (!package.getModules().contains(name)) {
+                    ModuleInterfaceFileReader moduleReader(entry.path());
+                    package.addModule(moduleReader.read());
+                }
             }
         }
         activePackagePaths.erase(canonicalPath);

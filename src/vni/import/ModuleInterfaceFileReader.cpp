@@ -1,5 +1,7 @@
 #include "ModuleInterfaceFileReader.hpp"
 #include "error/ModuleInterfaceReaderError.hpp"
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
@@ -522,6 +524,9 @@ namespace vnlc {
     }
 
     std::unique_ptr<ImportedModule> ModuleInterfaceFileReader::read() {
+        std::string extension = filePath.extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+
         if (!std::filesystem::exists(filePath)) {
             throw ModuleInterfaceFileReaderError(fmt::format("File {} does not exist", filePath.string()));
         } else if (!std::filesystem::is_regular_file(filePath)) {
@@ -532,7 +537,7 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("Path {} is a directory, not a file", filePath.string()));
         } else if (!std::filesystem::is_regular_file(filePath)) {
             throw ModuleInterfaceFileReaderError(fmt::format("Path {} is not a regular file", filePath.string()));
-        } else if (filePath.extension() != ".vni") {
+        } else if (extension != ".vni") {
             throw ModuleInterfaceFileReaderError(fmt::format("File {} is not a module interface file", filePath.string()));
         }
 
