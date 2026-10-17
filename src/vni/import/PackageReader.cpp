@@ -57,25 +57,26 @@ namespace vnlc {
         for (std::size_t index = 1; index < names.size(); ++index) {
             const std::string& name = names[index];
             std::optional<std::filesystem::path> packagePath;
-            std::optional<std::filesystem::path> modulePath;
+            std::vector<std::filesystem::path> modulePaths;
             for (const auto& entry : std::filesystem::directory_iterator(currentPath)) {
                 if (entry.is_directory() && entry.path().filename().string() == name) {
+                    // a package directory takes precedence over module interface files with the same name
                     packagePath = entry.path();
+                    break;
                 } else if (isModuleInterfaceFile(entry) && entry.path().stem().string() == name) {
-                    if (modulePath.has_value()) {
-                        throw PackageReaderError(fmt::format("Found multiple module interface files for module: {}", name));
-                    }
-                    modulePath = entry.path();
+                    modulePaths.push_back(entry.path());
                 }
             }
 
             if (!packagePath.has_value()) {
                 if (currentPackage->getModules().contains(name)) return;
 
-                if (!modulePath.has_value()) {
+                if (modulePaths.empty()) {
                     throw PackageReaderError(fmt::format("Could not find package or module with name: {}", name));
+                } else if (modulePaths.size() > 1) {
+                    throw PackageReaderError(fmt::format("Found multiple module interface files for module: {}", name));
                 }
-                ModuleInterfaceFileReader moduleReader(modulePath.value());
+                ModuleInterfaceFileReader moduleReader(modulePaths.front());
                 currentPackage->addModule(moduleReader.read());
                 return;
             }
