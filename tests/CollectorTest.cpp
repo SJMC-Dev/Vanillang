@@ -5,6 +5,7 @@
 #include "lexer/Lexer.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedLet.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -491,6 +492,66 @@ namespace vnlc {
         EXPECT_EQ(linkedApi->getName(), "linkedApi");
         EXPECT_NE(linkedApi->getIdentifierByName("linked"), nullptr);
         EXPECT_EQ(package->getModuleByName("original"), nullptr);
+    }
+
+    TEST_F(CollectorTest, ImportsModuleInterfaceFilesWithCaseInsensitiveExtensions) {
+        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","type":"int"}})");
+        writeFile("dependency_source/sub/Mixed.Vni", R"({"mixedValue":{"category":"let","type":"int"}})");
+
+        for (const auto source : { "import pkg.Upper\nimport pkg.sub.Mixed\n", "import pkg\n" }) {
+            SCOPED_TRACE(source);
+            const auto result = collect(source);
+
+            ASSERT_TRUE(result.getErrors().empty());
+            const auto* package = importedPackage(result, "pkg");
+            ASSERT_NE(package, nullptr);
+            const auto* upper = package->getModuleByName("Upper");
+            ASSERT_NE(upper, nullptr);
+            EXPECT_EQ(upper->getName(), "Upper");
+            EXPECT_NE(upper->getIdentifierByName("upperValue"), nullptr);
+
+            const auto* sub = package->getSubPackageByName("sub");
+            ASSERT_NE(sub, nullptr);
+            const auto* mixed = sub->getModuleByName("Mixed");
+            ASSERT_NE(mixed, nullptr);
+            EXPECT_EQ(mixed->getName(), "Mixed");
+            EXPECT_NE(mixed->getIdentifierByName("mixedValue"), nullptr);
+        }
+    }
+
+    TEST_F(CollectorTest, RequiresImportedPackageAndModuleNamesToMatchTheCaseOfTheirFiles) {
+        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","type":"int"}})");
+
+        for (const auto source : { "import pkg.upper\n", "import pkg.UPPER\n", "import pkg.API\n", "import pkg.Sub.other\n" }) {
+            SCOPED_TRACE(source);
+            const auto result = collect(source);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getPhase(), DiagnosticPhase::COLLECTOR);
+            EXPECT_NE(result.getErrors().front().getMessage().find("Could not find package or module"), std::string_view::npos);
+            EXPECT_TRUE(result.getImports().empty());
+        }
+    }
+
+    TEST_F(CollectorTest, ReportsModuleInterfaceFilesWhoseNamesDifferOnlyInExtensionCase) {
+        writeFile("dependency_source/duplicate.vni", R"({"lower":{"category":"let","type":"int"}})");
+        writeFile("dependency_source/duplicate.VNI", R"({"upper":{"category":"let","type":"int"}})");
+        const auto duplicateCount = std::count_if(std::filesystem::directory_iterator(testDirectory / "dependency_source"), std::filesystem::directory_iterator(), [](const auto& entry) {
+            return entry.path().stem() == "duplicate";
+        });
+        if (duplicateCount < 2) {
+            GTEST_SKIP() << "The file system is case-insensitive";
+        }
+
+        for (const auto source : { "import pkg.duplicate\n", "import pkg\n" }) {
+            SCOPED_TRACE(source);
+            const auto result = collect(source);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getPhase(), DiagnosticPhase::COLLECTOR);
+            EXPECT_NE(result.getErrors().front().getMessage().find("multiple module interface files"), std::string_view::npos);
+            EXPECT_TRUE(result.getImports().empty());
+        }
     }
 
     TEST_F(CollectorTest, ReportsCyclicPackageDirectoriesAsCollectorErrors) {

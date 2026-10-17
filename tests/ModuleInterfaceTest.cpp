@@ -723,6 +723,18 @@ namespace vnlc {
         EXPECT_THROW(static_cast<void>(reader.read()), ModuleInterfaceFileReaderError);
     }
 
+    TEST_F(VniTest, ModuleInterfaceFileReaderAcceptsCaseInsensitiveExtensionsAndKeepsModuleNameCase) {
+        for (const auto& [fileName, moduleName] : { std::pair{ "Upper.VNI", "Upper" }, std::pair{ "Mixed.Vni", "Mixed" }, std::pair{ "lower.vni", "lower" } }) {
+            SCOPED_TRACE(fileName);
+            const auto filePath = writeFile(fileName, R"({"value":{"category":"let","type":"int"}})");
+            ModuleInterfaceFileReader reader(filePath);
+
+            const auto module = reader.read();
+            EXPECT_EQ(module->getName(), moduleName);
+            EXPECT_NE(module->getIdentifierByName("value"), nullptr);
+        }
+    }
+
     TEST_F(VniTest, ModuleInterfaceFileReaderThrowsOnInvalidJson) {
         const auto filePath = writeFile("module.vni", "{");
         ModuleInterfaceFileReader reader(filePath);
