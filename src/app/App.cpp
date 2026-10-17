@@ -115,7 +115,7 @@ namespace vnlc {
 
         std::string extension = inputFilePath.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        if (extension == ".vnl") {
+        if (extension != ".vnl") {
             throw IllegalInputError("Input file must end with '.vnl'.");
         }
 
