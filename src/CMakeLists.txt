@@ -83,6 +83,7 @@ add_executable(
     type/PrimitiveType.cpp
     type/CustomizedType.cpp
     type/VoidType.cpp
+    inheritance/ClassInheritanceNode.cpp
     metadata/MetadataInfo.cpp
     vni/import/ImportedItem.cpp
     vni/import/ImportedPackage.cpp
