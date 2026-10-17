@@ -124,6 +124,15 @@ add_executable(
     TypeTest.cpp
 )
 
+add_executable(
+    vnlctest_inheritance
+    ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
+    ${PROJECT_SOURCE_DIR}/src/inheritance/ClassInheritanceNode.cpp
+    ${AST_FILES}
+    ${VNI_IMPORT_FILES}
+    InheritanceTest.cpp
+)
+
 target_include_directories(
     vnlctest_lexer
     PRIVATE
@@ -166,6 +175,12 @@ target_include_directories(
     "${PROJECT_SOURCE_DIR}/src"
 )
 
+target_include_directories(
+    vnlctest_inheritance
+    PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
+)
+
 target_link_libraries(
     vnlctest_lexer
     PRIVATE
@@ -221,6 +236,14 @@ target_link_libraries(
     vnlctest_type
     PRIVATE
     GTest::gtest_main
+)
+
+target_link_libraries(
+    vnlctest_inheritance
+    PRIVATE
+    GTest::gtest_main
+    fmt::fmt
+    nlohmann_json::nlohmann_json
 )
 
 target_compile_definitions(
@@ -237,3 +260,4 @@ gtest_discover_tests(vnlctest_semantic)
 gtest_discover_tests(vnlctest_vni)
 gtest_discover_tests(vnlctest_symbol)
 gtest_discover_tests(vnlctest_type)
+gtest_discover_tests(vnlctest_inheritance)
