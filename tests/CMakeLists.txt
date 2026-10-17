@@ -57,6 +57,7 @@ file(GLOB_RECURSE COLLECTOR_FILES CONFIGURE_DEPENDS
 
 add_executable(
     vnlctest_parser
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
@@ -72,6 +73,7 @@ add_executable(
 
 add_executable(
     vnlctest_collector
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
@@ -83,6 +85,7 @@ add_executable(
 
 add_executable(
     vnlctest_semantic
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
@@ -103,6 +106,7 @@ add_executable(
 
 add_executable(
     vnlctest_vni
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
     ${PROJECT_SOURCE_DIR}/src/semantic/SemanticResult.cpp
     ${AST_FILES}
@@ -126,6 +130,7 @@ add_executable(
 
 add_executable(
     vnlctest_inheritance
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
     ${PROJECT_SOURCE_DIR}/src/inheritance/ClassInheritanceNode.cpp
     ${AST_FILES}

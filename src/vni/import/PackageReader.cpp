@@ -1,8 +1,7 @@
 #include "PackageReader.hpp"
 #include "error/PackageReaderError.hpp"
+#include "utils/Utils.hpp"
 #include "vni/import/ModuleInterfaceFileReader.hpp"
-#include <algorithm>
-#include <cctype>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -10,14 +9,6 @@
 #include <vector>
 
 namespace vnlc {
-    namespace {
-        bool isModuleInterfaceFile(const std::filesystem::directory_entry& entry) {
-            std::string extension = entry.path().extension().string();
-            std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-            return entry.is_regular_file() && extension == ".vni";
-        }
-    } // namespace
-
     PackageReader::PackageReader(std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& packages) : packages(packages) {}
 
     void PackageReader::readPackageFromPath(std::string_view path, const Config& config) {
@@ -60,6 +51,8 @@ namespace vnlc {
             );
         }
         ImportedPackage* currentPackage = packages.at(names.front()).get();
+
+        const auto isModuleInterfaceFile = [](const std::filesystem::directory_entry& entry) { return entry.is_regular_file() && Utils::hasExtensionIgnoringCase(entry.path(), ".vni"); };
 
         for (std::size_t index = 1; index < names.size(); ++index) {
             const std::string& name = names[index];
@@ -109,6 +102,8 @@ namespace vnlc {
         if (!activePackagePaths.insert(canonicalPath).second) {
             throw PackageReaderError(fmt::format("Package directory cycle detected at {}", packagePath.string()));
         }
+        const auto isModuleInterfaceFile = [](const std::filesystem::directory_entry& entry) { return entry.is_regular_file() && Utils::hasExtensionIgnoringCase(entry.path(), ".vni"); };
+
         std::unordered_set<std::string> moduleNames;
         for (const auto& entry : std::filesystem::directory_iterator(packagePath)) {
             if (entry.is_directory()) {

@@ -3,6 +3,7 @@
 #include "error/ModuleInterfaceReaderError.hpp"
 #include "error/PackageReaderError.hpp"
 #include "error/SyntaxError.hpp"
+#include "utils/Utils.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
@@ -19,8 +20,6 @@
 #include "vni/import/ImportedProperty.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
 #include "vni/import/PackageReader.hpp"
-#include <algorithm>
-#include <cctype>
 #include <filesystem>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -493,10 +492,8 @@ namespace vnlc {
             fullPath.erase(0, 1);
         }
 
-        std::string extension = config.inputFilePath.extension().string();
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        if (extension == ".vnl") {
-            fullPath.erase(fullPath.length() - extension.length());
+        if (Utils::hasExtensionIgnoringCase(config.inputFilePath, ".vnl")) {
+            fullPath.erase(fullPath.length() - config.inputFilePath.extension().string().length());
         }
 
         std::stringstream pathStream(fullPath);

@@ -44,13 +44,12 @@
 #include "token/Token.hpp"
 #include "token/TokenKind.hpp"
 #include "token/TokenKindUtil.hpp"
+#include "utils/Utils.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedEnum.hpp"
 #include "vni/import/ImportedInterface.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
-#include <algorithm>
-#include <cctype>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -257,10 +256,8 @@ namespace vnlc {
             fullPath.erase(0, 1);
         }
 
-        std::string extension = context.config.inputFilePath.extension().string();
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        if (extension == ".vnl") {
-            fullPath.erase(fullPath.length() - extension.length());
+        if (Utils::hasExtensionIgnoringCase(context.config.inputFilePath, ".vnl")) {
+            fullPath.erase(fullPath.length() - context.config.inputFilePath.extension().string().length());
         }
 
         std::stringstream ss(fullPath);

@@ -106,6 +106,7 @@ add_executable(
     vni/import/ModuleInterfaceFileReader.cpp
     vni/import/PackageReader.cpp
     vni/export/ModuleInterfaceFileGenerator.cpp
+    utils/Utils.cpp
 )
 
 target_include_directories(

@@ -5,8 +5,8 @@
 #include "error/PackageNameConflictError.hpp"
 #include "log/Logger.hpp"
 #include "session/Session.hpp"
+#include "utils/Utils.hpp"
 #include <CLI/CLI.hpp>
-#include <cctype>
 #include <filesystem>
 #include <fmt/core.h>
 #include <string>
@@ -113,9 +113,7 @@ namespace vnlc {
             throw IllegalInputError("Input file must be within the package root directory.");
         }
 
-        std::string extension = inputFilePath.extension().string();
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
-        if (extension != ".vnl") {
+        if (!Utils::hasExtensionIgnoringCase(inputFilePath, ".vnl")) {
             throw IllegalInputError("Input file must end with '.vnl'.");
         }
 
