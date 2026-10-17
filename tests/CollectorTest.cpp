@@ -530,6 +530,17 @@ namespace vnlc {
         EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.nested.models.sample");
     }
 
+    TEST_F(CollectorTest, StripsSourceExtensionsCaseInsensitivelyAndKeepsModuleNameCase) {
+        for (const auto fileName : { "Sample.vnl", "Sample.VNL", "Sample.Vnl" }) {
+            SCOPED_TRACE(fileName);
+            config.inputFilePath = config.packageRootPath / "Models" / fileName;
+            const auto result = collect("class Item {}\n");
+
+            EXPECT_EQ(result.getModuleOutline().getName(), "Sample");
+            EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.Models.Sample");
+        }
+    }
+
     TEST_F(CollectorTest, RejectsIllegalModuleAndPackageNames) {
         for (const auto path : { "int.vnl", "bad-name.vnl", "bad-name/module.vnl", "class/module.vnl", "123/module.vnl" }) {
             SCOPED_TRACE(path);

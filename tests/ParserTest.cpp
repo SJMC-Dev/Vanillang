@@ -63,6 +63,28 @@ namespace vnlc {
         auto result = parseModule(input, config);
     }
 
+    TEST(ParserTest, StripsSourceExtensionsCaseInsensitivelyAndKeepsModuleNameCase) {
+        for (const auto fileName : { "Sample.vnl", "Sample.VNL", "Sample.Vnl" }) {
+            SCOPED_TRACE(fileName);
+            std::stringstream input("class Item {}\n");
+
+            Config config{
+                .mode = RunningMode::COMPILE,
+                .vanillangVersion = "1.0",
+                .minecraftVersion = "26.1.2",
+                .packageRootPath = std::filesystem::current_path(),
+                .inputFilePath = std::filesystem::current_path() / fileName,
+                .outputDirectory = std::nullopt,
+                .dependencyPackageRootPaths = {},
+                .optimizationLevel = std::nullopt,
+            };
+
+            auto result = parseModule(input, config);
+            EXPECT_EQ(result.getModuleNode().getName(), "Sample");
+            EXPECT_TRUE(result.getModuleNode().getFullName().ends_with(".Sample"));
+        }
+    }
+
     TEST(ParserTest, DistinguishesLoopVariablesFromOrdinaryVariables) {
         std::stringstream input("func test() {\n    let value = 1\n    for (let item in 1..3) {}\n}\n");
 
