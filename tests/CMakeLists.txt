@@ -92,6 +92,7 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/parser/ParseResult.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
     ${PROJECT_SOURCE_DIR}/src/token/TokenKindUtil.cpp
+    ${PROJECT_SOURCE_DIR}/src/inheritance/ClassInheritanceNode.cpp
     ${AST_FILES}
     ${SEMANTIC_FILES}
     ${SCOPE_FILES}

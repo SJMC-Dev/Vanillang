@@ -122,6 +122,9 @@ namespace vnlc {
                 std::move(inferredValueTypeMap),
                 std::move(inferredFunctionReturnTypeMap),
                 std::move(inferredOperatorReturnTypeMap),
+                {},
+                {},
+                {},
                 {}
             );
         }
