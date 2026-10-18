@@ -77,6 +77,22 @@ namespace vnlc {
         inferredExpressionTypeMap.emplace(expressionNode, type);
     }
 
+    ClassInheritanceNode& SemanticContext::getOrCreateLocalClassInheritanceNode(const ClassDeclarationNode& localNode) {
+        auto [it, inserted] = localClassInheritanceMap.try_emplace(&localNode);
+        if (inserted) {
+            it->second = classInheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&localNode)).get();
+        }
+        return *it->second;
+    }
+
+    ClassInheritanceNode& SemanticContext::getOrCreateImportedClassInheritanceNode(const ImportedClass& importedNode) {
+        auto [it, inserted] = importedClassInheritanceMap.try_emplace(&importedNode);
+        if (inserted) {
+            it->second = classInheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&importedNode)).get();
+        }
+        return *it->second;
+    }
+
     const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const {
         auto it = customizedTypeRegistry.find(fullTypeName);
         if (it != customizedTypeRegistry.end()) {
@@ -133,6 +149,22 @@ namespace vnlc {
         }
         if (symbol.getImportedNode() != nullptr) {
             return getScopeByImportedNode(symbol.getImportedNode());
+        }
+        return nullptr;
+    }
+
+    const ClassInheritanceNode* SemanticContext::getClassInheritanceNodeByLocalNode(const ClassDeclarationNode* localNode) const {
+        auto it = localClassInheritanceMap.find(localNode);
+        if (it != localClassInheritanceMap.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    const ClassInheritanceNode* SemanticContext::getClassInheritanceNodeByImportedNode(const ImportedClass* importedNode) const {
+        auto it = importedClassInheritanceMap.find(importedNode);
+        if (it != importedClassInheritanceMap.end()) {
+            return it->second;
         }
         return nullptr;
     }
@@ -291,5 +323,17 @@ namespace vnlc {
 
     std::unordered_map<const ExpressionNode*, const Type*> SemanticContext::takeInferredExpressionTypeMap() {
         return std::move(inferredExpressionTypeMap);
+    }
+
+    std::vector<std::unique_ptr<ClassInheritanceNode>> SemanticContext::takeClassInheritanceNodes() {
+        return std::move(classInheritanceNodes);
+    }
+
+    std::unordered_map<const ClassDeclarationNode*, ClassInheritanceNode*> SemanticContext::takeLocalClassInheritanceMap() {
+        return std::move(localClassInheritanceMap);
+    }
+
+    std::unordered_map<const ImportedClass*, ClassInheritanceNode*> SemanticContext::takeImportedClassInheritanceMap() {
+        return std::move(importedClassInheritanceMap);
     }
 } // namespace vnlc

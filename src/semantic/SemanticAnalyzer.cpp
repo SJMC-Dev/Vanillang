@@ -1984,6 +1984,9 @@ namespace vnlc {
         auto inferredFunctionReturnTypes = context.takeInferredFunctionReturnTypeMap();
         auto inferredOperatorReturnTypes = context.takeInferredOperatorReturnTypeMap();
         auto inferredExpressionTypes = context.takeInferredExpressionTypeMap();
+        auto classInheritanceNodes = context.takeClassInheritanceNodes();
+        auto localClassInheritances = context.takeLocalClassInheritanceMap();
+        auto importedClassInheritances = context.takeImportedClassInheritanceMap();
         return SemanticResult(
             std::move(std::get<0>(diagnostics)),
             std::move(std::get<1>(diagnostics)),
@@ -1995,7 +1998,10 @@ namespace vnlc {
             std::move(inferredValueTypes),
             std::move(inferredFunctionReturnTypes),
             std::move(inferredOperatorReturnTypes),
-            std::move(inferredExpressionTypes)
+            std::move(inferredExpressionTypes),
+            std::move(classInheritanceNodes),
+            std::move(localClassInheritances),
+            std::move(importedClassInheritances)
         );
     }
 } // namespace vnlc
