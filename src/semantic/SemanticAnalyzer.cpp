@@ -61,7 +61,9 @@
 #include "vni/import/ImportedItem.hpp"
 #include "vni/import/ImportedLet.hpp"
 #include "vni/import/ImportedMethod.hpp"
+#include "vni/import/ImportedModule.hpp"
 #include "vni/import/ImportedOperator.hpp"
+#include "vni/import/ImportedPackage.hpp"
 #include "vni/import/ImportedParameter.hpp"
 #include "vni/import/ImportedProperty.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
@@ -787,6 +789,69 @@ namespace vnlc {
         context.popScope();
     }
 
+    void SemanticAnalyzer::buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules) {
+        for (const auto& topIdentifierDecl : localModule.getTopIdentifierDeclarations()) {
+            const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(topIdentifierDecl.get());
+            if (classDecl == nullptr) {
+                continue;
+            }
+
+            ClassInheritanceNode& inheritanceNode = context.getOrCreateLocalClassInheritanceNode(*classDecl);
+            if (!classDecl->getBaseClass().has_value() || !context.pushExistingScope(classDecl)) {
+                continue;
+            }
+
+            const auto* baseClassType = dynamic_cast<const CustomizedType*>(checkType(*classDecl->getBaseClass().value()));
+            context.popScope();
+            if (baseClassType == nullptr) {
+                continue;
+            }
+
+            if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
+                inheritanceNode.setParent(&context.getOrCreateLocalClassInheritanceNode(*localNode));
+            } else if (const auto* importedNode = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())) {
+                inheritanceNode.setParent(&context.getOrCreateImportedClassInheritanceNode(*importedNode));
+            }
+        }
+
+        const auto getImportedClassByFullTypeName = [this](std::string_view fullTypeName) -> const ImportedClass* {
+            const std::string_view unwrappedTypeName = fullTypeName.substr(0, fullTypeName.find('<'));
+
+            std::vector<std::string> path;
+            std::size_t start = 0;
+            while (start <= unwrappedTypeName.size()) {
+                const std::size_t separator = unwrappedTypeName.find('.', start);
+                if (separator == std::string_view::npos) {
+                    path.emplace_back(unwrappedTypeName.substr(start));
+                    break;
+                }
+
+                path.emplace_back(unwrappedTypeName.substr(start, separator - start));
+                start = separator + 1;
+            }
+
+            return dynamic_cast<const ImportedClass*>(ImportedItem::getImportedItemByFullPath(imports, path));
+        };
+
+        for (const ImportedModule* importedModule : importedModules) {
+            for (const auto& [name, identifier] : importedModule->getIdentifiers()) {
+                const auto* importedClass = dynamic_cast<const ImportedClass*>(identifier.get());
+                if (importedClass == nullptr) {
+                    continue;
+                }
+
+                ClassInheritanceNode& inheritanceNode = context.getOrCreateImportedClassInheritanceNode(*importedClass);
+                if (!importedClass->getBaseClass().has_value()) {
+                    continue;
+                }
+
+                if (const ImportedClass* baseClass = getImportedClassByFullTypeName(importedClass->getBaseClass().value())) {
+                    inheritanceNode.setParent(&context.getOrCreateImportedClassInheritanceNode(*baseClass));
+                }
+            }
+        }
+    }
+
     void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, &moduleNode));
 
@@ -797,6 +862,27 @@ namespace vnlc {
         collectLocalRegularSymbolsInModule(moduleNode);
         generateInternalNameForOverloadablesInModule(moduleNode);
         collectLocalFunctionSymbolsInModule(moduleNode);
+
+        std::function<void(const ImportedItem*, std::vector<const ImportedModule*>&)> collectModuleNode = [&](const ImportedItem* node, std::vector<const ImportedModule*>& importedModules) {
+            if (const ImportedPackage* packageNode = dynamic_cast<const ImportedPackage*>(node)) {
+                for (const auto& child : packageNode->getSubPackages()) {
+                    collectModuleNode(child.second.get(), importedModules);
+                }
+
+                for (const auto& child : packageNode->getModules()) {
+                    collectModuleNode(child.second.get(), importedModules);
+                }
+            } else if (const ImportedModule* moduleNode = dynamic_cast<const ImportedModule*>(node)) {
+                importedModules.emplace_back(moduleNode);
+            }
+        };
+
+        std::vector<const ImportedModule*> importedModules;
+        for (const auto& item : imports) {
+            const ImportedItem* node = item.second.get();
+            collectModuleNode(node, importedModules);
+        }
+        buildInheritanceGraph(moduleNode, importedModules);
 
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();

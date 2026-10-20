@@ -26,6 +26,7 @@
 #include "symbol/RegularSymbolKind.hpp"
 #include "type/Type.hpp"
 #include "vni/import/ImportedItem.hpp"
+#include "vni/import/ImportedModule.hpp"
 #include "vni/import/ImportedPackage.hpp"
 #include <memory>
 #include <string>
@@ -73,6 +74,8 @@ namespace vnlc {
         void generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode);
         void generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode);
         void generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode);
+
+        void buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules);
 
         void checkIdentifierExpressionUse(const IdentifierLikeExpressionNode& exprNode, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
 
