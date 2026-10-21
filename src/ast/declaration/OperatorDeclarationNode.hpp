@@ -18,6 +18,7 @@ namespace vnlc {
         OperatorDeclarationNode() = delete;
 
         OperatorDeclarationKind::Kind kind;
+        OperatorDeclarationKind::Implementation implementation;
         OperatorDeclarationKind::Context context;
         OperatorDeclarationKind::AccessModifier accessModifier;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
@@ -28,6 +29,7 @@ namespace vnlc {
     public:
         OperatorDeclarationNode(
             OperatorDeclarationKind::Kind kind,
+            OperatorDeclarationKind::Implementation implementation,
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
@@ -39,6 +41,7 @@ namespace vnlc {
 
         OperatorDeclarationNode(
             OperatorDeclarationKind::Kind kind,
+            OperatorDeclarationKind::Implementation implementation,
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
@@ -50,6 +53,7 @@ namespace vnlc {
         );
 
         [[nodiscard]] const OperatorDeclarationKind::Kind getKind() const noexcept;
+        [[nodiscard]] const OperatorDeclarationKind::Implementation getImplementation() const noexcept;
         [[nodiscard]] const OperatorDeclarationKind::Context getContext() const noexcept;
         [[nodiscard]] const OperatorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] std::string_view getInternalName() const noexcept;

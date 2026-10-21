@@ -29,6 +29,11 @@ namespace vnlc {
             RANGE,
         };
 
+        enum class Implementation {
+            REGULAR,
+            NATIVE,
+        };
+
         enum class Context {
             CLASS,
             INTERFACE,

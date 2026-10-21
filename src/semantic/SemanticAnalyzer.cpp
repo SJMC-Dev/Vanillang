@@ -1216,14 +1216,24 @@ namespace vnlc {
             checkValueDeclaration(*param);
         }
 
-        if (operatorDecl.getContext() == OperatorDeclarationKind::Context::CLASS) {
-            if (operatorDecl.getBody().has_value()) {
-                checkStatement(*operatorDecl.getBody().value());
-            } else {
-                context.reportError(operatorDecl, "Class operators must have a body");
+        if (operatorDecl.getContext() == OperatorDeclarationKind::Context::INTERFACE) {
+            if (hasBody) {
+                context.reportError(operatorDecl, "Interface operators cannot have a body");
             }
-        } else if (hasBody) {
-            context.reportError(operatorDecl, "Interface operators cannot have a body");
+        } else {
+            if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::NATIVE) {
+                if (hasBody) {
+                    context.reportError(operatorDecl, "Native operators cannot have a body");
+                }
+            }
+
+            if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::REGULAR) {
+                if (hasBody) {
+                    checkStatement(*operatorDecl.getBody().value());
+                } else {
+                    context.reportError(operatorDecl, "Regular operators must have a body");
+                }
+            }
         }
 
         if (operatorDecl.getReturnType().has_value()) {

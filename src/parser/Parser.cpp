@@ -571,7 +571,7 @@ namespace vnlc {
             return FunctionDeclarationParsingResult{
                 .declaration = std::move(result.declaration),
             };
-        } else if (check(TokenKind::NATIVE)) {
+        } else if (match(TokenKind::NATIVE)) {
             NativeFunctionDeclarationParsingContext nativeContext{
                 .context = context.context,
                 .hasMetadata = context.hasMetadata,
@@ -748,6 +748,7 @@ namespace vnlc {
         std::unique_ptr<DeclarationNode> node;
         if (check(TokenKind::OP)) {
             OperatorDeclarationParsingContext context{
+                .implementation = OperatorDeclarationKind::Implementation::REGULAR,
                 .context = OperatorDeclarationKind::Context::INTERFACE,
                 .accessModifier = OperatorDeclarationKind::AccessModifier::PUBLIC,
                 .hasMetadata = hasMetadata,
@@ -898,10 +899,6 @@ namespace vnlc {
     NativeFunctionDeclarationParsingResult Parser::parseNativeFunctionDeclaration(NativeFunctionDeclarationParsingContext context) {
         Token firstToken = peek();
 
-        if (!match(TokenKind::NATIVE)) {
-            throw SyntaxError("Expected 'native' keyword", peek().getLine(), peek().getColumn());
-        }
-
         auto signatureResult = parseFunctionSignature();
 
         Token lastToken = peek();
@@ -1015,7 +1012,7 @@ namespace vnlc {
         }
 
         std::optional<std::unique_ptr<BlockStatementNode>> body = std::nullopt;
-        if (context.context == OperatorDeclarationKind::Context::CLASS) {
+        if (context.context == OperatorDeclarationKind::Context::CLASS && context.implementation == OperatorDeclarationKind::Implementation::REGULAR) {
             auto bodyResult = parseFunctionBody();
             body = std::move(bodyResult.body);
         }
@@ -1026,6 +1023,7 @@ namespace vnlc {
             return OperatorDeclarationParsingResult{
                 .declaration = std::make_unique<OperatorDeclarationNode>(
                     operatorKind,
+                    context.implementation,
                     context.context,
                     context.accessModifier,
                     std::move(parameters),
@@ -1038,8 +1036,17 @@ namespace vnlc {
             };
         } else {
             return OperatorDeclarationParsingResult{
-                .declaration = std::make_unique<
-                    OperatorDeclarationNode>(operatorKind, context.context, context.accessModifier, std::move(parameters), std::move(returnType), std::move(body), firstToken, lastToken),
+                .declaration = std::make_unique<OperatorDeclarationNode>(
+                    operatorKind,
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    std::move(parameters),
+                    std::move(returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken
+                ),
             };
         }
     }
@@ -1783,6 +1790,7 @@ namespace vnlc {
 
         if (check(TokenKind::OP)) {
             OperatorDeclarationParsingContext operatorContext{
+                .implementation = OperatorDeclarationKind::Implementation::REGULAR,
                 .context = OperatorDeclarationKind::Context::CLASS,
                 .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
                 .hasMetadata = hasMetadata,
@@ -1827,6 +1835,7 @@ namespace vnlc {
                 };
             } else if (check(TokenKind::OP)) {
                 OperatorDeclarationParsingContext operatorContext{
+                    .implementation = OperatorDeclarationKind::Implementation::REGULAR,
                     .context = OperatorDeclarationKind::Context::CLASS,
                     .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
                     .hasMetadata = hasMetadata,
@@ -1847,7 +1856,51 @@ namespace vnlc {
             }
         }
 
-        if (check(TokenKind::FUNC) || check(TokenKind::NATIVE)) {
+        if (match(TokenKind::NATIVE)) {
+            if (binding == Binding::INSTANCE && check(TokenKind::OP)) {
+                OperatorDeclarationParsingContext operatorContext{
+                    .implementation = OperatorDeclarationKind::Implementation::NATIVE,
+                    .context = OperatorDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto operatorResult = parseOperatorDeclaration(std::move(operatorContext));
+
+                Token lastToken = peek();
+                operatorResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!endsWithNewlineOrEOF) {
+                    throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(operatorResult.declaration),
+                };
+            } else {
+                NativeFunctionDeclarationParsingContext nativeFunctionDeclarationContext{
+                    .context = FunctionDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
+                    .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto nativeFunctionDeclarationResult = parseNativeFunctionDeclaration(std::move(nativeFunctionDeclarationContext));
+
+                Token lastToken = peek();
+                nativeFunctionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!endsWithNewlineOrEOF) {
+                    throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(nativeFunctionDeclarationResult.declaration),
+                };
+            }
+        }
+
+        if (check(TokenKind::FUNC)) {
             FunctionDeclarationParsingContext functionDeclarationContext{
                 .context = FunctionDeclarationKind::Context::CLASS,
                 .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),

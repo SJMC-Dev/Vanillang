@@ -7,6 +7,7 @@
 
 namespace vnlc {
     struct OperatorDeclarationParsingContext {
+        OperatorDeclarationKind::Implementation implementation;
         OperatorDeclarationKind::Context context;
         OperatorDeclarationKind::AccessModifier accessModifier;
 

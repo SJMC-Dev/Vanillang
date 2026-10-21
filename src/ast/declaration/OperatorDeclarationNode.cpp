@@ -3,6 +3,7 @@
 namespace vnlc {
     OperatorDeclarationNode::OperatorDeclarationNode(
         OperatorDeclarationKind::Kind kind,
+        OperatorDeclarationKind::Implementation implementation,
         OperatorDeclarationKind::Context context,
         OperatorDeclarationKind::AccessModifier accessModifier,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
@@ -13,6 +14,7 @@ namespace vnlc {
     )
         : DeclarationNode(firstToken, lastToken),
           kind(kind),
+          implementation(implementation),
           context(context),
           accessModifier(accessModifier),
           parameters(std::move(parameters)),
@@ -22,6 +24,7 @@ namespace vnlc {
 
     OperatorDeclarationNode::OperatorDeclarationNode(
         OperatorDeclarationKind::Kind kind,
+        OperatorDeclarationKind::Implementation implementation,
         OperatorDeclarationKind::Context context,
         OperatorDeclarationKind::AccessModifier accessModifier,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
@@ -33,6 +36,7 @@ namespace vnlc {
     )
         : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
           kind(kind),
+          implementation(implementation),
           context(context),
           accessModifier(accessModifier),
           parameters(std::move(parameters)),
@@ -42,6 +46,10 @@ namespace vnlc {
 
     const OperatorDeclarationKind::Kind OperatorDeclarationNode::getKind() const noexcept {
         return kind;
+    }
+
+    const OperatorDeclarationKind::Implementation OperatorDeclarationNode::getImplementation() const noexcept {
+        return implementation;
     }
 
     const OperatorDeclarationKind::Context OperatorDeclarationNode::getContext() const noexcept {
