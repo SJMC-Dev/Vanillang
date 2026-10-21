@@ -17,6 +17,10 @@ namespace vnlc {
         return importedNode;
     }
 
+    const InheritanceNode* InheritanceNode::findParent() const noexcept {
+        return nullptr;
+    }
+
     const bool InheritanceNode::hasCycle() const noexcept {
         return false;
     }

@@ -21,7 +21,7 @@ namespace vnlc {
 
         [[nodiscard]] const EnumMemberDeclarationNode* getLocalNode() const noexcept override;
         [[nodiscard]] const ImportedEnumMember* getImportedNode() const noexcept override;
-        [[nodiscard]] const EnumInheritanceNode* findParent() const noexcept;
+        [[nodiscard]] const EnumInheritanceNode* findParent() const noexcept override;
 
         void setParent(const EnumInheritanceNode* parent) noexcept;
     };

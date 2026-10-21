@@ -24,7 +24,7 @@ namespace vnlc {
         [[nodiscard]] const ClassDeclarationNode* getLocalNode() const noexcept override;
         [[nodiscard]] const ImportedClass* getImportedNode() const noexcept override;
         [[nodiscard]] const bool hasCycle() const noexcept override;
-        [[nodiscard]] const ClassInheritanceNode* findParent() const noexcept;
+        [[nodiscard]] const ClassInheritanceNode* findParent() const noexcept override;
         [[nodiscard]] const std::vector<const InterfaceInheritanceNode*>& getImplementedInterfaces() const noexcept;
 
         void setParent(const ClassInheritanceNode* parent) noexcept;
