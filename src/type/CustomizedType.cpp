@@ -33,7 +33,6 @@ namespace vnlc {
 
     bool CustomizedType::canConvertTo(const Type& other) const noexcept {
         if (dynamic_cast<const PrimitiveType*>(&other) != nullptr) {
-            // TODO: Support customized conversions to primitive types.
             return false;
         }
 
