@@ -293,7 +293,7 @@ namespace vnlc {
 
         const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[0].get());
         ASSERT_NE(functionDeclaration, nullptr);
-        EXPECT_EQ(functionDeclaration->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(functionDeclaration->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(functionDeclaration->getName().getIdentifierString(), "log");
         EXPECT_FALSE(functionDeclaration->getBody().has_value());
 
@@ -335,14 +335,87 @@ namespace vnlc {
         EXPECT_TRUE(multiplication->getBody().has_value());
 
         const auto& length = classDeclaration->getMethodDeclarations()[0];
-        EXPECT_EQ(length->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(length->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(length->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
         EXPECT_FALSE(length->getBody().has_value());
 
         const auto& zero = classDeclaration->getMethodDeclarations()[1];
-        EXPECT_EQ(zero->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(zero->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(zero->getBinding(), FunctionDeclarationKind::Binding::STATIC);
         EXPECT_FALSE(zero->getBody().has_value());
+    }
+
+    TEST(ParserTest, KeepsImplementationAccessModifierAndBindingOfFunctionDeclarations) {
+        std::stringstream input(
+            "func run() {}\n"
+            "class Counter {\n"
+            "    private static func reset() {}\n"
+            "    protected override func read() -> int {\n"
+            "        return 0\n"
+            "    }\n"
+            "    private static native func create() -> Counter\n"
+            "}\n"
+            "interface Readable {\n"
+            "    metadata(deprecated) func read() -> int\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = std::filesystem::current_path(),
+            .inputFilePath = std::filesystem::current_path() / "test.vnl",
+            .outputDirectory = std::nullopt,
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 3);
+
+        const auto* run = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[0].get());
+        ASSERT_NE(run, nullptr);
+        EXPECT_EQ(run->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
+        EXPECT_EQ(run->getContext(), FunctionDeclarationKind::Context::TOP_LEVEL);
+        EXPECT_EQ(run->getBinding(), FunctionDeclarationKind::Binding::STATIC);
+        EXPECT_TRUE(run->getBody().has_value());
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 3);
+
+        const auto& reset = classDeclaration->getMethodDeclarations()[0];
+        EXPECT_EQ(reset->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
+        EXPECT_EQ(reset->getContext(), FunctionDeclarationKind::Context::CLASS);
+        EXPECT_EQ(reset->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(reset->getBinding(), FunctionDeclarationKind::Binding::STATIC);
+        EXPECT_TRUE(reset->getBody().has_value());
+
+        const auto& read = classDeclaration->getMethodDeclarations()[1];
+        EXPECT_EQ(read->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
+        EXPECT_EQ(read->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PROTECTED);
+        EXPECT_EQ(read->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
+        EXPECT_TRUE(read->getBody().has_value());
+
+        const auto& create = classDeclaration->getMethodDeclarations()[2];
+        EXPECT_EQ(create->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
+        EXPECT_EQ(create->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(create->getBinding(), FunctionDeclarationKind::Binding::STATIC);
+        EXPECT_FALSE(create->getBody().has_value());
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[2].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+
+        const auto& interfaceRead = interfaceDeclaration->getMethodDeclarations().front();
+        EXPECT_EQ(interfaceRead->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
+        EXPECT_EQ(interfaceRead->getContext(), FunctionDeclarationKind::Context::INTERFACE);
+        EXPECT_EQ(interfaceRead->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PUBLIC);
+        EXPECT_EQ(interfaceRead->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
+        EXPECT_TRUE(interfaceRead->doesIncludeMetadata());
+        EXPECT_FALSE(interfaceRead->getBody().has_value());
     }
 
     TEST(ParserTest, RejectsStaticNativeOperatorDeclarations) {
