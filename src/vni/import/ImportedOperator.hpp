@@ -12,6 +12,7 @@ namespace vnlc {
     private:
         std::string returnType;
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
+        bool native;
         std::string accessModifier;
 
     public:
@@ -19,6 +20,7 @@ namespace vnlc {
             std::string_view internalName,
             std::string_view returnType,
             std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>&& parameters,
+            bool native,
             std::string_view accessModifier,
             std::unordered_map<std::string, std::optional<std::string>>&& metadata
         );
@@ -27,11 +29,13 @@ namespace vnlc {
             std::string_view internalName,
             std::string_view returnType,
             std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>&& parameters,
+            bool native,
             std::string_view accessModifier
         );
 
         [[nodiscard]] std::string_view getReturnType() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>& getParameters() const;
+        [[nodiscard]] bool isNative() const;
         [[nodiscard]] std::string_view getAccessModifier() const;
 
         [[nodiscard]] const ImportedParameter* getParameterByName(std::string_view name) const;

@@ -145,9 +145,13 @@ namespace vnlc {
         std::string returnType;
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
         std::string accessModifier;
+        bool native;
 
         if (!value.contains("returnType") || !value["returnType"].is_string()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'returnType' field for operator '{}'", internalName));
+        }
+        if (!value.contains("native") || !value["native"].is_boolean()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'native' field for operator '{}'", internalName));
         }
         if (!value.contains("parameters") || !value["parameters"].is_object()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'parameters' field for operator '{}'", internalName));
@@ -158,6 +162,7 @@ namespace vnlc {
         }
 
         returnType = value["returnType"].get<std::string>();
+        native = value["native"].get<bool>();
         accessModifier = value["accessModifier"].get<std::string>();
 
         for (auto& [key, value] : value["parameters"].items()) {
@@ -170,10 +175,10 @@ namespace vnlc {
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedOperator>(std::move(internalName), std::move(returnType), std::move(parameters), accessModifier, std::move(metadata));
+            return std::make_unique<ImportedOperator>(std::move(internalName), std::move(returnType), std::move(parameters), native, accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedOperator>(std::move(internalName), std::move(returnType), std::move(parameters), accessModifier);
+        return std::make_unique<ImportedOperator>(std::move(internalName), std::move(returnType), std::move(parameters), native, accessModifier);
     }
 
     std::unique_ptr<ImportedConstructor> ModuleInterfaceFileReader::parseImportedConstructor(std::string_view key, const nlohmann::json& value) {

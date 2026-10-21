@@ -427,6 +427,7 @@ namespace vnlc {
             parametersObj.emplace(parameter->getName().getIdentifierString(), stringifyParameter(parameter.get()));
         }
         operatorObj.emplace("parameters", parametersObj);
+        operatorObj.emplace("native", operatorNode->getImplementation() == OperatorDeclarationKind::Implementation::NATIVE);
 
         std::string accessModifier;
         switch (operatorNode->getAccessModifier()) {

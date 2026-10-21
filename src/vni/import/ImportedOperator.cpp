@@ -5,23 +5,27 @@ namespace vnlc {
         std::string_view internalName,
         std::string_view returnType,
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>&& parameters,
+        bool native,
         std::string_view accessModifier,
         std::unordered_map<std::string, std::optional<std::string>>&& metadata
     )
         : ImportedIdentifier(internalName, std::move(metadata)),
           returnType(returnType),
           parameters(std::move(parameters)),
+          native(native),
           accessModifier(accessModifier) {}
 
     ImportedOperator::ImportedOperator(
         std::string_view internalName,
         std::string_view returnType,
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>&& parameters,
+        bool native,
         std::string_view accessModifier
     )
         : ImportedIdentifier(internalName),
           returnType(returnType),
           parameters(std::move(parameters)),
+          native(native),
           accessModifier(accessModifier) {}
 
     std::string_view ImportedOperator::getReturnType() const {
@@ -30,6 +34,10 @@ namespace vnlc {
 
     const std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>& ImportedOperator::getParameters() const {
         return parameters;
+    }
+
+    bool ImportedOperator::isNative() const {
+        return native;
     }
 
     std::string_view ImportedOperator::getAccessModifier() const {
