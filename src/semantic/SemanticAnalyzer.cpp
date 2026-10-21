@@ -1167,13 +1167,13 @@ namespace vnlc {
                 context.reportError(funcDecl, "Interface methods cannot have a body");
             }
         } else {
-            if (funcDecl.getKind() == FunctionDeclarationKind::Kind::NATIVE) {
+            if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::NATIVE) {
                 if (hasFunctionBody) {
                     context.reportError(funcDecl, "Native functions cannot have a body");
                 }
             }
 
-            if (funcDecl.getKind() == FunctionDeclarationKind::Kind::REGULAR) {
+            if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::REGULAR) {
                 if (hasFunctionBody) {
                     checkStatement(*funcDecl.getBody().value());
                 } else {

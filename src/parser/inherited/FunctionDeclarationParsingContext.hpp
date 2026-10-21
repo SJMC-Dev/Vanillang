@@ -7,6 +7,7 @@
 
 namespace vnlc {
     struct FunctionDeclarationParsingContext {
+        FunctionDeclarationKind::Implementation implementation;
         FunctionDeclarationKind::Context context;
         FunctionDeclarationKind::AccessModifier accessModifier;
         FunctionDeclarationKind::Binding binding;

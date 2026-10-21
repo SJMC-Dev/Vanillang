@@ -3,7 +3,7 @@
 
 namespace vnlc {
     namespace FunctionDeclarationKind {
-        enum class Kind {
+        enum class Implementation {
             REGULAR,
             NATIVE,
         };

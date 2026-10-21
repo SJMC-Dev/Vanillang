@@ -425,7 +425,13 @@ namespace vnlc {
                 .declaration = std::move(result.declaration),
             };
         } else if (check(TokenKind::FUNC) || check(TokenKind::NATIVE)) {
+            FunctionDeclarationKind::Implementation implementation = FunctionDeclarationKind::Implementation::REGULAR;
+            if (match(TokenKind::NATIVE)) {
+                implementation = FunctionDeclarationKind::Implementation::NATIVE;
+            }
+
             FunctionDeclarationParsingContext context{
+                .implementation = implementation,
                 .context = FunctionDeclarationKind::Context::TOP_LEVEL,
                 .accessModifier = FunctionDeclarationKind::AccessModifier::PUBLIC,
                 .binding = FunctionDeclarationKind::Binding::STATIC,
@@ -560,30 +566,49 @@ namespace vnlc {
     }
 
     FunctionDeclarationParsingResult Parser::parseFunctionDeclaration(FunctionDeclarationParsingContext context) {
-        if (check(TokenKind::FUNC)) {
-            RegularFunctionDeclarationParsingContext regularContext{
-                .context = context.context,
-                .hasMetadata = context.hasMetadata,
-                .metadataTerms = std::move(context.metadataTerms),
-            };
-            auto result = parseRegularFunctionDeclaration(std::move(regularContext));
+        Token firstToken = peek();
 
-            return FunctionDeclarationParsingResult{
-                .declaration = std::move(result.declaration),
-            };
-        } else if (match(TokenKind::NATIVE)) {
-            NativeFunctionDeclarationParsingContext nativeContext{
-                .context = context.context,
-                .hasMetadata = context.hasMetadata,
-                .metadataTerms = std::move(context.metadataTerms),
-            };
-            auto result = parseNativeFunctionDeclaration(std::move(nativeContext));
+        auto signatureResult = parseFunctionSignature();
 
+        std::optional<std::unique_ptr<BlockStatementNode>> body = std::nullopt;
+        if (context.context != FunctionDeclarationKind::Context::INTERFACE && context.implementation == FunctionDeclarationKind::Implementation::REGULAR) {
+            auto bodyResult = parseFunctionBody();
+            body = std::move(bodyResult.body);
+        }
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
             return FunctionDeclarationParsingResult{
-                .declaration = std::move(result.declaration),
+                .declaration = std::make_unique<FunctionDeclarationNode>(
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    context.binding,
+                    std::move(signatureResult.name),
+                    std::move(signatureResult.parameters),
+                    std::move(signatureResult.returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
             };
         } else {
-            throw SyntaxError("Expected 'func' or 'native' keyword", peek().getLine(), peek().getColumn());
+            return FunctionDeclarationParsingResult{
+                .declaration = std::make_unique<FunctionDeclarationNode>(
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    context.binding,
+                    std::move(signatureResult.name),
+                    std::move(signatureResult.parameters),
+                    std::move(signatureResult.returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken
+                ),
+            };
         }
     }
 
@@ -759,39 +784,22 @@ namespace vnlc {
 
             node = std::move(result.declaration);
         } else {
-            auto result = parseFunctionSignature();
+            FunctionDeclarationParsingContext context{
+                .implementation = FunctionDeclarationKind::Implementation::REGULAR,
+                .context = FunctionDeclarationKind::Context::INTERFACE,
+                .accessModifier = FunctionDeclarationKind::AccessModifier::PUBLIC,
+                .binding = FunctionDeclarationKind::Binding::INSTANCE,
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
 
-            Token lastToken = peek();
+            auto result = parseFunctionDeclaration(std::move(context));
 
-            if (hasMetadata) {
-                node = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::REGULAR,
-                    FunctionDeclarationKind::Context::INTERFACE,
-                    FunctionDeclarationKind::AccessModifier::PUBLIC,
-                    FunctionDeclarationKind::Binding::INSTANCE,
-                    std::move(result.name),
-                    std::move(result.parameters),
-                    std::move(result.returnType),
-                    std::nullopt,
-                    firstToken,
-                    lastToken,
-                    std::move(metadataTerms)
-                );
-            } else {
-                node = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::REGULAR,
-                    FunctionDeclarationKind::Context::INTERFACE,
-                    FunctionDeclarationKind::AccessModifier::PUBLIC,
-                    FunctionDeclarationKind::Binding::INSTANCE,
-                    std::move(result.name),
-                    std::move(result.parameters),
-                    std::move(result.returnType),
-                    std::nullopt,
-                    firstToken,
-                    lastToken
-                );
-            }
+            node = std::move(result.declaration);
         }
+
+        Token lastToken = peek();
+        node->resetPosition(firstToken, lastToken);
 
         if (!endsWithNewlineOrEOF) {
             throw SyntaxError("Expected newline after interface method declaration", peek().getLine(), peek().getColumn());
@@ -852,89 +860,6 @@ namespace vnlc {
             .name = std::move(name),
             .type = std::move(type),
         };
-    }
-
-    RegularFunctionDeclarationParsingResult Parser::parseRegularFunctionDeclaration(RegularFunctionDeclarationParsingContext context) {
-        Token firstToken = peek();
-
-        auto signatureResult = parseFunctionSignature();
-        auto bodyResult = parseFunctionBody();
-
-        Token lastToken = peek();
-
-        if (context.hasMetadata) {
-            return RegularFunctionDeclarationParsingResult{
-                .declaration = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::REGULAR,
-                    context.context,
-                    context.accessModifier,
-                    context.binding,
-                    std::move(signatureResult.name),
-                    std::move(signatureResult.parameters),
-                    std::move(signatureResult.returnType),
-                    std::move(bodyResult.body),
-                    firstToken,
-                    lastToken,
-                    std::move(context.metadataTerms)
-                ),
-            };
-        } else {
-            return RegularFunctionDeclarationParsingResult{
-                .declaration = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::REGULAR,
-                    context.context,
-                    context.accessModifier,
-                    context.binding,
-                    std::move(signatureResult.name),
-                    std::move(signatureResult.parameters),
-                    std::move(signatureResult.returnType),
-                    std::move(bodyResult.body),
-                    firstToken,
-                    lastToken
-                ),
-            };
-        }
-    }
-
-    NativeFunctionDeclarationParsingResult Parser::parseNativeFunctionDeclaration(NativeFunctionDeclarationParsingContext context) {
-        Token firstToken = peek();
-
-        auto signatureResult = parseFunctionSignature();
-
-        Token lastToken = peek();
-
-        if (context.hasMetadata) {
-            return NativeFunctionDeclarationParsingResult{
-                .declaration = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::NATIVE,
-                    context.context,
-                    context.accessModifier,
-                    context.binding,
-                    std::move(signatureResult.name),
-                    std::move(signatureResult.parameters),
-                    std::move(signatureResult.returnType),
-                    std::nullopt,
-                    firstToken,
-                    lastToken,
-                    std::move(context.metadataTerms)
-                ),
-            };
-        } else {
-            return NativeFunctionDeclarationParsingResult{
-                .declaration = std::make_unique<FunctionDeclarationNode>(
-                    FunctionDeclarationKind::Kind::NATIVE,
-                    context.context,
-                    context.accessModifier,
-                    context.binding,
-                    std::move(signatureResult.name),
-                    std::move(signatureResult.parameters),
-                    std::move(signatureResult.returnType),
-                    std::nullopt,
-                    firstToken,
-                    lastToken
-                ),
-            };
-        }
     }
 
     OperatorDeclarationParsingResult Parser::parseOperatorDeclaration(OperatorDeclarationParsingContext context) {
@@ -1815,6 +1740,7 @@ namespace vnlc {
         } else if (match(TokenKind::OVERRIDE)) {
             if (check(TokenKind::FUNC)) {
                 FunctionDeclarationParsingContext functionDeclarationContext{
+                    .implementation = FunctionDeclarationKind::Implementation::REGULAR,
                     .context = FunctionDeclarationKind::Context::CLASS,
                     .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
                     .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
@@ -1878,30 +1804,32 @@ namespace vnlc {
                     .declaration = std::move(operatorResult.declaration),
                 };
             } else {
-                NativeFunctionDeclarationParsingContext nativeFunctionDeclarationContext{
+                FunctionDeclarationParsingContext functionDeclarationContext{
+                    .implementation = FunctionDeclarationKind::Implementation::NATIVE,
                     .context = FunctionDeclarationKind::Context::CLASS,
                     .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
                     .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
                     .hasMetadata = hasMetadata,
                     .metadataTerms = std::move(metadataTerms),
                 };
-                auto nativeFunctionDeclarationResult = parseNativeFunctionDeclaration(std::move(nativeFunctionDeclarationContext));
+                auto functionDeclarationResult = parseFunctionDeclaration(std::move(functionDeclarationContext));
 
                 Token lastToken = peek();
-                nativeFunctionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+                functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
 
                 if (!endsWithNewlineOrEOF) {
                     throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
                 }
 
                 return ClassMemberParsingResult{
-                    .declaration = std::move(nativeFunctionDeclarationResult.declaration),
+                    .declaration = std::move(functionDeclarationResult.declaration),
                 };
             }
         }
 
         if (check(TokenKind::FUNC)) {
             FunctionDeclarationParsingContext functionDeclarationContext{
+                .implementation = FunctionDeclarationKind::Implementation::REGULAR,
                 .context = FunctionDeclarationKind::Context::CLASS,
                 .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
                 .binding = static_cast<FunctionDeclarationKind::Binding>(binding),

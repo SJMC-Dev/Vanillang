@@ -2,7 +2,7 @@
 
 namespace vnlc {
     FunctionDeclarationNode::FunctionDeclarationNode(
-        FunctionDeclarationKind::Kind kind,
+        FunctionDeclarationKind::Implementation implementation,
         FunctionDeclarationKind::Context context,
         FunctionDeclarationKind::AccessModifier accessModifier,
         FunctionDeclarationKind::Binding binding,
@@ -14,7 +14,7 @@ namespace vnlc {
         const Token& lastToken
     ) noexcept
         : DeclarationNode(firstToken, lastToken),
-          kind(kind),
+          implementation(implementation),
           context(context),
           accessModifier(accessModifier),
           binding(binding),
@@ -25,7 +25,7 @@ namespace vnlc {
           internalName("") {}
 
     FunctionDeclarationNode::FunctionDeclarationNode(
-        FunctionDeclarationKind::Kind kind,
+        FunctionDeclarationKind::Implementation implementation,
         FunctionDeclarationKind::Context context,
         FunctionDeclarationKind::AccessModifier accessModifier,
         FunctionDeclarationKind::Binding binding,
@@ -38,7 +38,7 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
     ) noexcept
         : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          kind(kind),
+          implementation(implementation),
           context(context),
           accessModifier(accessModifier),
           binding(binding),
@@ -48,8 +48,8 @@ namespace vnlc {
           body(std::move(body)),
           internalName("") {}
 
-    const FunctionDeclarationKind::Kind FunctionDeclarationNode::getKind() const noexcept {
-        return kind;
+    const FunctionDeclarationKind::Implementation FunctionDeclarationNode::getImplementation() const noexcept {
+        return implementation;
     }
 
     const FunctionDeclarationKind::Context FunctionDeclarationNode::getContext() const noexcept {

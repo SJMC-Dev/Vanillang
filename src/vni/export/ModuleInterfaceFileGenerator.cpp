@@ -116,7 +116,7 @@ namespace vnlc {
         }
 
         functionObj.emplace("parameters", parametersObj);
-        functionObj.emplace("native", function->getKind() == FunctionDeclarationKind::Kind::NATIVE);
+        functionObj.emplace("native", function->getImplementation() == FunctionDeclarationKind::Implementation::NATIVE);
 
         return functionObj;
     }
@@ -344,7 +344,7 @@ namespace vnlc {
         }
 
         methodObj.emplace("parameters", parametersObj);
-        methodObj.emplace("native", method->getKind() == FunctionDeclarationKind::Kind::NATIVE);
+        methodObj.emplace("native", method->getImplementation() == FunctionDeclarationKind::Implementation::NATIVE);
         methodObj.emplace("static", method->getBinding() == FunctionDeclarationKind::Binding::STATIC);
 
         std::string accessModifier;

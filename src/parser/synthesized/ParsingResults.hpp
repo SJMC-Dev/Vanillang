@@ -54,7 +54,6 @@
 #include "parser/synthesized/MetadataTermParsingResult.hpp"                 // IWYU pragma: export
 #include "parser/synthesized/ModuleParsingResult.hpp"                       // IWYU pragma: export
 #include "parser/synthesized/MultiplicativeExpressionParsingResult.hpp"     // IWYU pragma: export
-#include "parser/synthesized/NativeFunctionDeclarationParsingResult.hpp"    // IWYU pragma: export
 #include "parser/synthesized/NullishCoalescingExpressionParsingResult.hpp"  // IWYU pragma: export
 #include "parser/synthesized/OperatorDeclarationParsingResult.hpp"          // IWYU pragma: export
 #include "parser/synthesized/ParameterListParsingResult.hpp"                // IWYU pragma: export
@@ -63,7 +62,6 @@
 #include "parser/synthesized/PrimaryExpressionParsingResult.hpp"            // IWYU pragma: export
 #include "parser/synthesized/PropertyDeclarationParsingResult.hpp"          // IWYU pragma: export
 #include "parser/synthesized/RangeExpressionParsingResult.hpp"              // IWYU pragma: export
-#include "parser/synthesized/RegularFunctionDeclarationParsingResult.hpp"   // IWYU pragma: export
 #include "parser/synthesized/RelationalExpressionParsingResult.hpp"         // IWYU pragma: export
 #include "parser/synthesized/ReloadStatementParsingResult.hpp"              // IWYU pragma: export
 #include "parser/synthesized/ReturnStatementParsingResult.hpp"              // IWYU pragma: export

@@ -16,7 +16,7 @@ namespace vnlc {
     private:
         FunctionDeclarationNode() = delete;
 
-        FunctionDeclarationKind::Kind kind;
+        FunctionDeclarationKind::Implementation implementation;
         FunctionDeclarationKind::Context context;
         FunctionDeclarationKind::AccessModifier accessModifier;
         FunctionDeclarationKind::Binding binding;
@@ -29,7 +29,7 @@ namespace vnlc {
 
     public:
         FunctionDeclarationNode(
-            FunctionDeclarationKind::Kind kind,
+            FunctionDeclarationKind::Implementation implementation,
             FunctionDeclarationKind::Context context,
             FunctionDeclarationKind::AccessModifier accessModifier,
             FunctionDeclarationKind::Binding binding,
@@ -42,7 +42,7 @@ namespace vnlc {
         ) noexcept;
 
         FunctionDeclarationNode(
-            FunctionDeclarationKind::Kind kind,
+            FunctionDeclarationKind::Implementation implementation,
             FunctionDeclarationKind::Context context,
             FunctionDeclarationKind::AccessModifier accessModifier,
             FunctionDeclarationKind::Binding binding,
@@ -55,7 +55,7 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] const FunctionDeclarationKind::Kind getKind() const noexcept;
+        [[nodiscard]] const FunctionDeclarationKind::Implementation getImplementation() const noexcept;
         [[nodiscard]] const FunctionDeclarationKind::Context getContext() const noexcept;
         [[nodiscard]] const FunctionDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] const FunctionDeclarationKind::Binding getBinding() const noexcept;
