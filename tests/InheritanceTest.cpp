@@ -64,10 +64,12 @@ namespace vnlc {
         EXPECT_EQ(importedBase.getOrigin(), InheritanceOrigin::IMPORTED);
         EXPECT_EQ(importedBase.getLocalNode(), nullptr);
         EXPECT_EQ(importedBase.getImportedNode(), &importedClass);
+        EXPECT_EQ(localBase.findParent(), nullptr);
         EXPECT_FALSE(localBase.hasCycle());
 
         localNode.setParent(&localNode);
 
+        EXPECT_EQ(localBase.findParent(), &localNode);
         EXPECT_TRUE(localBase.hasCycle());
     }
 
@@ -176,6 +178,7 @@ namespace vnlc {
         EXPECT_EQ(node.getImportedNode(), nullptr);
         EXPECT_EQ(base.getLocalNode(), &localInterface);
         EXPECT_EQ(base.getImportedNode(), nullptr);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -188,6 +191,7 @@ namespace vnlc {
         EXPECT_EQ(node.getImportedNode(), &importedInterface);
         EXPECT_EQ(base.getLocalNode(), nullptr);
         EXPECT_EQ(base.getImportedNode(), &importedInterface);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -208,6 +212,7 @@ namespace vnlc {
         EXPECT_EQ(node.getImportedNode(), nullptr);
         EXPECT_EQ(base.getLocalNode(), &localEnum);
         EXPECT_EQ(base.getImportedNode(), nullptr);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -220,6 +225,7 @@ namespace vnlc {
         EXPECT_EQ(node.getImportedNode(), &importedEnum);
         EXPECT_EQ(base.getLocalNode(), nullptr);
         EXPECT_EQ(base.getImportedNode(), &importedEnum);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -233,6 +239,7 @@ namespace vnlc {
         EXPECT_EQ(node.findParent(), nullptr);
         EXPECT_EQ(base.getLocalNode(), &localMember);
         EXPECT_EQ(base.getImportedNode(), nullptr);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -246,6 +253,7 @@ namespace vnlc {
         EXPECT_EQ(node.findParent(), nullptr);
         EXPECT_EQ(base.getLocalNode(), nullptr);
         EXPECT_EQ(base.getImportedNode(), &importedMember);
+        EXPECT_EQ(base.findParent(), nullptr);
         EXPECT_FALSE(base.hasCycle());
     }
 
@@ -253,17 +261,21 @@ namespace vnlc {
         EnumMemberInheritanceNode member(&localMember);
         const EnumInheritanceNode firstParent(&localEnum);
         const EnumInheritanceNode secondParent(&importedEnum);
+        const InheritanceNode& base = member;
 
         member.setParent(&firstParent);
         EXPECT_EQ(member.findParent(), &firstParent);
-        EXPECT_FALSE(member.hasCycle());
+        EXPECT_EQ(base.findParent(), &firstParent);
+        EXPECT_FALSE(base.hasCycle());
 
         member.setParent(&secondParent);
         EXPECT_EQ(member.findParent(), &secondParent);
-        EXPECT_FALSE(member.hasCycle());
+        EXPECT_EQ(base.findParent(), &secondParent);
+        EXPECT_FALSE(base.hasCycle());
 
         member.setParent(nullptr);
         EXPECT_EQ(member.findParent(), nullptr);
-        EXPECT_FALSE(member.hasCycle());
+        EXPECT_EQ(base.findParent(), nullptr);
+        EXPECT_FALSE(base.hasCycle());
     }
 } // namespace vnlc
