@@ -39,6 +39,10 @@ file(GLOB_RECURSE METADATA_FILES CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/src/metadata/*.cpp
 )
 
+file(GLOB_RECURSE INHERITANCE_FILES CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/src/inheritance/*.cpp
+)
+
 file(GLOB_RECURSE VNI_FILES CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/src/vni/*.cpp
 )
@@ -92,7 +96,7 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/parser/ParseResult.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
     ${PROJECT_SOURCE_DIR}/src/token/TokenKindUtil.cpp
-    ${PROJECT_SOURCE_DIR}/src/inheritance/ClassInheritanceNode.cpp
+    ${INHERITANCE_FILES}
     ${AST_FILES}
     ${SEMANTIC_FILES}
     ${SCOPE_FILES}
@@ -133,7 +137,7 @@ add_executable(
     vnlctest_inheritance
     ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
-    ${PROJECT_SOURCE_DIR}/src/inheritance/ClassInheritanceNode.cpp
+    ${INHERITANCE_FILES}
     ${AST_FILES}
     ${VNI_IMPORT_FILES}
     InheritanceTest.cpp
