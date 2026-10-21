@@ -1,3 +1,4 @@
+#include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/DeclarationItem.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
@@ -7,6 +8,7 @@
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
+#include "ast/statement/BlockStatementNode.hpp"
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "config/Config.hpp"
@@ -305,13 +307,14 @@ namespace vnlc {
         EXPECT_EQ(constructor.getParameterByName("missing"), nullptr);
     }
 
-    TEST_F(VniTest, ImportedOperatorStoresReturnTypeParametersAndAccessModifier) {
+    TEST_F(VniTest, ImportedOperatorStoresReturnTypeParametersNativeFlagAndAccessModifier) {
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
         parameters.emplace("other", std::make_unique<ImportedParameter>("other", "Vec3"));
 
-        const ImportedOperator operatorNode("addition", "Vec3", std::move(parameters), "protected");
+        const ImportedOperator operatorNode("addition", "Vec3", std::move(parameters), true, "protected");
 
         EXPECT_EQ(operatorNode.getReturnType(), "Vec3");
+        EXPECT_TRUE(operatorNode.isNative());
         EXPECT_EQ(operatorNode.getAccessModifier(), "protected");
         ASSERT_EQ(operatorNode.getParameters().size(), 1);
         const auto* parameter = operatorNode.getParameterByName("other");
@@ -332,7 +335,7 @@ namespace vnlc {
         constructors.emplace("init", std::make_unique<ImportedConstructor>("init", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
 
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
-        operators.emplace("addition", std::make_unique<ImportedOperator>("addition", "Box<T>", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
+        operators.emplace("addition", std::make_unique<ImportedOperator>("addition", "Box<T>", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false, "public"));
 
         const ImportedClass
             importedClass("Box", std::optional<std::string>("Base"), { "Readable" }, true, { "T" }, std::move(properties), std::move(methods), std::move(constructors), std::move(operators));
@@ -384,7 +387,7 @@ namespace vnlc {
         methods.emplace("read", std::make_unique<ImportedMethod>("read", "read", "string", std::move(parameters), false, false, "public"));
 
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
-        operators.emplace("equality", std::make_unique<ImportedOperator>("equality", "bool", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, "public"));
+        operators.emplace("equality", std::make_unique<ImportedOperator>("equality", "bool", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false, "public"));
 
         const ImportedInterface importedInterface("Readable", { "T" }, std::move(methods), std::move(operators));
 
@@ -544,6 +547,7 @@ namespace vnlc {
                         "type": "int"
                     }
                 },
+                "native": true,
                 "accessModifier": "public"
             }
         },
@@ -570,6 +574,7 @@ namespace vnlc {
                 "category": "operator",
                 "returnType": "bool",
                 "parameters": {},
+                "native": false,
                 "accessModifier": "public"
             }
         }
@@ -666,6 +671,7 @@ namespace vnlc {
         const auto* classOperator = importedClass->getOperatorByName("addition");
         ASSERT_NE(classOperator, nullptr);
         EXPECT_EQ(classOperator->getReturnType(), "Box<T>");
+        EXPECT_TRUE(classOperator->isNative());
         const auto* operatorParameter = classOperator->getParameterByName("index");
         ASSERT_NE(operatorParameter, nullptr);
         EXPECT_EQ(operatorParameter->getType(), "int");
@@ -681,6 +687,7 @@ namespace vnlc {
         const auto* interfaceOperator = importedInterface->getOperatorByName("equality");
         ASSERT_NE(interfaceOperator, nullptr);
         EXPECT_EQ(interfaceOperator->getReturnType(), "bool");
+        EXPECT_FALSE(interfaceOperator->isNative());
 
         const auto* importedEnumIdentifier = module->getIdentifierByName("State");
         ASSERT_NE(importedEnumIdentifier, nullptr);
@@ -763,6 +770,19 @@ namespace vnlc {
         for (const auto contents : {
                  R"({"run":{"category":"func","returnType":"void","parameters":{},"native":false}})",
                  R"({"run":{"category":"method","returnType":"void","parameters":{},"native":false,"static":false,"accessModifier":"public"}})",
+             }) {
+            SCOPED_TRACE(contents);
+            const auto filePath = writeFile("module.vni", contents);
+            ModuleInterfaceFileReader reader(filePath);
+
+            EXPECT_THROW(static_cast<void>(reader.read()), ModuleInterfaceFileReaderError);
+        }
+    }
+
+    TEST_F(VniTest, ModuleInterfaceFileReaderThrowsWhenOperatorLacksValidNativeFlag) {
+        for (const auto contents : {
+                 R"({"addition":{"category":"operator","returnType":"int","parameters":{},"accessModifier":"public"}})",
+                 R"({"addition":{"category":"operator","returnType":"int","parameters":{},"native":"true","accessModifier":"public"}})",
              }) {
             SCOPED_TRACE(contents);
             const auto filePath = writeFile("module.vni", contents);
@@ -937,6 +957,63 @@ namespace vnlc {
         const auto json = readJson(generatedOutputPath(config));
 
         EXPECT_EQ(json["count"]["type"], "int");
+    }
+
+    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesNativeFlagForOperators) {
+        const auto config = makeGeneratorConfig(testDirectory);
+
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
+        operators.push_back(
+            std::make_unique<OperatorDeclarationNode>(
+                OperatorDeclarationKind::Kind::ADDITION,
+                OperatorDeclarationKind::Implementation::NATIVE,
+                OperatorDeclarationKind::Context::CLASS,
+                OperatorDeclarationKind::AccessModifier::PUBLIC,
+                std::vector<std::unique_ptr<ValueDeclarationNode>>{},
+                std::nullopt,
+                std::nullopt,
+                testToken,
+                testToken
+            )
+        );
+        operators.push_back(
+            std::make_unique<OperatorDeclarationNode>(
+                OperatorDeclarationKind::Kind::SUBTRACTION,
+                OperatorDeclarationKind::Implementation::REGULAR,
+                OperatorDeclarationKind::Context::CLASS,
+                OperatorDeclarationKind::AccessModifier::PUBLIC,
+                std::vector<std::unique_ptr<ValueDeclarationNode>>{},
+                std::nullopt,
+                std::make_optional(std::make_unique<BlockStatementNode>(std::vector<std::unique_ptr<StatementNode>>{}, testToken, testToken)),
+                testToken,
+                testToken
+            )
+        );
+        operators[0]->setInternalName("vnl-operator-addition()");
+        operators[1]->setInternalName("vnl-operator-subtraction()");
+
+        auto declaration = std::make_unique<ClassDeclarationNode>(
+            false,
+            makeIdentifier("Vec3"),
+            std::nullopt,
+            std::vector<std::unique_ptr<TypeReferenceNode>>{},
+            std::vector<std::unique_ptr<IdentifierNode>>{},
+            std::vector<std::unique_ptr<ValueDeclarationNode>>{},
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>{},
+            std::vector<std::unique_ptr<ConstructorDeclarationNode>>{},
+            std::move(operators),
+            testToken,
+            testToken
+        );
+        const auto* declarationNode = declaration.get();
+        const auto semantic = makeSemanticResult();
+
+        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        generator.generate();
+        const auto json = readJson(generatedOutputPath(config));
+
+        EXPECT_EQ(json["Vec3"]["operators"]["vnl-operator-addition()"]["native"], true);
+        EXPECT_EQ(json["Vec3"]["operators"]["vnl-operator-subtraction()"]["native"], false);
     }
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorDoesNotWriteWhenOutputDirectoryIsAbsent) {
