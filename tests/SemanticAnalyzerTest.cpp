@@ -776,6 +776,51 @@ interface Invocable {
         }
     }
 
+    TEST(SemanticAnalyzerTest, AcceptsNativeOperatorsWithoutBodies) {
+        constexpr std::string_view source = R"(
+class Vec3 {
+    native op +(other: Vec3) -> Vec3
+    override native op ==(other: Vec3) -> bool
+    op -(other: Vec3) -> Vec3 { return this }
+}
+)";
+        const auto config = makeConfig("native_operators.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 3);
+
+        const std::string vec3TypeName = std::string(module->getFullName()) + ".Vec3";
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[0]->getInternalName(), "vnl-operator-addition(" + vec3TypeName + ")");
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[1]->getInternalName(), "vnl-operator-equality(" + vec3TypeName + ")");
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[2]->getInternalName(), "vnl-operator-subtraction(" + vec3TypeName + ")");
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsDuplicateSignaturesBetweenNativeAndRegularOperators) {
+        constexpr std::string_view source = R"(
+class Addable {
+    op +(first: int) -> int { return first }
+    native op +(second: int) -> int
+}
+)";
+        const auto config = makeConfig("duplicate_native_operator_signatures.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_TRUE(result.hasErrors());
+        ASSERT_EQ(result.getErrors().size(), 1);
+        EXPECT_EQ(result.getErrors().front().getMessage(), "Redeclaration of class member 'vnl-operator-addition(int)'");
+    }
+
     TEST(SemanticContextTest, RetainsPoppedScopesAndTheirParents) {
         const auto config = makeConfig("scopes.vnl");
         const auto module = parseModule("class Sample {}", config);

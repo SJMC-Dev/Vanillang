@@ -16,6 +16,7 @@
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
 #include "collector/Collector.hpp"
 #include "config/Config.hpp"
+#include "error/SyntaxError.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -256,6 +257,113 @@ namespace vnlc {
         const auto& call = interfaceDeclaration->getOperatorDeclarations()[1];
         EXPECT_EQ(call->getKind(), OperatorDeclarationKind::Kind::CALL);
         EXPECT_EQ(call->getOperatorName(), "call");
+    }
+
+    TEST(ParserTest, ParsesNativeOperatorDeclarationsAlongsideNativeFunctions) {
+        std::stringstream input(
+            "native func log(message: string)\n"
+            "class Vec3 {\n"
+            "    native op +(other: Vec3) -> Vec3\n"
+            "    private native op [](index: int) -> int\n"
+            "    override native op ==(other: Vec3) -> bool\n"
+            "    metadata(deprecated) native\n"
+            "    op -(other: Vec3) -> Vec3\n"
+            "    op *(scale: int) -> Vec3 {\n"
+            "        return this\n"
+            "    }\n"
+            "    native func length() -> int\n"
+            "    static native func zero() -> Vec3\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = std::filesystem::current_path(),
+            .inputFilePath = std::filesystem::current_path() / "test.vnl",
+            .outputDirectory = std::nullopt,
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 2);
+
+        const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[0].get());
+        ASSERT_NE(functionDeclaration, nullptr);
+        EXPECT_EQ(functionDeclaration->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(functionDeclaration->getName().getIdentifierString(), "log");
+        EXPECT_FALSE(functionDeclaration->getBody().has_value());
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 5);
+        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 2);
+
+        const auto& addition = classDeclaration->getOperatorDeclarations()[0];
+        EXPECT_EQ(addition->getKind(), OperatorDeclarationKind::Kind::ADDITION);
+        EXPECT_EQ(addition->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
+        EXPECT_EQ(addition->getContext(), OperatorDeclarationKind::Context::CLASS);
+        EXPECT_EQ(addition->getAccessModifier(), OperatorDeclarationKind::AccessModifier::PUBLIC);
+        ASSERT_EQ(addition->getParameters().size(), 1);
+        EXPECT_EQ(addition->getParameters().front()->getName().getIdentifierString(), "other");
+        EXPECT_TRUE(addition->getReturnType().has_value());
+        EXPECT_FALSE(addition->getBody().has_value());
+
+        const auto& subscript = classDeclaration->getOperatorDeclarations()[1];
+        EXPECT_EQ(subscript->getKind(), OperatorDeclarationKind::Kind::SUBSCRIPT);
+        EXPECT_EQ(subscript->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
+        EXPECT_EQ(subscript->getAccessModifier(), OperatorDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_FALSE(subscript->getBody().has_value());
+
+        const auto& equality = classDeclaration->getOperatorDeclarations()[2];
+        EXPECT_EQ(equality->getKind(), OperatorDeclarationKind::Kind::EQUAL);
+        EXPECT_EQ(equality->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
+        EXPECT_FALSE(equality->getBody().has_value());
+
+        const auto& subtraction = classDeclaration->getOperatorDeclarations()[3];
+        EXPECT_EQ(subtraction->getKind(), OperatorDeclarationKind::Kind::SUBTRACTION);
+        EXPECT_EQ(subtraction->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
+        EXPECT_TRUE(subtraction->doesIncludeMetadata());
+        EXPECT_FALSE(subtraction->getBody().has_value());
+
+        const auto& multiplication = classDeclaration->getOperatorDeclarations()[4];
+        EXPECT_EQ(multiplication->getKind(), OperatorDeclarationKind::Kind::MULTIPLICATION);
+        EXPECT_EQ(multiplication->getImplementation(), OperatorDeclarationKind::Implementation::REGULAR);
+        EXPECT_TRUE(multiplication->getBody().has_value());
+
+        const auto& length = classDeclaration->getMethodDeclarations()[0];
+        EXPECT_EQ(length->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(length->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
+        EXPECT_FALSE(length->getBody().has_value());
+
+        const auto& zero = classDeclaration->getMethodDeclarations()[1];
+        EXPECT_EQ(zero->getKind(), FunctionDeclarationKind::Kind::NATIVE);
+        EXPECT_EQ(zero->getBinding(), FunctionDeclarationKind::Binding::STATIC);
+        EXPECT_FALSE(zero->getBody().has_value());
+    }
+
+    TEST(ParserTest, RejectsStaticNativeOperatorDeclarations) {
+        std::stringstream input(
+            "class Vec3 {\n"
+            "    static native op +(other: Vec3) -> Vec3\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = std::filesystem::current_path(),
+            .inputFilePath = std::filesystem::current_path() / "test.vnl",
+            .outputDirectory = std::nullopt,
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        EXPECT_THROW(static_cast<void>(parseModule(input, config)), SyntaxError);
     }
 
     TEST(ParserTest, DistributesClassMembersIntoDeclarationKinds) {
