@@ -1,24 +1,16 @@
 #include "ClassInheritanceNode.hpp"
 
 namespace vnlc {
-    ClassInheritanceNode::ClassInheritanceNode(const ClassDeclarationNode* localNode) : origin(ClassInheritanceOrigin::LOCAL), localNode(localNode), importedNode(nullptr), parent(nullptr) {}
+    ClassInheritanceNode::ClassInheritanceNode(const ClassDeclarationNode* localNode) : InheritanceNode(localNode), parent(nullptr) {}
 
-    ClassInheritanceNode::ClassInheritanceNode(const ImportedClass* importedNode) : origin(ClassInheritanceOrigin::IMPORTED), localNode(nullptr), importedNode(importedNode), parent(nullptr) {}
-
-    const ClassInheritanceOrigin ClassInheritanceNode::getOrigin() const noexcept {
-        return origin;
-    }
-
-    const ClassInheritanceNode* ClassInheritanceNode::findParent() const noexcept {
-        return parent;
-    }
+    ClassInheritanceNode::ClassInheritanceNode(const ImportedClass* importedNode) : InheritanceNode(importedNode), parent(nullptr) {}
 
     const ClassDeclarationNode* ClassInheritanceNode::getLocalNode() const noexcept {
-        return localNode;
+        return static_cast<const ClassDeclarationNode*>(InheritanceNode::getLocalNode());
     }
 
     const ImportedClass* ClassInheritanceNode::getImportedNode() const noexcept {
-        return importedNode;
+        return static_cast<const ImportedClass*>(InheritanceNode::getImportedNode());
     }
 
     const bool ClassInheritanceNode::hasCycle() const noexcept {
@@ -32,7 +24,19 @@ namespace vnlc {
         return false;
     }
 
+    const ClassInheritanceNode* ClassInheritanceNode::findParent() const noexcept {
+        return parent;
+    }
+
+    const std::vector<const InterfaceInheritanceNode*>& ClassInheritanceNode::getImplementedInterfaces() const noexcept {
+        return implementedInterfaces;
+    }
+
     void ClassInheritanceNode::setParent(const ClassInheritanceNode* parent) noexcept {
         this->parent = parent;
+    }
+
+    void ClassInheritanceNode::addImplementedInterface(const InterfaceInheritanceNode* implementedInterface) {
+        implementedInterfaces.push_back(implementedInterface);
     }
 } // namespace vnlc

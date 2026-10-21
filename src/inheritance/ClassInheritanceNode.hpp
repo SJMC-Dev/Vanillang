@@ -2,16 +2,16 @@
 #define VNLC_CLASS_INHERITANCE_NODE_HPP
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
-#include "inheritance/ClassInheritanceOrigin.hpp"
+#include "inheritance/InheritanceNode.hpp"
+#include "inheritance/InterfaceInheritanceNode.hpp"
 #include "vni/import/ImportedClass.hpp"
+#include <vector>
 
 namespace vnlc {
-    class ClassInheritanceNode {
+    class ClassInheritanceNode : public InheritanceNode {
     private:
-        ClassInheritanceOrigin origin;
-        const ClassDeclarationNode* localNode;
-        const ImportedClass* importedNode;
         const ClassInheritanceNode* parent;
+        std::vector<const InterfaceInheritanceNode*> implementedInterfaces;
 
     public:
         ClassInheritanceNode(const ClassDeclarationNode* localNode);
@@ -21,13 +21,14 @@ namespace vnlc {
         ClassInheritanceNode(const ClassInheritanceNode&) = delete;
         ClassInheritanceNode(ClassInheritanceNode&&) noexcept = default;
 
-        [[nodiscard]] const ClassInheritanceOrigin getOrigin() const noexcept;
+        [[nodiscard]] const ClassDeclarationNode* getLocalNode() const noexcept override;
+        [[nodiscard]] const ImportedClass* getImportedNode() const noexcept override;
+        [[nodiscard]] const bool hasCycle() const noexcept override;
         [[nodiscard]] const ClassInheritanceNode* findParent() const noexcept;
-        [[nodiscard]] const ClassDeclarationNode* getLocalNode() const noexcept;
-        [[nodiscard]] const ImportedClass* getImportedNode() const noexcept;
-        [[nodiscard]] const bool hasCycle() const noexcept;
+        [[nodiscard]] const std::vector<const InterfaceInheritanceNode*>& getImplementedInterfaces() const noexcept;
 
         void setParent(const ClassInheritanceNode* parent) noexcept;
+        void addImplementedInterface(const InterfaceInheritanceNode* implementedInterface);
     };
 } // namespace vnlc
 
