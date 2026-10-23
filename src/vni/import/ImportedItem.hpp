@@ -22,6 +22,7 @@ namespace vnlc {
         [[nodiscard]] const ImportedItem* getChildByName(std::string_view name) const;
         [[nodiscard]] static const ImportedItem*
         getImportedItemByFullPath(const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports, const std::vector<std::string>& fullPath);
+        [[nodiscard]] static const ImportedItem* getImportedItemByFullTypeName(const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports, std::string_view fullTypeName);
 
         virtual ~ImportedItem() = default;
     };

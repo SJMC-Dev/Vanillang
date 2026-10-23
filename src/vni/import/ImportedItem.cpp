@@ -43,4 +43,31 @@ namespace vnlc {
 
         return item;
     }
+
+    const ImportedItem* ImportedItem::getImportedItemByFullTypeName(const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports, std::string_view fullTypeName) {
+        const auto isSpace = [](char character) { return character == ' ' || character == '\t' || character == '\r' || character == '\n'; };
+
+        std::string_view unwrappedTypeName = fullTypeName.substr(0, fullTypeName.find('<'));
+        while (!unwrappedTypeName.empty() && isSpace(unwrappedTypeName.front())) {
+            unwrappedTypeName.remove_prefix(1);
+        }
+        while (!unwrappedTypeName.empty() && isSpace(unwrappedTypeName.back())) {
+            unwrappedTypeName.remove_suffix(1);
+        }
+
+        std::vector<std::string> path;
+        std::size_t start = 0;
+        while (start <= unwrappedTypeName.size()) {
+            const std::size_t separator = unwrappedTypeName.find('.', start);
+            if (separator == std::string_view::npos) {
+                path.emplace_back(unwrappedTypeName.substr(start));
+                break;
+            }
+
+            path.emplace_back(unwrappedTypeName.substr(start, separator - start));
+            start = separator + 1;
+        }
+
+        return getImportedItemByFullPath(imports, path);
+    }
 } // namespace vnlc

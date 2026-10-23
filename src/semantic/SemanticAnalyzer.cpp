@@ -218,20 +218,7 @@ namespace vnlc {
             genericArgumentTypes.emplace_back(lastArgumentType);
         }
 
-        std::vector<std::string> path;
-        std::size_t start = 0;
-        while (start <= unwrappedTypeName.size()) {
-            const std::size_t separator = unwrappedTypeName.find('.', start);
-            if (separator == std::string_view::npos) {
-                path.emplace_back(unwrappedTypeName.substr(start));
-                break;
-            }
-
-            path.emplace_back(unwrappedTypeName.substr(start, separator - start));
-            start = separator + 1;
-        }
-
-        const ImportedItem* importedType = ImportedItem::getImportedItemByFullPath(imports, path);
+        const ImportedItem* importedType = ImportedItem::getImportedItemByFullTypeName(imports, fullTypeName);
 
         // imported type references should never be type aliases
         const auto customizedTypeKind = [&importedType]() -> std::optional<CustomizedTypeKind> {
@@ -840,25 +827,6 @@ namespace vnlc {
             context.popScope();
         }
 
-        const auto getImportedItemByFullTypeName = [this](std::string_view fullTypeName) -> const ImportedItem* {
-            const std::string_view unwrappedTypeName = fullTypeName.substr(0, fullTypeName.find('<'));
-
-            std::vector<std::string> path;
-            std::size_t start = 0;
-            while (start <= unwrappedTypeName.size()) {
-                const std::size_t separator = unwrappedTypeName.find('.', start);
-                if (separator == std::string_view::npos) {
-                    path.emplace_back(unwrappedTypeName.substr(start));
-                    break;
-                }
-
-                path.emplace_back(unwrappedTypeName.substr(start, separator - start));
-                start = separator + 1;
-            }
-
-            return ImportedItem::getImportedItemByFullPath(imports, path);
-        };
-
         for (const ImportedModule* importedModule : importedModules) {
             for (const auto& [name, identifier] : importedModule->getIdentifiers()) {
                 if (const auto* importedInterface = dynamic_cast<const ImportedInterface*>(identifier.get())) {
@@ -881,13 +849,13 @@ namespace vnlc {
 
                 ClassInheritanceNode& classNode = context.getOrCreateImportedInheritanceNode(*importedClass);
                 if (importedClass->getBaseClass().has_value()) {
-                    if (const auto* baseClass = dynamic_cast<const ImportedClass*>(getImportedItemByFullTypeName(importedClass->getBaseClass().value()))) {
+                    if (const auto* baseClass = dynamic_cast<const ImportedClass*>(ImportedItem::getImportedItemByFullTypeName(imports, importedClass->getBaseClass().value()))) {
                         classNode.setParent(&context.getOrCreateImportedInheritanceNode(*baseClass));
                     }
                 }
 
                 for (const auto& implementedInterface : importedClass->getImplementedInterfaces()) {
-                    if (const auto* interfaceNode = dynamic_cast<const ImportedInterface*>(getImportedItemByFullTypeName(implementedInterface))) {
+                    if (const auto* interfaceNode = dynamic_cast<const ImportedInterface*>(ImportedItem::getImportedItemByFullTypeName(imports, implementedInterface))) {
                         classNode.addImplementedInterface(&context.getOrCreateImportedInheritanceNode(*interfaceNode));
                     }
                 }
