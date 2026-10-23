@@ -77,20 +77,68 @@ namespace vnlc {
         inferredExpressionTypeMap.emplace(expressionNode, type);
     }
 
-    ClassInheritanceNode& SemanticContext::getOrCreateLocalClassInheritanceNode(const ClassDeclarationNode& localNode) {
-        auto [it, inserted] = localClassInheritanceMap.try_emplace(&localNode);
+    ClassInheritanceNode& SemanticContext::getOrCreateLocalInheritanceNode(const ClassDeclarationNode& localNode) {
+        auto [it, inserted] = localInheritanceMap.try_emplace(&localNode);
         if (inserted) {
-            it->second = classInheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&localNode)).get();
+            it->second = inheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&localNode)).get();
         }
-        return *it->second;
+        return static_cast<ClassInheritanceNode&>(*it->second);
     }
 
-    ClassInheritanceNode& SemanticContext::getOrCreateImportedClassInheritanceNode(const ImportedClass& importedNode) {
-        auto [it, inserted] = importedClassInheritanceMap.try_emplace(&importedNode);
+    InterfaceInheritanceNode& SemanticContext::getOrCreateLocalInheritanceNode(const InterfaceDeclarationNode& localNode) {
+        auto [it, inserted] = localInheritanceMap.try_emplace(&localNode);
         if (inserted) {
-            it->second = classInheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&importedNode)).get();
+            it->second = inheritanceNodes.emplace_back(std::make_unique<InterfaceInheritanceNode>(&localNode)).get();
         }
-        return *it->second;
+        return static_cast<InterfaceInheritanceNode&>(*it->second);
+    }
+
+    EnumInheritanceNode& SemanticContext::getOrCreateLocalInheritanceNode(const EnumDeclarationNode& localNode) {
+        auto [it, inserted] = localInheritanceMap.try_emplace(&localNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<EnumInheritanceNode>(&localNode)).get();
+        }
+        return static_cast<EnumInheritanceNode&>(*it->second);
+    }
+
+    EnumMemberInheritanceNode& SemanticContext::getOrCreateLocalInheritanceNode(const EnumMemberDeclarationNode& localNode) {
+        auto [it, inserted] = localInheritanceMap.try_emplace(&localNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<EnumMemberInheritanceNode>(&localNode)).get();
+        }
+        return static_cast<EnumMemberInheritanceNode&>(*it->second);
+    }
+
+    ClassInheritanceNode& SemanticContext::getOrCreateImportedInheritanceNode(const ImportedClass& importedNode) {
+        auto [it, inserted] = importedInheritanceMap.try_emplace(&importedNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<ClassInheritanceNode>(&importedNode)).get();
+        }
+        return static_cast<ClassInheritanceNode&>(*it->second);
+    }
+
+    InterfaceInheritanceNode& SemanticContext::getOrCreateImportedInheritanceNode(const ImportedInterface& importedNode) {
+        auto [it, inserted] = importedInheritanceMap.try_emplace(&importedNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<InterfaceInheritanceNode>(&importedNode)).get();
+        }
+        return static_cast<InterfaceInheritanceNode&>(*it->second);
+    }
+
+    EnumInheritanceNode& SemanticContext::getOrCreateImportedInheritanceNode(const ImportedEnum& importedNode) {
+        auto [it, inserted] = importedInheritanceMap.try_emplace(&importedNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<EnumInheritanceNode>(&importedNode)).get();
+        }
+        return static_cast<EnumInheritanceNode&>(*it->second);
+    }
+
+    EnumMemberInheritanceNode& SemanticContext::getOrCreateImportedInheritanceNode(const ImportedEnumMember& importedNode) {
+        auto [it, inserted] = importedInheritanceMap.try_emplace(&importedNode);
+        if (inserted) {
+            it->second = inheritanceNodes.emplace_back(std::make_unique<EnumMemberInheritanceNode>(&importedNode)).get();
+        }
+        return static_cast<EnumMemberInheritanceNode&>(*it->second);
     }
 
     const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const {
@@ -153,17 +201,17 @@ namespace vnlc {
         return nullptr;
     }
 
-    const ClassInheritanceNode* SemanticContext::getClassInheritanceNodeByLocalNode(const ClassDeclarationNode* localNode) const {
-        auto it = localClassInheritanceMap.find(localNode);
-        if (it != localClassInheritanceMap.end()) {
+    const InheritanceNode* SemanticContext::getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const {
+        auto it = localInheritanceMap.find(localNode);
+        if (it != localInheritanceMap.end()) {
             return it->second;
         }
         return nullptr;
     }
 
-    const ClassInheritanceNode* SemanticContext::getClassInheritanceNodeByImportedNode(const ImportedClass* importedNode) const {
-        auto it = importedClassInheritanceMap.find(importedNode);
-        if (it != importedClassInheritanceMap.end()) {
+    const InheritanceNode* SemanticContext::getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const {
+        auto it = importedInheritanceMap.find(importedNode);
+        if (it != importedInheritanceMap.end()) {
             return it->second;
         }
         return nullptr;
@@ -325,15 +373,15 @@ namespace vnlc {
         return std::move(inferredExpressionTypeMap);
     }
 
-    std::vector<std::unique_ptr<ClassInheritanceNode>> SemanticContext::takeClassInheritanceNodes() {
-        return std::move(classInheritanceNodes);
+    std::vector<std::unique_ptr<InheritanceNode>> SemanticContext::takeInheritanceNodes() {
+        return std::move(inheritanceNodes);
     }
 
-    std::unordered_map<const ClassDeclarationNode*, ClassInheritanceNode*> SemanticContext::takeLocalClassInheritanceMap() {
-        return std::move(localClassInheritanceMap);
+    std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> SemanticContext::takeLocalInheritanceMap() {
+        return std::move(localInheritanceMap);
     }
 
-    std::unordered_map<const ImportedClass*, ClassInheritanceNode*> SemanticContext::takeImportedClassInheritanceMap() {
-        return std::move(importedClassInheritanceMap);
+    std::unordered_map<const ImportedIdentifier*, InheritanceNode*> SemanticContext::takeImportedInheritanceMap() {
+        return std::move(importedInheritanceMap);
     }
 } // namespace vnlc

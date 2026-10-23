@@ -791,30 +791,56 @@ namespace vnlc {
 
     void SemanticAnalyzer::buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules) {
         for (const auto& topIdentifierDecl : localModule.getTopIdentifierDeclarations()) {
+            if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(topIdentifierDecl.get())) {
+                context.getOrCreateLocalInheritanceNode(*interfaceDecl);
+                continue;
+            }
+
+            if (const auto* enumDecl = dynamic_cast<const EnumDeclarationNode*>(topIdentifierDecl.get())) {
+                const EnumInheritanceNode& enumNode = context.getOrCreateLocalInheritanceNode(*enumDecl);
+                for (const auto& memberDecl : enumDecl->getMemberDeclarations()) {
+                    context.getOrCreateLocalInheritanceNode(*memberDecl).setParent(&enumNode);
+                }
+                continue;
+            }
+
             const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(topIdentifierDecl.get());
             if (classDecl == nullptr) {
                 continue;
             }
 
-            ClassInheritanceNode& inheritanceNode = context.getOrCreateLocalClassInheritanceNode(*classDecl);
-            if (!classDecl->getBaseClass().has_value() || !context.pushExistingScope(classDecl)) {
+            ClassInheritanceNode& classNode = context.getOrCreateLocalInheritanceNode(*classDecl);
+            if (!context.pushExistingScope(classDecl)) {
                 continue;
             }
 
-            const auto* baseClassType = dynamic_cast<const CustomizedType*>(checkType(*classDecl->getBaseClass().value()));
+            if (classDecl->getBaseClass().has_value()) {
+                if (const auto* baseClassType = dynamic_cast<const CustomizedType*>(checkType(*classDecl->getBaseClass().value()))) {
+                    if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
+                        classNode.setParent(&context.getOrCreateLocalInheritanceNode(*localNode));
+                    } else if (const auto* importedNode = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())) {
+                        classNode.setParent(&context.getOrCreateImportedInheritanceNode(*importedNode));
+                    }
+                }
+            }
+
+            for (const auto& implementedInterface : classDecl->getImplementedInterfaces()) {
+                const auto* interfaceType = dynamic_cast<const CustomizedType*>(checkType(*implementedInterface));
+                if (interfaceType == nullptr) {
+                    continue;
+                }
+
+                if (const auto* localNode = dynamic_cast<const InterfaceDeclarationNode*>(interfaceType->getLocalNode())) {
+                    classNode.addImplementedInterface(&context.getOrCreateLocalInheritanceNode(*localNode));
+                } else if (const auto* importedNode = dynamic_cast<const ImportedInterface*>(interfaceType->getImportedNode())) {
+                    classNode.addImplementedInterface(&context.getOrCreateImportedInheritanceNode(*importedNode));
+                }
+            }
+
             context.popScope();
-            if (baseClassType == nullptr) {
-                continue;
-            }
-
-            if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
-                inheritanceNode.setParent(&context.getOrCreateLocalClassInheritanceNode(*localNode));
-            } else if (const auto* importedNode = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())) {
-                inheritanceNode.setParent(&context.getOrCreateImportedClassInheritanceNode(*importedNode));
-            }
         }
 
-        const auto getImportedClassByFullTypeName = [this](std::string_view fullTypeName) -> const ImportedClass* {
+        const auto getImportedItemByFullTypeName = [this](std::string_view fullTypeName) -> const ImportedItem* {
             const std::string_view unwrappedTypeName = fullTypeName.substr(0, fullTypeName.find('<'));
 
             std::vector<std::string> path;
@@ -830,23 +856,40 @@ namespace vnlc {
                 start = separator + 1;
             }
 
-            return dynamic_cast<const ImportedClass*>(ImportedItem::getImportedItemByFullPath(imports, path));
+            return ImportedItem::getImportedItemByFullPath(imports, path);
         };
 
         for (const ImportedModule* importedModule : importedModules) {
             for (const auto& [name, identifier] : importedModule->getIdentifiers()) {
+                if (const auto* importedInterface = dynamic_cast<const ImportedInterface*>(identifier.get())) {
+                    context.getOrCreateImportedInheritanceNode(*importedInterface);
+                    continue;
+                }
+
+                if (const auto* importedEnum = dynamic_cast<const ImportedEnum*>(identifier.get())) {
+                    const EnumInheritanceNode& enumNode = context.getOrCreateImportedInheritanceNode(*importedEnum);
+                    for (const auto& [memberName, member] : importedEnum->getMembers()) {
+                        context.getOrCreateImportedInheritanceNode(*member).setParent(&enumNode);
+                    }
+                    continue;
+                }
+
                 const auto* importedClass = dynamic_cast<const ImportedClass*>(identifier.get());
                 if (importedClass == nullptr) {
                     continue;
                 }
 
-                ClassInheritanceNode& inheritanceNode = context.getOrCreateImportedClassInheritanceNode(*importedClass);
-                if (!importedClass->getBaseClass().has_value()) {
-                    continue;
+                ClassInheritanceNode& classNode = context.getOrCreateImportedInheritanceNode(*importedClass);
+                if (importedClass->getBaseClass().has_value()) {
+                    if (const auto* baseClass = dynamic_cast<const ImportedClass*>(getImportedItemByFullTypeName(importedClass->getBaseClass().value()))) {
+                        classNode.setParent(&context.getOrCreateImportedInheritanceNode(*baseClass));
+                    }
                 }
 
-                if (const ImportedClass* baseClass = getImportedClassByFullTypeName(importedClass->getBaseClass().value())) {
-                    inheritanceNode.setParent(&context.getOrCreateImportedClassInheritanceNode(*baseClass));
+                for (const auto& implementedInterface : importedClass->getImplementedInterfaces()) {
+                    if (const auto* interfaceNode = dynamic_cast<const ImportedInterface*>(getImportedItemByFullTypeName(implementedInterface))) {
+                        classNode.addImplementedInterface(&context.getOrCreateImportedInheritanceNode(*interfaceNode));
+                    }
                 }
             }
         }
@@ -2080,9 +2123,9 @@ namespace vnlc {
         auto inferredFunctionReturnTypes = context.takeInferredFunctionReturnTypeMap();
         auto inferredOperatorReturnTypes = context.takeInferredOperatorReturnTypeMap();
         auto inferredExpressionTypes = context.takeInferredExpressionTypeMap();
-        auto classInheritanceNodes = context.takeClassInheritanceNodes();
-        auto localClassInheritances = context.takeLocalClassInheritanceMap();
-        auto importedClassInheritances = context.takeImportedClassInheritanceMap();
+        auto inheritanceNodes = context.takeInheritanceNodes();
+        auto localInheritances = context.takeLocalInheritanceMap();
+        auto importedInheritances = context.takeImportedInheritanceMap();
         return SemanticResult(
             std::move(std::get<0>(diagnostics)),
             std::move(std::get<1>(diagnostics)),
@@ -2095,9 +2138,9 @@ namespace vnlc {
             std::move(inferredFunctionReturnTypes),
             std::move(inferredOperatorReturnTypes),
             std::move(inferredExpressionTypes),
-            std::move(classInheritanceNodes),
-            std::move(localClassInheritances),
-            std::move(importedClassInheritances)
+            std::move(inheritanceNodes),
+            std::move(localInheritances),
+            std::move(importedInheritances)
         );
     }
 } // namespace vnlc

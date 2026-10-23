@@ -5,15 +5,16 @@
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "diagnostic/Diagnostic.hpp"
-#include "inheritance/ClassInheritanceNode.hpp"
+#include "inheritance/InheritanceNode.hpp"
 #include "scope/Scope.hpp"
 #include "type/CustomizedType.hpp"
 #include "type/Type.hpp"
-#include "vni/import/ImportedClass.hpp"
+#include "vni/import/ImportedIdentifier.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -33,9 +34,9 @@ namespace vnlc {
         std::unordered_map<const FunctionDeclarationNode*, const Type*> inferredFunctionReturnTypeMap;
         std::unordered_map<const OperatorDeclarationNode*, const Type*> inferredOperatorReturnTypeMap;
         std::unordered_map<const ExpressionNode*, const Type*> inferredExpressionTypeMap;
-        std::vector<std::unique_ptr<ClassInheritanceNode>> classInheritanceNodes;
-        std::unordered_map<const ClassDeclarationNode*, ClassInheritanceNode*> localClassInheritanceMap;
-        std::unordered_map<const ImportedClass*, ClassInheritanceNode*> importedClassInheritanceMap;
+        std::vector<std::unique_ptr<InheritanceNode>> inheritanceNodes;
+        std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> localInheritanceMap;
+        std::unordered_map<const ImportedIdentifier*, InheritanceNode*> importedInheritanceMap;
 
     public:
         SemanticResult(
@@ -50,9 +51,9 @@ namespace vnlc {
             std::unordered_map<const FunctionDeclarationNode*, const Type*>&& inferredFunctionReturnTypeMap,
             std::unordered_map<const OperatorDeclarationNode*, const Type*>&& inferredOperatorReturnTypeMap,
             std::unordered_map<const ExpressionNode*, const Type*>&& inferredExpressionTypeMap,
-            std::vector<std::unique_ptr<ClassInheritanceNode>>&& classInheritanceNodes,
-            std::unordered_map<const ClassDeclarationNode*, ClassInheritanceNode*>&& localClassInheritanceMap,
-            std::unordered_map<const ImportedClass*, ClassInheritanceNode*>&& importedClassInheritanceMap
+            std::vector<std::unique_ptr<InheritanceNode>>&& inheritanceNodes,
+            std::unordered_map<const TypeDeclarationNode*, InheritanceNode*>&& localInheritanceMap,
+            std::unordered_map<const ImportedIdentifier*, InheritanceNode*>&& importedInheritanceMap
         );
         SemanticResult(const SemanticResult&) = delete;
         SemanticResult& operator=(const SemanticResult&) = delete;
@@ -74,8 +75,8 @@ namespace vnlc {
         [[nodiscard]] const Type* getInferredFunctionReturnType(const FunctionDeclarationNode* functionDeclaration) const;
         [[nodiscard]] const Type* getInferredOperatorReturnType(const OperatorDeclarationNode* operatorDeclaration) const;
         [[nodiscard]] const Type* getInferredExpressionType(const ExpressionNode* expressionNode) const;
-        [[nodiscard]] const ClassInheritanceNode* getClassInheritanceNodeByLocalNode(const ClassDeclarationNode* localNode) const;
-        [[nodiscard]] const ClassInheritanceNode* getClassInheritanceNodeByImportedNode(const ImportedClass* importedNode) const;
+        [[nodiscard]] const InheritanceNode* getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const;
+        [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
     };
 } // namespace vnlc
 

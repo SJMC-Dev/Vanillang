@@ -16,9 +16,9 @@ namespace vnlc {
         std::unordered_map<const FunctionDeclarationNode*, const Type*>&& inferredFunctionReturnTypeMap,
         std::unordered_map<const OperatorDeclarationNode*, const Type*>&& inferredOperatorReturnTypeMap,
         std::unordered_map<const ExpressionNode*, const Type*>&& inferredExpressionTypeMap,
-        std::vector<std::unique_ptr<ClassInheritanceNode>>&& classInheritanceNodes,
-        std::unordered_map<const ClassDeclarationNode*, ClassInheritanceNode*>&& localClassInheritanceMap,
-        std::unordered_map<const ImportedClass*, ClassInheritanceNode*>&& importedClassInheritanceMap
+        std::vector<std::unique_ptr<InheritanceNode>>&& inheritanceNodes,
+        std::unordered_map<const TypeDeclarationNode*, InheritanceNode*>&& localInheritanceMap,
+        std::unordered_map<const ImportedIdentifier*, InheritanceNode*>&& importedInheritanceMap
     )
         : errors(std::move(errors)),
           warnings(std::move(warnings)),
@@ -31,9 +31,9 @@ namespace vnlc {
           inferredFunctionReturnTypeMap(std::move(inferredFunctionReturnTypeMap)),
           inferredOperatorReturnTypeMap(std::move(inferredOperatorReturnTypeMap)),
           inferredExpressionTypeMap(std::move(inferredExpressionTypeMap)),
-          classInheritanceNodes(std::move(classInheritanceNodes)),
-          localClassInheritanceMap(std::move(localClassInheritanceMap)),
-          importedClassInheritanceMap(std::move(importedClassInheritanceMap)) {}
+          inheritanceNodes(std::move(inheritanceNodes)),
+          localInheritanceMap(std::move(localInheritanceMap)),
+          importedInheritanceMap(std::move(importedInheritanceMap)) {}
 
     bool SemanticResult::hasErrors() const {
         return !errors.empty();
@@ -121,17 +121,17 @@ namespace vnlc {
         return nullptr;
     }
 
-    const ClassInheritanceNode* SemanticResult::getClassInheritanceNodeByLocalNode(const ClassDeclarationNode* localNode) const {
-        auto it = localClassInheritanceMap.find(localNode);
-        if (it != localClassInheritanceMap.end()) {
+    const InheritanceNode* SemanticResult::getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const {
+        auto it = localInheritanceMap.find(localNode);
+        if (it != localInheritanceMap.end()) {
             return it->second;
         }
         return nullptr;
     }
 
-    const ClassInheritanceNode* SemanticResult::getClassInheritanceNodeByImportedNode(const ImportedClass* importedNode) const {
-        auto it = importedClassInheritanceMap.find(importedNode);
-        if (it != importedClassInheritanceMap.end()) {
+    const InheritanceNode* SemanticResult::getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const {
+        auto it = importedInheritanceMap.find(importedNode);
+        if (it != importedInheritanceMap.end()) {
             return it->second;
         }
         return nullptr;
