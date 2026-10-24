@@ -1,4 +1,6 @@
 #include "PrimitiveType.hpp"
+#include "PrimitiveTypeKind.hpp"
+#include <string_view>
 
 namespace vnlc {
     PrimitiveType::PrimitiveType(PrimitiveTypeKind primitiveKind) : primitiveKind(primitiveKind) {}
@@ -63,6 +65,46 @@ namespace vnlc {
             default:
                 return false;
         }
+    }
+
+    bool PrimitiveType::canUseOperator(std::string_view name) const noexcept {
+        if (name == "assignment") return true;
+
+        constexpr std::string_view assignmentSuffix = "Assignment";
+        if (name.ends_with(assignmentSuffix)) {
+            const std::string_view operatorName = name.substr(0, name.size() - assignmentSuffix.size());
+            const bool isCompoundAssignable = operatorName == "addition" || operatorName == "subtraction" || operatorName == "multiplication" || operatorName == "division" ||
+                                              operatorName == "integerDivision" || operatorName == "modulo" || operatorName == "exponent" || operatorName == "bitwiseAnd" ||
+                                              operatorName == "bitwiseOr" || operatorName == "bitwiseXor" || operatorName == "shiftLeft" || operatorName == "shiftRight" ||
+                                              operatorName == "unsignedShiftRight" || operatorName == "nullishCoalescing";
+            return isCompoundAssignable && canUseOperator(operatorName);
+        }
+
+        const bool isEqualityOperator = name == "equality" || name == "inequality";
+        const bool isArithmeticOperator =
+            name == "addition" || name == "subtraction" || name == "multiplication" || name == "division" || name == "integerDivision" || name == "modulo" || name == "exponent";
+        const bool isSignOperator = name == "unaryPlus" || name == "unaryMinus";
+        const bool isRelationalOperator = name == "lessThan" || name == "greaterThan" || name == "lessThanOrEqual" || name == "greaterThanOrEqual";
+        const bool isLogicalBitwiseOperator = name == "bitwiseAnd" || name == "bitwiseOr" || name == "bitwiseXor";
+        const bool isIntegralOnlyOperator = name == "bitwiseNot" || name == "shiftLeft" || name == "shiftRight" || name == "unsignedShiftRight" || name == "range";
+        const bool isLogicalOperator = name == "logicalAnd" || name == "logicalOr" || name == "logicalNot";
+
+        switch (primitiveKind) {
+            case PrimitiveTypeKind::BYTE:
+            case PrimitiveTypeKind::SHORT:
+            case PrimitiveTypeKind::INT:
+            case PrimitiveTypeKind::LONG:
+                return isEqualityOperator || isArithmeticOperator || isSignOperator || isRelationalOperator || isLogicalBitwiseOperator || isIntegralOnlyOperator;
+            case PrimitiveTypeKind::FLOAT:
+            case PrimitiveTypeKind::DOUBLE:
+                return isEqualityOperator || isArithmeticOperator || isSignOperator || isRelationalOperator;
+            case PrimitiveTypeKind::BOOLEAN:
+                return isEqualityOperator || isLogicalBitwiseOperator || isLogicalOperator;
+            case PrimitiveTypeKind::STRING:
+                return isEqualityOperator || name == "addition" || name == "subscript";
+        }
+
+        return false;
     }
 
     const PrimitiveType* PrimitiveType::BYTE_TYPE = nullptr;
