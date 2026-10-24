@@ -10,6 +10,7 @@
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/expression/BinaryExpressionNode.hpp"
 #include "ast/expression/ConditionalExpressionNode.hpp"
 #include "ast/expression/DictLiteralExpressionNode.hpp"
@@ -899,11 +900,7 @@ namespace vnlc {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (auto* varDecl = dynamic_cast<ValueDeclarationNode*>(declNode)) {
-                if (varDecl->getKind() == ValueDeclarationKind::Kind::LET) {
-                    checkValueDeclaration(*varDecl);
-                } else {
-                    context.reportError(*varDecl, fmt::format("Top-level value declaration must be a variable"));
-                }
+                checkValueDeclaration(*varDecl);
             } else if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(declNode)) {
                 checkFunctionDeclaration(*funcDecl);
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
@@ -1129,6 +1126,12 @@ namespace vnlc {
 
     void SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl, MetadataInfo metadataInfo) {
         auto kind = varDecl.getKind();
+
+        if (varDecl.getContext() == ValueDeclarationKind::Context::TOP_LEVEL) {
+            if (varDecl.getKind() != ValueDeclarationKind::Kind::LET) {
+                context.reportError(varDecl, "Top-level value declaration must be a variable");
+            }
+        }
 
         const bool hasTypeReference = varDecl.getType().has_value();
         const bool hasInitializer = varDecl.getInitializer().has_value();
