@@ -128,8 +128,12 @@ add_executable(
 
 add_executable(
     vnlctest_type
+    ${PROJECT_SOURCE_DIR}/src/utils/Utils.cpp
+    ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
     ${PROJECT_SOURCE_DIR}/src/type/PrimitiveType.cpp
     ${PROJECT_SOURCE_DIR}/src/type/CustomizedType.cpp
+    ${AST_FILES}
+    ${VNI_IMPORT_FILES}
     TypeTest.cpp
 )
 
@@ -246,6 +250,8 @@ target_link_libraries(
     vnlctest_type
     PRIVATE
     GTest::gtest_main
+    fmt::fmt
+    nlohmann_json::nlohmann_json
 )
 
 target_link_libraries(
