@@ -14,7 +14,6 @@
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
-#include "ast/expression/IdentifierLikeExpressionNode.hpp"
 #include "ast/module/ModuleNode.hpp"
 #include "ast/statement/StatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
@@ -65,7 +64,6 @@ namespace vnlc {
         void collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode);
         void collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
         void collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
-
         void collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode);
         void collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode);
         void collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
@@ -77,21 +75,18 @@ namespace vnlc {
 
         void buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules);
 
-        void checkIdentifierExpressionUse(const IdentifierLikeExpressionNode& exprNode, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-
-        [[nodiscard]] MetadataInfo checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode);
-
+        MetadataInfo checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode);
         void checkModule(const ModuleNode& moduleNode, const Config& config);
         void checkImport(const ImportDeclarationNode& importDecl, const Config& config);
         void checkExport(const ExportDeclarationNode& exportDecl);
-        void checkValueDeclaration(const ValueDeclarationNode& varDecl, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
-        void checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config, MetadataInfo metadataInfo = MetadataInfo::DEFAULT);
+        void checkValueDeclaration(const ValueDeclarationNode& varDecl);
+        void checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl);
+        void checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl);
+        void checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl);
+        void checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config);
+        void checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config);
+        void checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config);
+        void checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config);
         void checkStatement(const StatementNode& statement);
         void checkExpression(const ExpressionNode& expression);
         const Type* checkType(const TypeReferenceNode& type);

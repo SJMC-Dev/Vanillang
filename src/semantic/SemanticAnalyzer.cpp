@@ -364,20 +364,6 @@ namespace vnlc {
         }
     }
 
-    void SemanticAnalyzer::checkIdentifierExpressionUse(const IdentifierLikeExpressionNode& exprNode, MetadataInfo metadataInfo) {
-        const Symbol* symbol = context.currentScope().lookup(exprNode.getName().getIdentifierString());
-        if (symbol == nullptr) {
-            context.reportError(exprNode, fmt::format("Use of undeclared identifier '{}'", exprNode.getName().getIdentifierString()));
-        } else if (dynamic_cast<const FunctionSymbol*>(symbol) != nullptr) {
-            return;
-        } else if (
-            const auto* regularSymbol = dynamic_cast<const RegularSymbol*>(symbol); regularSymbol == nullptr || !(dynamic_cast<const ValueDeclarationNode*>(regularSymbol->getLocalNode()) ||
-                                                                                                                  dynamic_cast<const FunctionDeclarationNode*>(regularSymbol->getLocalNode()))
-        ) {
-            context.reportError(exprNode, fmt::format("Identifier '{}' is not a variable or function", exprNode.getName().getIdentifierString()));
-        }
-    }
-
     MetadataInfo SemanticAnalyzer::checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode) {
         bool noWarnings = false;
         bool deprecated = false;
@@ -1124,7 +1110,7 @@ namespace vnlc {
         }
     }
 
-    void SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl) {
         auto kind = varDecl.getKind();
 
         if (varDecl.getContext() == ValueDeclarationKind::Context::TOP_LEVEL) {
@@ -1164,7 +1150,7 @@ namespace vnlc {
         }
     }
 
-    void SemanticAnalyzer::checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl) {
         if (!context.pushExistingScope(&funcDecl)) {
             return;
         }
@@ -1205,7 +1191,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl) {
         if (!context.pushExistingScope(&constructorDecl)) {
             return;
         }
@@ -1219,7 +1205,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl) {
         if (!context.pushExistingScope(&operatorDecl)) {
             return;
         }
@@ -1259,7 +1245,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config) {
         if (!context.pushExistingScope(&classDecl)) {
             return;
         }
@@ -1283,7 +1269,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config) {
         if (!context.pushExistingScope(&interfaceDecl)) {
             return;
         }
@@ -1303,7 +1289,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config) {
         if (!context.pushExistingScope(&enumDecl)) {
             return;
         }
@@ -1323,7 +1309,7 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config, MetadataInfo metadataInfo) {
+    void SemanticAnalyzer::checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config) {
         if (!context.pushExistingScope(&typeAliasDecl)) {
             return;
         }
