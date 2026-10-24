@@ -900,6 +900,7 @@ class Addable {
         Config config = makeConfig("imports.vnl");
         std::shared_ptr<const ModuleNode> module;
         std::optional<CollectionResult> collectionResult;
+        ModuleCheckingResult moduleCheckingResult;
 
         void SetUp() override {
             const auto* testInfo = testing::UnitTest::GetInstance()->current_test_info();
@@ -978,7 +979,7 @@ class Addable {
             module = parseModule(source, config);
             const auto& imports = collectionResult->getImports();
             SemanticAnalyzer analyzer(*module, imports);
-            analyzer.checkModule(*module, config);
+            moduleCheckingResult = analyzer.checkModule(*module, config);
             const TypeAliasDeclarationNode* typeAlias = nullptr;
             for (const auto& topIdentifierDecl : module->getTopIdentifierDeclarations()) {
                 if (const auto* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(topIdentifierDecl.get())) {
@@ -1002,7 +1003,7 @@ class Addable {
         }
 
         const Type* checkedType(SemanticAnalyzer& analyzer, const TypeReferenceNode& type) const {
-            return analyzer.checkType(type);
+            return analyzer.checkType(type).type;
         }
 
         const ImportedItem* findImportedNode(const SemanticResult& result, std::string_view name) const {
@@ -1045,7 +1046,7 @@ class Addable {
                 "import vanillang.typesystem.Optional\ntype Result = " + primitiveName + "?\n",
                 [this, primitiveType, &primitiveName](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                     auto& context = semanticContext(analyzer);
-                    ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
+                    ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
                     EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1062,7 +1063,7 @@ class Addable {
     TEST_F(SemanticAnalyzerImportTest, RegistersNestedOptionalLocalTypesWithTheirOriginalArguments) {
         withAliasType("import vanillang.typesystem.Optional\nclass Box<T> {}\ntype Result = Box<int?>?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(context.getErrors().empty());
+            ASSERT_TRUE(moduleCheckingResult.errors.empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1096,7 +1097,7 @@ class Addable {
             "import pkg.api.Box as ImportedBox\nimport vanillang.typesystem.Optional\ntype Result = ImportedBox<int>?\n",
             [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                 auto& context = semanticContext(analyzer);
-                ASSERT_TRUE(context.getErrors().empty());
+                ASSERT_TRUE(moduleCheckingResult.errors.empty());
                 const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                 ASSERT_NE(optionalType, nullptr);
                 EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1121,7 +1122,7 @@ class Addable {
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalGenericParametersWithTheirOriginalDeclarations) {
         withAliasType("import vanillang.typesystem.Optional\ntype Result<T> = T?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(context.getErrors().empty());
+            ASSERT_TRUE(moduleCheckingResult.errors.empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1181,7 +1182,7 @@ class Addable {
                 "import vanillang.typesystem.Optional\ntype First = " + std::string(firstType) + "\ntype Second = " + secondType + "\n",
                 [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& secondAlias) {
                     auto& context = semanticContext(analyzer);
-                    ASSERT_TRUE(context.getErrors().empty());
+                    ASSERT_TRUE(moduleCheckingResult.errors.empty());
                     const auto& firstAlias = dynamic_cast<const TypeAliasDeclarationNode&>(*module->getTopIdentifierDeclarations().front());
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&firstAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
@@ -1262,7 +1263,7 @@ class Addable {
 
         withAliasType("import pkg.api.Wrapped\ntype Result = Wrapped<int>\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
+            ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
             const auto* customizedType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(customizedType, nullptr);
             EXPECT_EQ(customizedType->getFullTypeName(), "pkg.api.Box<int>");
@@ -1282,7 +1283,7 @@ class Addable {
             "type Result = Wrapper<int>\n",
             [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                 auto& context = semanticContext(analyzer);
-                ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
+                ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
                 const auto* customizedType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                 ASSERT_NE(customizedType, nullptr);
                 EXPECT_EQ(customizedType->getFullTypeName(), std::string(module->getFullName()) + ".Box<int>");
