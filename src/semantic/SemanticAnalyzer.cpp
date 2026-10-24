@@ -41,6 +41,9 @@
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
+#include "diagnostic/Diagnostic.hpp"
+#include "diagnostic/DiagnosticPhase.hpp"
+#include "diagnostic/DiagnosticSeverity.hpp"
 #include "fmt/format.h"
 #include "symbol/RegularSymbol.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
@@ -71,6 +74,7 @@
 #include <algorithm>
 #include <fmt/core.h>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <stack>
@@ -79,6 +83,18 @@
 #include <unordered_set>
 
 namespace vnlc {
+    namespace {
+        template <typename Target, typename Source> void mergeDiagnostics(Target& target, Source source) {
+            std::ranges::move(source.errors, std::back_inserter(target.errors));
+            std::ranges::move(source.warnings, std::back_inserter(target.warnings));
+            std::ranges::move(source.notes, std::back_inserter(target.notes));
+        }
+
+        Diagnostic createError(const AstNode& node, std::string_view message) {
+            return Diagnostic(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::ERROR, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
+        }
+    } // namespace
+
     SemanticAnalyzer::SemanticAnalyzer(const ModuleNode& module, const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports) : module(module), imports(imports) {}
 
     RegularSymbolKind SemanticAnalyzer::getImportedSymbolKind(const ImportedItem& item) {
@@ -364,7 +380,8 @@ namespace vnlc {
         }
     }
 
-    MetadataInfo SemanticAnalyzer::checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode) {
+    MetadataCheckingResult SemanticAnalyzer::checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode) {
+        MetadataCheckingResult result{};
         bool noWarnings = false;
         bool deprecated = false;
 
@@ -374,17 +391,20 @@ namespace vnlc {
             } else if (term.key->getIdentifierString() == "deprecated") {
                 deprecated = true;
             } else {
-                context.reportError(declNode, fmt::format("Unknown metadata term '{}'", term.key->getIdentifierString()));
+                result.errors.push_back(createError(declNode, fmt::format("Unknown metadata term '{}'", term.key->getIdentifierString())));
             }
         }
 
-        return MetadataInfo{
+        result.metadataInfo = MetadataInfo{
             noWarnings,
             deprecated,
         };
+        return result;
     }
 
-    void SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
+    LocalFunctionSymbolsInModuleCollectingResult
+    SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
+        LocalFunctionSymbolsInModuleCollectingResult result;
         const auto name = funcDecl.getName().getIdentifierString();
         const auto internalName = funcDecl.getInternalName();
         const Symbol* existingSymbol = context.currentScope().lookupLocal(name);
@@ -392,12 +412,12 @@ namespace vnlc {
         if (existingSymbol != nullptr) {
             const auto* existingFunction = dynamic_cast<const FunctionSymbol*>(existingSymbol);
             if (existingFunction == nullptr) {
-                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
-                return;
+                result.errors.push_back(createError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name)));
+                return result;
             }
             if (existingFunction->getOverloadingByInternalName(internalName) != nullptr) {
-                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, internalName));
-                return;
+                result.errors.push_back(createError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, internalName)));
+                return result;
             }
         }
 
@@ -405,38 +425,41 @@ namespace vnlc {
         functionSymbol.addOverloading(RegularSymbol(kind, static_cast<RegularSymbolAccessModifier>(funcDecl.getAccessModifier()), internalName, &funcDecl));
 
         if (!context.currentScope().declare(std::move(functionSymbol))) {
-            context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
+            result.errors.push_back(createError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name)));
         }
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode) {
+    LocalRegularSymbolsInModuleCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode) {
+        LocalRegularSymbolsInModuleCollectingResult result;
+
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (auto* varDecl = dynamic_cast<ValueDeclarationNode*>(declNode)) {
                 RegularSymbol symbol(RegularSymbolKind::VARIABLE, static_cast<RegularSymbolAccessModifier>(varDecl->getAccessModifier()), varDecl->getName().getIdentifierString(), varDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
-                    context.reportError(*varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl->getName().getIdentifierString()));
+                    result.errors.push_back(createError(*varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl->getName().getIdentifierString())));
                 }
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
                 RegularSymbol symbol(RegularSymbolKind::CLASS, RegularSymbolAccessModifier::PUBLIC, classDecl->getName().getIdentifierString(), classDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
-                    context.reportError(*classDecl, fmt::format("Redeclaration of symbol '{}'", classDecl->getName().getIdentifierString()));
+                    result.errors.push_back(createError(*classDecl, fmt::format("Redeclaration of symbol '{}'", classDecl->getName().getIdentifierString())));
                 }
             } else if (auto* interfaceDecl = dynamic_cast<InterfaceDeclarationNode*>(declNode)) {
                 RegularSymbol symbol(RegularSymbolKind::INTERFACE, RegularSymbolAccessModifier::PUBLIC, interfaceDecl->getName().getIdentifierString(), interfaceDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
-                    context.reportError(*interfaceDecl, fmt::format("Redeclaration of symbol '{}'", interfaceDecl->getName().getIdentifierString()));
+                    result.errors.push_back(createError(*interfaceDecl, fmt::format("Redeclaration of symbol '{}'", interfaceDecl->getName().getIdentifierString())));
                 }
             } else if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
                 RegularSymbol symbol(RegularSymbolKind::ENUM, RegularSymbolAccessModifier::PUBLIC, enumDecl->getName().getIdentifierString(), enumDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
-                    context.reportError(*enumDecl, fmt::format("Redeclaration of symbol '{}'", enumDecl->getName().getIdentifierString()));
+                    result.errors.push_back(createError(*enumDecl, fmt::format("Redeclaration of symbol '{}'", enumDecl->getName().getIdentifierString())));
                 }
             } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
                 RegularSymbol symbol(RegularSymbolKind::TYPE_ALIAS, RegularSymbolAccessModifier::PUBLIC, typeAliasDecl->getAliasName().getIdentifierString(), typeAliasDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
-                    context.reportError(*typeAliasDecl, fmt::format("Redeclaration of symbol '{}'", typeAliasDecl->getAliasName().getIdentifierString()));
+                    result.errors.push_back(createError(*typeAliasDecl, fmt::format("Redeclaration of symbol '{}'", typeAliasDecl->getAliasName().getIdentifierString())));
                 }
             }
         }
@@ -445,59 +468,68 @@ namespace vnlc {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(declNode)) {
-                collectLocalRegularSymbolsInFunction(*funcDecl);
+                mergeDiagnostics(result, collectLocalRegularSymbolsInFunction(*funcDecl));
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
-                collectLocalRegularSymbolsInClass(*classDecl);
+                mergeDiagnostics(result, collectLocalRegularSymbolsInClass(*classDecl));
             } else if (auto* interfaceDecl = dynamic_cast<InterfaceDeclarationNode*>(declNode)) {
-                collectLocalRegularSymbolsInInterface(*interfaceDecl);
+                mergeDiagnostics(result, collectLocalRegularSymbolsInInterface(*interfaceDecl));
             } else if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
-                collectLocalRegularSymbolsInEnum(*enumDecl);
+                mergeDiagnostics(result, collectLocalRegularSymbolsInEnum(*enumDecl));
             } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
-                collectLocalRegularSymbolsInTypeAlias(*typeAliasDecl);
+                mergeDiagnostics(result, collectLocalRegularSymbolsInTypeAlias(*typeAliasDecl));
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode) {
+    LocalRegularSymbolsInFunctionCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode) {
+        LocalRegularSymbolsInFunctionCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &functionNode));
 
         for (const auto& parameter : functionNode.getParameters()) {
             RegularSymbol parameterSymbol(RegularSymbolKind::PARAMETER, RegularSymbolAccessModifier::PUBLIC, parameter->getName().getIdentifierString(), parameter.get());
             if (!context.currentScope().declare(std::move(parameterSymbol))) {
-                context.reportError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString()));
+                result.errors.push_back(createError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString())));
             }
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode) {
+    LocalRegularSymbolsInConstructorCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode) {
+        LocalRegularSymbolsInConstructorCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &constructorNode));
 
         for (const auto& parameter : constructorNode.getParameters()) {
             RegularSymbol parameterSymbol(RegularSymbolKind::PARAMETER, RegularSymbolAccessModifier::PUBLIC, parameter->getName().getIdentifierString(), parameter.get());
             if (!context.currentScope().declare(std::move(parameterSymbol))) {
-                context.reportError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString()));
+                result.errors.push_back(createError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString())));
             }
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode) {
+    LocalRegularSymbolsInOperatorCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode) {
+        LocalRegularSymbolsInOperatorCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::FUNCTION, &context.currentScope(), &operatorNode));
 
         for (const auto& parameter : operatorNode.getParameters()) {
             RegularSymbol parameterSymbol(RegularSymbolKind::PARAMETER, RegularSymbolAccessModifier::PUBLIC, parameter->getName().getIdentifierString(), parameter.get());
             if (!context.currentScope().declare(std::move(parameterSymbol))) {
-                context.reportError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString()));
+                result.errors.push_back(createError(*parameter, fmt::format("Redeclaration of parameter '{}'", parameter->getName().getIdentifierString())));
             }
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode) {
+    LocalRegularSymbolsInClassCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode) {
+        LocalRegularSymbolsInClassCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::CLASS, &context.currentScope(), &classNode));
 
         for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
@@ -508,163 +540,181 @@ namespace vnlc {
                 propertyDecl.get()
             );
             if (!context.currentScope().declare(std::move(memberSymbol))) {
-                context.reportError(*propertyDecl, fmt::format("Redeclaration of class member '{}'", propertyDecl->getName().getIdentifierString()));
+                result.errors.push_back(createError(*propertyDecl, fmt::format("Redeclaration of class member '{}'", propertyDecl->getName().getIdentifierString())));
             }
         }
 
         for (const auto& genericParamName : classNode.getGenericParameterNames()) {
             RegularSymbol genericParamSymbol(RegularSymbolKind::GENERIC_PARAMETER, RegularSymbolAccessModifier::PUBLIC, genericParamName->getIdentifierString(), &classNode);
             if (!context.currentScope().declare(std::move(genericParamSymbol))) {
-                context.reportError(classNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString()));
+                result.errors.push_back(createError(classNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString())));
             }
         }
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            collectLocalRegularSymbolsInFunction(*methodDecl);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInFunction(*methodDecl));
         }
 
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            collectLocalRegularSymbolsInConstructor(*constructorDecl);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInConstructor(*constructorDecl));
         }
 
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            collectLocalRegularSymbolsInOperator(*operatorDecl);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInOperator(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+    LocalRegularSymbolsInInterfaceCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        LocalRegularSymbolsInInterfaceCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::INTERFACE, &context.currentScope(), &interfaceNode));
 
         for (const auto& genericParamName : interfaceNode.getGenericParameterNames()) {
             RegularSymbol genericParamSymbol(RegularSymbolKind::GENERIC_PARAMETER, RegularSymbolAccessModifier::PUBLIC, genericParamName->getIdentifierString(), &interfaceNode);
             if (!context.currentScope().declare(std::move(genericParamSymbol))) {
-                context.reportError(interfaceNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString()));
+                result.errors.push_back(createError(interfaceNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString())));
             }
         }
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            collectLocalRegularSymbolsInFunction(*methodDecl);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInFunction(*methodDecl));
         }
 
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            collectLocalRegularSymbolsInOperator(*operatorDecl);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInOperator(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode) {
+    LocalRegularSymbolsInEnumCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode) {
+        LocalRegularSymbolsInEnumCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::ENUM, &context.currentScope(), &enumNode));
 
         for (const auto& member : enumNode.getMemberDeclarations()) {
             RegularSymbol memberSymbol(RegularSymbolKind::ENUM_MEMBER, RegularSymbolAccessModifier::PUBLIC, member->getName().getIdentifierString(), member.get());
             if (!context.currentScope().declare(std::move(memberSymbol))) {
-                context.reportError(*member, fmt::format("Redeclaration of enum member '{}'", member->getName().getIdentifierString()));
+                result.errors.push_back(createError(*member, fmt::format("Redeclaration of enum member '{}'", member->getName().getIdentifierString())));
             }
         }
 
         for (const auto& genericParamName : enumNode.getGenericParameterNames()) {
             RegularSymbol genericParamSymbol(RegularSymbolKind::GENERIC_PARAMETER, RegularSymbolAccessModifier::PUBLIC, genericParamName->getIdentifierString(), &enumNode);
             if (!context.currentScope().declare(std::move(genericParamSymbol))) {
-                context.reportError(enumNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString()));
+                result.errors.push_back(createError(enumNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString())));
             }
         }
 
         for (const auto& member : enumNode.getMemberDeclarations()) {
-            collectLocalRegularSymbolsInEnumMember(*member);
+            mergeDiagnostics(result, collectLocalRegularSymbolsInEnumMember(*member));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
+    LocalRegularSymbolsInEnumMemberCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
+        LocalRegularSymbolsInEnumMemberCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::ENUM_MEMBER, &context.currentScope(), &enumMemberNode));
 
         for (const auto& associatedValue : enumMemberNode.getAssociatedValues()) {
             RegularSymbol associatedValueSymbol(RegularSymbolKind::PROPERTY, RegularSymbolAccessModifier::PUBLIC, associatedValue->getName().getIdentifierString(), associatedValue.get());
             if (!context.currentScope().declare(std::move(associatedValueSymbol))) {
-                context.reportError(*associatedValue, fmt::format("Redeclaration of enum member associated value '{}'", associatedValue->getName().getIdentifierString()));
+                result.errors.push_back(createError(*associatedValue, fmt::format("Redeclaration of enum member associated value '{}'", associatedValue->getName().getIdentifierString())));
             }
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
+    LocalRegularSymbolsInTypeAliasCollectingResult SemanticAnalyzer::collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
+        LocalRegularSymbolsInTypeAliasCollectingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::TYPE_ALIAS, &context.currentScope(), &typeAliasNode));
 
         for (const auto& genericParamName : typeAliasNode.getGenericParameterNames()) {
             RegularSymbol genericParamSymbol(RegularSymbolKind::GENERIC_PARAMETER, RegularSymbolAccessModifier::PUBLIC, genericParamName->getIdentifierString(), &typeAliasNode);
             if (!context.currentScope().declare(std::move(genericParamSymbol))) {
-                context.reportError(typeAliasNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString()));
+                result.errors.push_back(createError(typeAliasNode, fmt::format("Redeclaration of generic parameter '{}'", genericParamName->getIdentifierString())));
             }
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode) {
+    LocalFunctionSymbolsInModuleCollectingResult SemanticAnalyzer::collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode) {
+        LocalFunctionSymbolsInModuleCollectingResult result;
+
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             const DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
-                declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol");
+                mergeDiagnostics(result, declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol"));
             } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
-                collectLocalFunctionSymbolsInClass(*classDecl);
+                mergeDiagnostics(result, collectLocalFunctionSymbolsInClass(*classDecl));
             } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
-                collectLocalFunctionSymbolsInInterface(*interfaceDecl);
+                mergeDiagnostics(result, collectLocalFunctionSymbolsInInterface(*interfaceDecl));
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode) {
+    LocalFunctionSymbolsInClassCollectingResult SemanticAnalyzer::collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode) {
+        LocalFunctionSymbolsInClassCollectingResult result;
         if (!context.pushExistingScope(&classNode)) {
-            return;
+            return result;
         }
         std::unordered_set<std::string> operatorNames;
         std::unordered_set<std::string> constructorNames;
 
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
             if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
-                context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
+                result.errors.push_back(createError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName())));
             }
         }
 
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
             if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName()));
+                result.errors.push_back(createError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName())));
             }
         }
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
+            mergeDiagnostics(result, declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member"));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+    LocalFunctionSymbolsInInterfaceCollectingResult SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        LocalFunctionSymbolsInInterfaceCollectingResult result;
         if (!context.pushExistingScope(&interfaceNode)) {
-            return;
+            return result;
         }
         std::unordered_set<std::string> operatorNames;
 
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
             if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
+                result.errors.push_back(createError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName())));
             }
         }
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
+            mergeDiagnostics(result, declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method"));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::generateInternalName(const DeclarationNode& node) {
+    ModuleCheckingResult SemanticAnalyzer::generateInternalName(const DeclarationNode& node) {
+        ModuleCheckingResult result;
         std::string name;
 
         if (const FunctionDeclarationNode* functionNode = dynamic_cast<const FunctionDeclarationNode*>(&node)) {
@@ -673,8 +723,10 @@ namespace vnlc {
             name.append("(");
             for (const auto& param : functionNode->getParameters()) {
                 const TypeReferenceNode* typeRef = param->getType()->get();
-                const Type* semanticType = checkType(*typeRef);
-                if (!semanticType) return;
+                auto typeResult = checkType(*typeRef);
+                const Type* semanticType = typeResult.type;
+                mergeDiagnostics(result, std::move(typeResult));
+                if (!semanticType) return result;
 
                 name.append(semanticType->getFullTypeName());
                 name.append(", ");
@@ -688,8 +740,10 @@ namespace vnlc {
             name.append("(");
             for (const auto& param : constructorNode->getParameters()) {
                 const TypeReferenceNode* typeRef = param->getType()->get();
-                const Type* semanticType = checkType(*typeRef);
-                if (!semanticType) return;
+                auto typeResult = checkType(*typeRef);
+                const Type* semanticType = typeResult.type;
+                mergeDiagnostics(result, std::move(typeResult));
+                if (!semanticType) return result;
 
                 name.append(semanticType->getFullTypeName());
                 name.append(", ");
@@ -704,8 +758,10 @@ namespace vnlc {
             name.append("(");
             for (const auto& param : operatorNode->getParameters()) {
                 const TypeReferenceNode* typeRef = param->getType()->get();
-                const Type* semanticType = checkType(*typeRef);
-                if (!semanticType) return;
+                auto typeResult = checkType(*typeRef);
+                const Type* semanticType = typeResult.type;
+                mergeDiagnostics(result, std::move(typeResult));
+                if (!semanticType) return result;
 
                 name.append(semanticType->getFullTypeName());
                 name.append(", ");
@@ -715,55 +771,67 @@ namespace vnlc {
 
             operatorNode->setInternalName(name);
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode) {
+    ModuleCheckingResult SemanticAnalyzer::generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode) {
+        ModuleCheckingResult result;
+
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             const DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
-                generateInternalName(*funcDecl);
+                mergeDiagnostics(result, generateInternalName(*funcDecl));
             } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
-                generateInternalNameForOverloadablesInClass(*classDecl);
+                mergeDiagnostics(result, generateInternalNameForOverloadablesInClass(*classDecl));
             } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
-                generateInternalNameForOverloadablesInInterface(*interfaceDecl);
+                mergeDiagnostics(result, generateInternalNameForOverloadablesInInterface(*interfaceDecl));
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode) {
-        if (!context.pushExistingScope(&classNode)) return;
+    ModuleCheckingResult SemanticAnalyzer::generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode) {
+        ModuleCheckingResult result;
+        if (!context.pushExistingScope(&classNode)) return result;
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            generateInternalName(*methodDecl);
+            mergeDiagnostics(result, generateInternalName(*methodDecl));
         }
 
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            generateInternalName(*constructorDecl);
+            mergeDiagnostics(result, generateInternalName(*constructorDecl));
         }
 
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            generateInternalName(*operatorDecl);
+            mergeDiagnostics(result, generateInternalName(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode) {
-        if (!context.pushExistingScope(&interfaceNode)) return;
+    ModuleCheckingResult SemanticAnalyzer::generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        ModuleCheckingResult result;
+        if (!context.pushExistingScope(&interfaceNode)) return result;
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            generateInternalName(*methodDecl);
+            mergeDiagnostics(result, generateInternalName(*methodDecl));
         }
 
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            generateInternalName(*operatorDecl);
+            mergeDiagnostics(result, generateInternalName(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules) {
+    ModuleCheckingResult SemanticAnalyzer::buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules) {
+        ModuleCheckingResult result;
+
         for (const auto& topIdentifierDecl : localModule.getTopIdentifierDeclarations()) {
             if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(topIdentifierDecl.get())) {
                 context.getOrCreateLocalInheritanceNode(*interfaceDecl);
@@ -789,7 +857,10 @@ namespace vnlc {
             }
 
             if (classDecl->getBaseClass().has_value()) {
-                if (const auto* baseClassType = dynamic_cast<const CustomizedType*>(checkType(*classDecl->getBaseClass().value()))) {
+                auto baseClassResult = checkType(*classDecl->getBaseClass().value());
+                const auto* baseClassType = dynamic_cast<const CustomizedType*>(baseClassResult.type);
+                mergeDiagnostics(result, std::move(baseClassResult));
+                if (baseClassType != nullptr) {
                     if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
                         classNode.setParent(&context.getOrCreateLocalInheritanceNode(*localNode));
                     } else if (const auto* importedNode = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())) {
@@ -799,7 +870,9 @@ namespace vnlc {
             }
 
             for (const auto& implementedInterface : classDecl->getImplementedInterfaces()) {
-                const auto* interfaceType = dynamic_cast<const CustomizedType*>(checkType(*implementedInterface));
+                auto interfaceResult = checkType(*implementedInterface);
+                const auto* interfaceType = dynamic_cast<const CustomizedType*>(interfaceResult.type);
+                mergeDiagnostics(result, std::move(interfaceResult));
                 if (interfaceType == nullptr) {
                     continue;
                 }
@@ -848,18 +921,21 @@ namespace vnlc {
                 }
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
+    ModuleCheckingResult SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
+        ModuleCheckingResult result;
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, &moduleNode));
 
         for (const auto& importDecl : moduleNode.getImportDeclarations()) {
-            checkImport(*importDecl, config);
+            mergeDiagnostics(result, checkImport(*importDecl, config));
         }
 
-        collectLocalRegularSymbolsInModule(moduleNode);
-        generateInternalNameForOverloadablesInModule(moduleNode);
-        collectLocalFunctionSymbolsInModule(moduleNode);
+        mergeDiagnostics(result, collectLocalRegularSymbolsInModule(moduleNode));
+        mergeDiagnostics(result, generateInternalNameForOverloadablesInModule(moduleNode));
+        mergeDiagnostics(result, collectLocalFunctionSymbolsInModule(moduleNode));
 
         std::function<void(const ImportedItem*, std::vector<const ImportedModule*>&)> collectModuleNode = [&](const ImportedItem* node, std::vector<const ImportedModule*>& importedModules) {
             if (const ImportedPackage* packageNode = dynamic_cast<const ImportedPackage*>(node)) {
@@ -880,34 +956,36 @@ namespace vnlc {
             const ImportedItem* node = item.second.get();
             collectModuleNode(node, importedModules);
         }
-        buildInheritanceGraph(moduleNode, importedModules);
+        mergeDiagnostics(result, buildInheritanceGraph(moduleNode, importedModules));
 
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (auto* varDecl = dynamic_cast<ValueDeclarationNode*>(declNode)) {
-                checkValueDeclaration(*varDecl);
+                mergeDiagnostics(result, checkValueDeclaration(*varDecl));
             } else if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(declNode)) {
-                checkFunctionDeclaration(*funcDecl);
+                mergeDiagnostics(result, checkFunctionDeclaration(*funcDecl));
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
-                checkClassDeclaration(*classDecl, config);
+                mergeDiagnostics(result, checkClassDeclaration(*classDecl, config));
             } else if (auto* interfaceDecl = dynamic_cast<InterfaceDeclarationNode*>(declNode)) {
-                checkInterfaceDeclaration(*interfaceDecl, config);
+                mergeDiagnostics(result, checkInterfaceDeclaration(*interfaceDecl, config));
             } else if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
-                checkEnumDeclaration(*enumDecl, config);
+                mergeDiagnostics(result, checkEnumDeclaration(*enumDecl, config));
             } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
-                checkTypeAliasDeclaration(*typeAliasDecl, config);
+                mergeDiagnostics(result, checkTypeAliasDeclaration(*typeAliasDecl, config));
             }
         }
 
         for (const auto& exportDecl : moduleNode.getExportDeclarations()) {
-            checkExport(*exportDecl);
+            mergeDiagnostics(result, checkExport(*exportDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkImport(const ImportDeclarationNode& importDecl, const Config&) {
+    ImportCheckingResult SemanticAnalyzer::checkImport(const ImportDeclarationNode& importDecl, const Config&) {
+        ImportCheckingResult result;
         const auto& importItem = importDecl.getNamePartsListWithAliases();
 
         struct ImportBinding {
@@ -918,7 +996,6 @@ namespace vnlc {
         std::vector<ImportBinding> bindings;
         std::vector<const ImportedItem*> importedRoots;
         std::unordered_map<std::string, bool> names;
-        const auto errorCount = context.getErrors().size();
 
         const auto bind = [&](const ImportedItem* target, std::vector<std::string> path, const IdentifierNode* alias, const AstNode& location) {
             std::string name;
@@ -935,7 +1012,7 @@ namespace vnlc {
             std::unordered_set<const ImportedAlias*> visitedAliases;
             while (const auto* importedAlias = dynamic_cast<const ImportedAlias*>(target)) {
                 if (!visitedAliases.insert(importedAlias).second) {
-                    context.reportError(location, fmt::format("Cyclic imported alias '{}'", importedAlias->getSource()));
+                    result.errors.push_back(createError(location, fmt::format("Cyclic imported alias '{}'", importedAlias->getSource())));
                     return;
                 }
 
@@ -950,7 +1027,7 @@ namespace vnlc {
 
                 target = ImportedItem::getImportedItemByFullPath(imports, path);
                 if (target == nullptr) {
-                    context.reportError(location, fmt::format("Could not find imported alias target '{}'", importedAlias->getSource()));
+                    result.errors.push_back(createError(location, fmt::format("Could not find imported alias target '{}'", importedAlias->getSource())));
                     return;
                 }
             }
@@ -959,13 +1036,13 @@ namespace vnlc {
 
             const Symbol* existingSymbol = context.currentScope().lookupLocal(name);
             if (existingSymbol != nullptr && !(isFunction && dynamic_cast<const FunctionSymbol*>(existingSymbol) != nullptr)) {
-                context.reportError(location, fmt::format("Redeclaration of symbol '{}'", name));
+                result.errors.push_back(createError(location, fmt::format("Redeclaration of symbol '{}'", name)));
                 return;
             }
 
             auto [nameIterator, inserted] = names.try_emplace(name, isFunction);
             if (!inserted && !(nameIterator->second && isFunction)) {
-                context.reportError(location, fmt::format("Redeclaration of symbol '{}'", name));
+                result.errors.push_back(createError(location, fmt::format("Redeclaration of symbol '{}'", name)));
                 return;
             }
 
@@ -1010,7 +1087,7 @@ namespace vnlc {
                                 return;
                             }
                         }
-                        context.reportError(*part, fmt::format("Could not find imported package, module or identifier '{}'", name));
+                        result.errors.push_back(createError(*part, fmt::format("Could not find imported package, module or identifier '{}'", name)));
                         return;
                     }
                     path.emplace_back(name);
@@ -1018,21 +1095,21 @@ namespace vnlc {
             }
 
             if (target == nullptr) {
-                context.reportError(location, "Import path must name a package, module or identifier");
+                result.errors.push_back(createError(location, "Import path must name a package, module or identifier"));
                 return;
             }
             if (item.self && !dynamic_cast<const ImportedPackage*>(target) && !dynamic_cast<const ImportedModule*>(target)) {
-                context.reportError(location, "Self imports can only refer to packages or modules");
+                result.errors.push_back(createError(location, "Self imports can only refer to packages or modules"));
                 return;
             }
             if (item.wildcard) {
                 const auto* importedModule = dynamic_cast<const ImportedModule*>(target);
                 if (importedModule == nullptr) {
-                    context.reportError(location, "Wildcard imports can only be used for modules");
+                    result.errors.push_back(createError(location, "Wildcard imports can only be used for modules"));
                     return;
                 }
                 if (item.alias.has_value()) {
-                    context.reportError(*item.alias.value(), "Wildcard imports cannot have aliases");
+                    result.errors.push_back(createError(*item.alias.value(), "Wildcard imports cannot have aliases"));
                     return;
                 }
                 std::vector<std::string> identifierNames;
@@ -1056,8 +1133,8 @@ namespace vnlc {
         };
 
         checkItem(importItem, nullptr, {});
-        if (context.getErrors().size() != errorCount) {
-            return;
+        if (!result.errors.empty()) {
+            return result;
         }
 
         std::unordered_set<const ImportedPackage*> scopedPackages;
@@ -1083,7 +1160,7 @@ namespace vnlc {
                 declared = context.currentScope().declare(RegularSymbol(getImportedSymbolKind(*target), RegularSymbolAccessModifier::PUBLIC, binding.name, target));
             }
             if (!declared && reportedRedeclarations.insert(binding.name).second) {
-                context.reportError(importDecl, fmt::format("Redeclaration of symbol '{}'", binding.name));
+                result.errors.push_back(createError(importDecl, fmt::format("Redeclaration of symbol '{}'", binding.name)));
             }
             if (declared) {
                 importedRoots.push_back(target);
@@ -1100,22 +1177,29 @@ namespace vnlc {
         for (const auto* root : importedRoots) {
             registerImportedTypeReferences(*root);
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::checkExport(const ExportDeclarationNode& exportDecl) {
+    ExportCheckingResult SemanticAnalyzer::checkExport(const ExportDeclarationNode& exportDecl) {
+        ExportCheckingResult result;
+
         for (auto& item : exportDecl.getNameList()) {
             if (context.currentScope().lookup(item.name->getIdentifierString()) == nullptr) {
-                context.reportError(exportDecl, fmt::format("Undefined symbol {}", item.name->getIdentifierString()));
+                result.errors.push_back(createError(exportDecl, fmt::format("Undefined symbol {}", item.name->getIdentifierString())));
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl) {
+    ValueDeclarationCheckingResult SemanticAnalyzer::checkValueDeclaration(const ValueDeclarationNode& varDecl) {
+        ValueDeclarationCheckingResult result;
         auto kind = varDecl.getKind();
 
         if (varDecl.getContext() == ValueDeclarationKind::Context::TOP_LEVEL) {
             if (varDecl.getKind() != ValueDeclarationKind::Kind::LET) {
-                context.reportError(varDecl, "Top-level value declaration must be a variable");
+                result.errors.push_back(createError(varDecl, "Top-level value declaration must be a variable"));
             }
         }
 
@@ -1124,174 +1208,187 @@ namespace vnlc {
         const bool requiresInitializer = kind == ValueDeclarationKind::Kind::LET || kind == ValueDeclarationKind::Kind::STATIC_PROPERTY;
 
         if (requiresInitializer && !hasInitializer) {
-            context.reportError(varDecl, kind == ValueDeclarationKind::Kind::STATIC_PROPERTY ? "Static properties must be initialized" : "Variables must be initialized");
+            result.errors.push_back(createError(varDecl, kind == ValueDeclarationKind::Kind::STATIC_PROPERTY ? "Static properties must be initialized" : "Variables must be initialized"));
         } else if (!requiresInitializer && hasInitializer) {
-            context.reportError(
+            result.errors.push_back(createError(
                 varDecl,
                 kind == ValueDeclarationKind::Kind::INSTANCE_PROPERTY ? "Instance properties cannot have initializers" : "Value declarations of this kind cannot have initializers"
-            );
+            ));
         }
 
         if (hasInitializer) {
-            checkExpression(*varDecl.getInitializer().value());
+            mergeDiagnostics(result, checkExpression(*varDecl.getInitializer().value()));
         }
 
         if (hasTypeReference) {
-            checkType(*varDecl.getType()->get());
+            mergeDiagnostics(result, checkType(*varDecl.getType()->get()));
 
             if (hasInitializer) {
                 const Type* exprType = context.getInferredExpressionType(varDecl.getInitializer()->get());
                 const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
 
                 if (exprType && declType && !exprType->canConvertTo(*declType)) {
-                    context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
+                    result.errors.push_back(createError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName())));
                 }
             }
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl) {
+    FunctionDeclarationCheckingResult SemanticAnalyzer::checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl) {
+        FunctionDeclarationCheckingResult result;
         if (!context.pushExistingScope(&funcDecl)) {
-            return;
+            return result;
         }
 
         const bool hasReturnTypeReference = funcDecl.getReturnType().has_value();
         const bool hasFunctionBody = funcDecl.getBody().has_value();
 
         for (const auto& param : funcDecl.getParameters()) {
-            checkValueDeclaration(*param);
+            mergeDiagnostics(result, checkValueDeclaration(*param));
         }
 
         if (funcDecl.getContext() == FunctionDeclarationKind::Context::INTERFACE) {
             if (hasFunctionBody) {
-                context.reportError(funcDecl, "Interface methods cannot have a body");
+                result.errors.push_back(createError(funcDecl, "Interface methods cannot have a body"));
             }
         } else {
             if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::NATIVE) {
                 if (hasFunctionBody) {
-                    context.reportError(funcDecl, "Native functions cannot have a body");
+                    result.errors.push_back(createError(funcDecl, "Native functions cannot have a body"));
                 }
             }
 
             if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::REGULAR) {
                 if (hasFunctionBody) {
-                    checkStatement(*funcDecl.getBody().value());
+                    mergeDiagnostics(result, checkStatement(*funcDecl.getBody().value()));
                 } else {
-                    context.reportError(funcDecl, "Regular functions must have a body");
+                    result.errors.push_back(createError(funcDecl, "Regular functions must have a body"));
                 }
             }
         }
 
         if (hasReturnTypeReference) {
-            checkType(*funcDecl.getReturnType()->get());
+            mergeDiagnostics(result, checkType(*funcDecl.getReturnType()->get()));
         }
 
         // TODO: Implement return type inference
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl) {
+    ConstructorDeclarationCheckingResult SemanticAnalyzer::checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl) {
+        ConstructorDeclarationCheckingResult result;
         if (!context.pushExistingScope(&constructorDecl)) {
-            return;
+            return result;
         }
 
         for (const auto& param : constructorDecl.getParameters()) {
-            checkValueDeclaration(*param);
+            mergeDiagnostics(result, checkValueDeclaration(*param));
         }
 
-        checkStatement(constructorDecl.getBody());
+        mergeDiagnostics(result, checkStatement(constructorDecl.getBody()));
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl) {
+    OperatorDeclarationCheckingResult SemanticAnalyzer::checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl) {
+        OperatorDeclarationCheckingResult result;
         if (!context.pushExistingScope(&operatorDecl)) {
-            return;
+            return result;
         }
 
         const bool hasBody = operatorDecl.getBody().has_value();
 
         for (const auto& param : operatorDecl.getParameters()) {
-            checkValueDeclaration(*param);
+            mergeDiagnostics(result, checkValueDeclaration(*param));
         }
 
         if (operatorDecl.getContext() == OperatorDeclarationKind::Context::INTERFACE) {
             if (hasBody) {
-                context.reportError(operatorDecl, "Interface operators cannot have a body");
+                result.errors.push_back(createError(operatorDecl, "Interface operators cannot have a body"));
             }
         } else {
             if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::NATIVE) {
                 if (hasBody) {
-                    context.reportError(operatorDecl, "Native operators cannot have a body");
+                    result.errors.push_back(createError(operatorDecl, "Native operators cannot have a body"));
                 }
             }
 
             if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::REGULAR) {
                 if (hasBody) {
-                    checkStatement(*operatorDecl.getBody().value());
+                    mergeDiagnostics(result, checkStatement(*operatorDecl.getBody().value()));
                 } else {
-                    context.reportError(operatorDecl, "Regular operators must have a body");
+                    result.errors.push_back(createError(operatorDecl, "Regular operators must have a body"));
                 }
             }
         }
 
         if (operatorDecl.getReturnType().has_value()) {
-            checkType(*operatorDecl.getReturnType().value());
+            mergeDiagnostics(result, checkType(*operatorDecl.getReturnType().value()));
         }
 
         // TODO: Implement return type inference
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config) {
+    ClassDeclarationCheckingResult SemanticAnalyzer::checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config) {
+        ClassDeclarationCheckingResult result;
         if (!context.pushExistingScope(&classDecl)) {
-            return;
+            return result;
         }
 
         for (const auto& propertyDecl : classDecl.getPropertyDeclarations()) {
-            checkValueDeclaration(*propertyDecl);
+            mergeDiagnostics(result, checkValueDeclaration(*propertyDecl));
         }
 
         for (const auto& methodDecl : classDecl.getMethodDeclarations()) {
-            checkFunctionDeclaration(*methodDecl);
+            mergeDiagnostics(result, checkFunctionDeclaration(*methodDecl));
         }
 
         for (const auto& constructorDecl : classDecl.getConstructorDeclarations()) {
-            checkConstructorDeclaration(*constructorDecl);
+            mergeDiagnostics(result, checkConstructorDeclaration(*constructorDecl));
         }
 
         for (const auto& operatorDecl : classDecl.getOperatorDeclarations()) {
-            checkOperatorDeclaration(*operatorDecl);
+            mergeDiagnostics(result, checkOperatorDeclaration(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config) {
+    InterfaceDeclarationCheckingResult SemanticAnalyzer::checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config) {
+        InterfaceDeclarationCheckingResult result;
         if (!context.pushExistingScope(&interfaceDecl)) {
-            return;
+            return result;
         }
 
         for (const auto& member : interfaceDecl.getMethodDeclarations()) {
             if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(member.get())) {
-                checkFunctionDeclaration(*funcDecl);
+                mergeDiagnostics(result, checkFunctionDeclaration(*funcDecl));
             } else {
-                context.reportError(*member, "Invalid interface member declaration");
+                result.errors.push_back(createError(*member, "Invalid interface member declaration"));
             }
         }
 
         for (const auto& operatorDecl : interfaceDecl.getOperatorDeclarations()) {
-            checkOperatorDeclaration(*operatorDecl);
+            mergeDiagnostics(result, checkOperatorDeclaration(*operatorDecl));
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config) {
+    EnumDeclarationCheckingResult SemanticAnalyzer::checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config) {
+        EnumDeclarationCheckingResult result;
         if (!context.pushExistingScope(&enumDecl)) {
-            return;
+            return result;
         }
 
         for (const auto& member : enumDecl.getMemberDeclarations()) {
@@ -1300,64 +1397,69 @@ namespace vnlc {
             }
 
             for (auto& associatedValue : member->getAssociatedValues()) {
-                checkValueDeclaration(*associatedValue);
+                mergeDiagnostics(result, checkValueDeclaration(*associatedValue));
             }
 
             context.popScope();
         }
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config) {
+    TypeAliasDeclarationCheckingResult SemanticAnalyzer::checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config) {
+        TypeAliasDeclarationCheckingResult result;
         if (!context.pushExistingScope(&typeAliasDecl)) {
-            return;
+            return result;
         }
 
-        checkType(typeAliasDecl.getOriginalType());
+        mergeDiagnostics(result, checkType(typeAliasDecl.getOriginalType()));
 
         context.popScope();
+        return result;
     }
 
-    void SemanticAnalyzer::checkStatement(const StatementNode& statement) {
+    StatementCheckingResult SemanticAnalyzer::checkStatement(const StatementNode& statement) {
+        StatementCheckingResult result;
+
         if (auto* stmt = dynamic_cast<const BlockStatementNode*>(&statement)) {
             context.pushScope(std::make_unique<Scope>(ScopeKind::BLOCK, &context.currentScope(), stmt));
 
             for (const auto& child : stmt->getStatements()) {
-                checkStatement(*child);
+                mergeDiagnostics(result, checkStatement(*child));
             }
 
             context.popScope();
         } else if (auto* stmt = dynamic_cast<const BreakStatementNode*>(&statement)) {
             if (!context.currentLoop()) {
-                context.reportError(*stmt, "Break statement not within a loop");
+                result.errors.push_back(createError(*stmt, "Break statement not within a loop"));
             }
 
             const auto& label = stmt->getLabel();
             if (label.has_value()) {
                 const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
                 if (labelSymbol == nullptr) {
-                    context.reportError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString())));
                 } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                    context.reportError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString())));
                 }
             }
         } else if (auto* stmt = dynamic_cast<const ContinueStatementNode*>(&statement)) {
             if (!context.currentLoop()) {
-                context.reportError(*stmt, "Continue statement not within a loop");
+                result.errors.push_back(createError(*stmt, "Continue statement not within a loop"));
             }
 
             const auto& label = stmt->getLabel();
             if (label.has_value()) {
                 const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
                 if (labelSymbol == nullptr) {
-                    context.reportError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString())));
                 } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                    context.reportError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString())));
                 }
             }
         } else if (auto* stmt = dynamic_cast<const ExpressionStatementNode*>(&statement)) {
-            checkExpression(stmt->getExpression());
+            mergeDiagnostics(result, checkExpression(stmt->getExpression()));
         } else if (auto* stmt = dynamic_cast<const ForStatementNode*>(&statement)) {
             context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), stmt));
 
@@ -1365,7 +1467,7 @@ namespace vnlc {
             if (label.has_value()) {
                 RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), stmt);
                 if (!context.currentScope().declare(std::move(labelSymbol))) {
-                    context.reportError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString())));
                 }
             }
 
@@ -1377,42 +1479,42 @@ namespace vnlc {
                 &loopVariable
             );
             if (!context.currentScope().declare(std::move(loopVariableSymbol))) {
-                context.reportError(loopVariable, fmt::format("Redeclaration of symbol '{}'", loopVariable.getName().getIdentifierString()));
+                result.errors.push_back(createError(loopVariable, fmt::format("Redeclaration of symbol '{}'", loopVariable.getName().getIdentifierString())));
             }
 
-            checkValueDeclaration(stmt->getLoopVariable());
-            checkExpression(stmt->getIterableExpression());
-            checkStatement(stmt->getBody());
+            mergeDiagnostics(result, checkValueDeclaration(stmt->getLoopVariable()));
+            mergeDiagnostics(result, checkExpression(stmt->getIterableExpression()));
+            mergeDiagnostics(result, checkStatement(stmt->getBody()));
 
             context.popScope();
         } else if (auto* stmt = dynamic_cast<const IfStatementNode*>(&statement)) {
-            checkExpression(stmt->getCondition());
-            checkStatement(stmt->getThenBranch());
+            mergeDiagnostics(result, checkExpression(stmt->getCondition()));
+            mergeDiagnostics(result, checkStatement(stmt->getThenBranch()));
             if (stmt->getElseBranch().has_value()) {
-                checkStatement(*stmt->getElseBranch().value());
+                mergeDiagnostics(result, checkStatement(*stmt->getElseBranch().value()));
             }
         } else if (auto* stmt = dynamic_cast<const ReturnStatementNode*>(&statement)) {
             if (stmt->getReturnValue().has_value()) {
-                checkExpression(*stmt->getReturnValue().value());
+                mergeDiagnostics(result, checkExpression(*stmt->getReturnValue().value()));
             }
         } else if (auto* stmt = dynamic_cast<const SwitchStatementNode*>(&statement)) {
             context.pushScope(std::make_unique<Scope>(ScopeKind::SWITCH, &context.currentScope(), stmt));
 
-            checkExpression(stmt->getSwitchExpression());
+            mergeDiagnostics(result, checkExpression(stmt->getSwitchExpression()));
 
             if (stmt->getSwitchKind() == SwitchStatementKind::LITERAL_MATCH) {
                 for (const auto& item : stmt->getLiteralMatchItems()) {
-                    checkStatement(*item.body);
+                    mergeDiagnostics(result, checkStatement(*item.body));
                 }
             } else if (stmt->getSwitchKind() == SwitchStatementKind::TYPE_MATCH) {
                 for (const auto& item : stmt->getTypeMatchItems()) {
-                    checkType(*item.type);
-                    checkStatement(*item.body);
+                    mergeDiagnostics(result, checkType(*item.type));
+                    mergeDiagnostics(result, checkStatement(*item.body));
                 }
             }
 
             if (stmt->getDefaultCaseBody().has_value()) {
-                checkStatement(*stmt->getDefaultCaseBody().value());
+                mergeDiagnostics(result, checkStatement(*stmt->getDefaultCaseBody().value()));
             }
 
             context.popScope();
@@ -1420,9 +1522,9 @@ namespace vnlc {
             const auto& varDecl = stmt->getVariableDeclaration();
             RegularSymbol variableSymbol(RegularSymbolKind::VARIABLE, static_cast<RegularSymbolAccessModifier>(varDecl.getAccessModifier()), varDecl.getName().getIdentifierString(), &varDecl);
             if (!context.currentScope().declare(std::move(variableSymbol))) {
-                context.reportError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString()));
+                result.errors.push_back(createError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString())));
             }
-            checkValueDeclaration(varDecl);
+            mergeDiagnostics(result, checkValueDeclaration(varDecl));
         } else if (auto* stmt = dynamic_cast<const WhileStatementNode*>(&statement)) {
             context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), stmt));
 
@@ -1430,42 +1532,46 @@ namespace vnlc {
             if (label.has_value()) {
                 RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), stmt);
                 if (!context.currentScope().declare(std::move(labelSymbol))) {
-                    context.reportError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+                    result.errors.push_back(createError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString())));
                 }
             }
 
-            checkExpression(stmt->getCondition());
-            checkStatement(stmt->getBody());
+            mergeDiagnostics(result, checkExpression(stmt->getCondition()));
+            mergeDiagnostics(result, checkStatement(stmt->getBody()));
 
             context.popScope();
         } else {
-            context.reportError(statement, "Unknown statement type");
+            result.errors.push_back(createError(statement, "Unknown statement type"));
         }
+
+        return result;
     }
 
-    void SemanticAnalyzer::checkExpression(const ExpressionNode& expression) {
+    ExpressionCheckingResult SemanticAnalyzer::checkExpression(const ExpressionNode& expression) {
+        ExpressionCheckingResult result;
+
         if (auto* expr = dynamic_cast<const BinaryExpressionNode*>(&expression)) {
             // TODO: Implement binary expression checking
-            checkExpression(expr->getLeft());
-            checkExpression(expr->getRight());
+            mergeDiagnostics(result, checkExpression(expr->getLeft()));
+            mergeDiagnostics(result, checkExpression(expr->getRight()));
         } else if (auto* expr = dynamic_cast<const ConditionalExpressionNode*>(&expression)) {
             // TODO: Implement conditional expression checking
-            checkExpression(expr->getCondition());
-            checkExpression(expr->getThenExpression());
-            checkExpression(expr->getElseExpression());
+            mergeDiagnostics(result, checkExpression(expr->getCondition()));
+            mergeDiagnostics(result, checkExpression(expr->getThenExpression()));
+            mergeDiagnostics(result, checkExpression(expr->getElseExpression()));
         } else if (auto* expr = dynamic_cast<const DictLiteralExpressionNode*>(&expression)) {
             // TODO: Implement dictionary literal expression checking
             for (const auto& entry : expr->getEntries()) {
-                checkExpression(*entry.second);
+                mergeDiagnostics(result, checkExpression(*entry.second));
             }
         } else if (auto* expr = dynamic_cast<const FunctionCallExpressionNode*>(&expression)) {
             // TODO: Implement function call expression checking
-            checkExpression(expr->getCallee());
+            mergeDiagnostics(result, checkExpression(expr->getCallee()));
             for (const auto& argument : expr->getArguments()) {
-                checkExpression(*argument);
+                mergeDiagnostics(result, checkExpression(*argument));
             }
             if (expr->getContext().has_value()) {
-                checkExpression(*expr->getContext().value());
+                mergeDiagnostics(result, checkExpression(*expr->getContext().value()));
             }
         } else if (auto* expr = dynamic_cast<const IdentifierLikeExpressionNode*>(&expression)) {
             // TODO: Implement identifier expression checking
@@ -1473,24 +1579,24 @@ namespace vnlc {
         } else if (auto* expr = dynamic_cast<const ListLikeLiteralExpressionNode*>(&expression)) {
             // TODO: Implement list-like literal expression checking
             for (const auto& element : expr->getElements()) {
-                checkExpression(*element);
+                mergeDiagnostics(result, checkExpression(*element));
             }
         } else if (auto* expr = dynamic_cast<const MemberAccessExpressionNode*>(&expression)) {
             // TODO: Implement member access expression checking
-            checkExpression(expr->getObject());
-            checkExpression(expr->getMember());
+            mergeDiagnostics(result, checkExpression(expr->getObject()));
+            mergeDiagnostics(result, checkExpression(expr->getMember()));
         } else if (auto* expr = dynamic_cast<const RangeExpressionNode*>(&expression)) {
             // TODO: Implement range expression checking
             if (expr->getStart().has_value()) {
-                checkExpression(*expr->getStart().value());
+                mergeDiagnostics(result, checkExpression(*expr->getStart().value()));
             }
             if (expr->getEnd().has_value()) {
-                checkExpression(*expr->getEnd().value());
+                mergeDiagnostics(result, checkExpression(*expr->getEnd().value()));
             }
         } else if (auto* expr = dynamic_cast<const SelectorLiteralExpressionNode*>(&expression)) {
             // TODO: Implement selector literal expression checking
             for (const auto& argument : expr->getArguments()) {
-                checkExpression(*argument.second);
+                mergeDiagnostics(result, checkExpression(*argument.second));
             }
         } else if (auto* expr = dynamic_cast<const SimpleLiteralExpressionNode*>(&expression)) {
             // TODO: Implement simple literal expression checking
@@ -1498,13 +1604,13 @@ namespace vnlc {
             // TODO: Implement string literal expression checking
             for (const auto& part : expr->getParts()) {
                 if (const auto* nestedExpression = std::get_if<std::unique_ptr<ExpressionNode>>(&part)) {
-                    checkExpression(**nestedExpression);
+                    mergeDiagnostics(result, checkExpression(**nestedExpression));
                 }
             }
         } else if (auto* expr = dynamic_cast<const SubscriptExpressionNode*>(&expression)) {
             // TODO: Implement subscript expression checking
-            checkExpression(expr->getObject());
-            checkExpression(expr->getIndex());
+            mergeDiagnostics(result, checkExpression(expr->getObject()));
+            mergeDiagnostics(result, checkExpression(expr->getIndex()));
         } else if (auto* expr = dynamic_cast<const SuperExpressionNode*>(&expression)) {
             // TODO: Implement super expression checking
         } else if (auto* expr = dynamic_cast<const NoneExpressionNode*>(&expression)) {
@@ -1513,13 +1619,17 @@ namespace vnlc {
             // TODO: Implement this expression checking
         } else if (auto* expr = dynamic_cast<const UnaryExpressionNode*>(&expression)) {
             // TODO: Implement unary expression checking
-            checkExpression(expr->getOperand());
+            mergeDiagnostics(result, checkExpression(expr->getOperand()));
         } else {
-            context.reportError(expression, "Unknown expression type");
+            result.errors.push_back(createError(expression, "Unknown expression type"));
         }
+
+        return result;
     }
 
-    const Type* SemanticAnalyzer::checkType(const TypeReferenceNode& type) {
+    TypeCheckingResult SemanticAnalyzer::checkType(const TypeReferenceNode& type) {
+        TypeCheckingResult typeResult{};
+
         const auto getPrimitiveType = [](PrimitiveTypeReferenceKind kind) -> const PrimitiveType* {
             switch (kind) {
                 case PrimitiveTypeReferenceKind::BYTE:
@@ -1647,13 +1757,13 @@ namespace vnlc {
             }
 
             if (!currentScope) {
-                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
+                typeResult.errors.push_back(createError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString())));
                 return "";
             }
 
             const auto* firstSymbol = dynamic_cast<const RegularSymbol*>(currentScope->lookupLocal(nameParts.front()->getIdentifierString()));
             if (firstSymbol == nullptr) {
-                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
+                typeResult.errors.push_back(createError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString())));
                 return "";
             }
 
@@ -1746,7 +1856,7 @@ namespace vnlc {
             } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
                 const Scope* importedScope = context.getScopeByRegularSymbol(*firstSymbol);
                 if (importedScope == nullptr) {
-                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
+                    typeResult.errors.push_back(createError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString())));
                     return "";
                 }
                 while (importedScope != nullptr) {
@@ -1756,7 +1866,7 @@ namespace vnlc {
                     importedScope = importedScope->findParent();
                 }
                 if (identifiers.empty()) {
-                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
+                    typeResult.errors.push_back(createError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString())));
                     return "";
                 }
                 result = std::move(identifiers.top());
@@ -1799,7 +1909,7 @@ namespace vnlc {
         const std::function<const Type*(const TypeReferenceNode&, const TypeSubstitutionMap&, std::unordered_set<const TypeReferenceNode*>)> checkTypeWithCyclicDetection =
             [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, std::unordered_set<const TypeReferenceNode*> visited) -> const Type* {
             if (!visited.insert(&type).second) {
-                context.reportError(type, "Cyclic type reference detected");
+                typeResult.errors.push_back(createError(type, "Cyclic type reference detected"));
                 return nullptr;
             }
 
@@ -1849,13 +1959,13 @@ namespace vnlc {
                     const auto& namePart = nameParts[index];
                     const auto* symbol = dynamic_cast<const RegularSymbol*>(scope->lookup(namePart->getIdentifierString()));
                     if (symbol == nullptr) {
-                        context.reportError(*namePart, fmt::format("Use of undeclared type '{}'", namePart->getIdentifierString()));
+                        typeResult.errors.push_back(createError(*namePart, fmt::format("Use of undeclared type '{}'", namePart->getIdentifierString())));
                         break;
                     }
 
                     if (index == nameParts.size() - 1) {
                         if (!isTypeDefinition(symbol->getKind())) {
-                            context.reportError(*namePart, fmt::format("Identifier '{}' is not a type definition", namePart->getIdentifierString()));
+                            typeResult.errors.push_back(createError(*namePart, fmt::format("Identifier '{}' is not a type definition", namePart->getIdentifierString())));
                         } else {
                             typeSymbol = symbol;
                             hasResolvedType = true;
@@ -1865,7 +1975,7 @@ namespace vnlc {
 
                     scope = context.getScopeByRegularSymbol(*symbol);
                     if (scope == nullptr) {
-                        context.reportError(*namePart, fmt::format("Identifier '{}' does not have a scope", namePart->getIdentifierString()));
+                        typeResult.errors.push_back(createError(*namePart, fmt::format("Identifier '{}' does not have a scope", namePart->getIdentifierString())));
                         break;
                     }
                 }
@@ -1877,12 +1987,12 @@ namespace vnlc {
                 const std::size_t genericArgumentCount = customizedTypeReferenceNode->getGenericArguments().size();
                 const std::size_t genericParameterCount = typeSymbol == nullptr ? 0 : getGenericParameterCount(*typeSymbol);
                 if (genericArgumentCount != genericParameterCount) {
-                    context.reportError(type, fmt::format("Generic argument count mismatch: expected {}, got {}", genericParameterCount, genericArgumentCount));
+                    typeResult.errors.push_back(createError(type, fmt::format("Generic argument count mismatch: expected {}, got {}", genericParameterCount, genericArgumentCount)));
                     return nullptr;
                 }
 
                 std::vector<const Type*> genericArgumentTypes;
-                std::size_t errors = context.getErrors().size();
+                std::size_t errors = typeResult.errors.size();
                 for (const auto& genericArgument : customizedTypeReferenceNode->getGenericArguments()) {
                     const Type* genericArgumentType = checkTypeWithCyclicDetection(*genericArgument, substitutions, visited);
                     if (genericArgumentType == nullptr) {
@@ -1890,7 +2000,7 @@ namespace vnlc {
                     }
                     genericArgumentTypes.emplace_back(genericArgumentType);
                 }
-                if (context.getErrors().size() > errors) {
+                if (typeResult.errors.size() > errors) {
                     return nullptr;
                 }
 
@@ -2035,7 +2145,7 @@ namespace vnlc {
                         }
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            typeResult.errors.push_back(createError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'"));
                             return nullptr;
                         }
 
@@ -2045,7 +2155,7 @@ namespace vnlc {
                         const ImportedEnum* opt = dynamic_cast<const ImportedEnum*>(item);
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            typeResult.errors.push_back(createError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'"));
                             return nullptr;
                         }
 
@@ -2065,11 +2175,21 @@ namespace vnlc {
             return resolvedType;
         };
 
-        return checkTypeWithCyclicDetection(type, TypeSubstitutionMap{}, {});
+        typeResult.type = checkTypeWithCyclicDetection(type, TypeSubstitutionMap{}, {});
+        return typeResult;
     }
 
     SemanticResult SemanticAnalyzer::analyze(const Config& config) {
-        checkModule(module, config);
+        auto result = checkModule(module, config);
+        for (auto& error : result.errors) {
+            context.reportError(std::move(error));
+        }
+        for (auto& warning : result.warnings) {
+            context.reportWarning(std::move(warning));
+        }
+        for (auto& note : result.notes) {
+            context.reportNote(std::move(note));
+        }
 
         auto diagnostics = context.takeDiagnostics();
         auto customizedTypes = context.takeCustomizedTypeRegistry();

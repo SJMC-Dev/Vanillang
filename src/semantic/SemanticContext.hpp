@@ -29,7 +29,6 @@
 #include "vni/import/ImportedInterface.hpp"
 #include <memory>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -66,9 +65,9 @@ namespace vnlc {
         SemanticContext(SemanticContext&&) noexcept = default;
         SemanticContext& operator=(SemanticContext&&) noexcept = default;
 
-        void reportError(const AstNode& node, std::string_view message);
-        void reportWarning(const AstNode& node, std::string_view message);
-        void reportNote(const AstNode& node, std::string_view message);
+        void reportError(Diagnostic&& error);
+        void reportWarning(Diagnostic&& warning);
+        void reportNote(Diagnostic&& note);
         void pushScope(std::unique_ptr<Scope>&& scope);
         bool pushExistingScope(const AstNode* astNode);
         void popScope();

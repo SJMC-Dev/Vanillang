@@ -4,16 +4,16 @@
 #include <unordered_map>
 
 namespace vnlc {
-    void SemanticContext::reportError(const AstNode& node, std::string_view message) {
-        errors.emplace_back(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::ERROR, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
+    void SemanticContext::reportError(Diagnostic&& error) {
+        errors.push_back(std::move(error));
     }
 
-    void SemanticContext::reportWarning(const AstNode& node, std::string_view message) {
-        warnings.emplace_back(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::WARNING, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
+    void SemanticContext::reportWarning(Diagnostic&& warning) {
+        warnings.push_back(std::move(warning));
     }
 
-    void SemanticContext::reportNote(const AstNode& node, std::string_view message) {
-        notes.emplace_back(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::NOTE, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
+    void SemanticContext::reportNote(Diagnostic&& note) {
+        notes.push_back(std::move(note));
     }
 
     void SemanticContext::pushScope(std::unique_ptr<Scope>&& scope) {
