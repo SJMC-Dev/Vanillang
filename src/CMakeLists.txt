@@ -82,7 +82,6 @@ add_executable(
     scope/Scope.cpp
     type/PrimitiveType.cpp
     type/CustomizedType.cpp
-    type/VoidType.cpp
     inheritance/InheritanceNode.cpp
     inheritance/ClassInheritanceNode.cpp
     inheritance/InterfaceInheritanceNode.cpp
