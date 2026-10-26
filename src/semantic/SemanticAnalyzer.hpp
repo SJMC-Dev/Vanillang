@@ -18,10 +18,9 @@
 #include "ast/statement/StatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "config/Config.hpp"
+#include "metadata/MetadataInfo.hpp"
 #include "semantic/SemanticContext.hpp"
 #include "semantic/SemanticResult.hpp"
-#include "semantic/checkingresults/CheckingResults.hpp"
-#include "semantic/collectingresults/CollectingResults.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
 #include "type/Type.hpp"
@@ -51,47 +50,56 @@ namespace vnlc {
 
         [[nodiscard]] const ImportedPackage* getImportedRootPackageByName(std::string_view name) const;
 
-        [[nodiscard]] LocalFunctionSymbolsInModuleCollectingResult
-        declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind);
+        void declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind);
         const Type* registerImportedTypeReference(std::string_view fullTypeName);
         void registerImportedTypeReferences(const ImportedItem& importedItem);
         void registerImportedScopes(const ImportedItem& item, const Scope* parent);
 
-        [[nodiscard]] LocalRegularSymbolsInModuleCollectingResult collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode);
-        [[nodiscard]] LocalRegularSymbolsInFunctionCollectingResult collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode);
-        [[nodiscard]] LocalRegularSymbolsInConstructorCollectingResult collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode);
-        [[nodiscard]] LocalRegularSymbolsInOperatorCollectingResult collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode);
-        [[nodiscard]] LocalRegularSymbolsInClassCollectingResult collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode);
-        [[nodiscard]] LocalRegularSymbolsInInterfaceCollectingResult collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
-        [[nodiscard]] LocalRegularSymbolsInEnumCollectingResult collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode);
-        [[nodiscard]] LocalRegularSymbolsInEnumMemberCollectingResult collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
-        [[nodiscard]] LocalRegularSymbolsInTypeAliasCollectingResult collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
-        [[nodiscard]] LocalFunctionSymbolsInModuleCollectingResult collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode);
-        [[nodiscard]] LocalFunctionSymbolsInClassCollectingResult collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode);
-        [[nodiscard]] LocalFunctionSymbolsInInterfaceCollectingResult collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode);
+        void collectLocalRegularSymbolsInFunction(const FunctionDeclarationNode& functionNode);
+        void collectLocalRegularSymbolsInConstructor(const ConstructorDeclarationNode& constructorNode);
+        void collectLocalRegularSymbolsInOperator(const OperatorDeclarationNode& operatorNode);
+        void collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode);
+        void collectLocalRegularSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void collectLocalRegularSymbolsInEnum(const EnumDeclarationNode& enumNode);
+        void collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
+        void collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
 
-        [[nodiscard]] ModuleCheckingResult generateInternalName(const DeclarationNode& node);
-        [[nodiscard]] ModuleCheckingResult generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode);
-        [[nodiscard]] ModuleCheckingResult generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode);
-        [[nodiscard]] ModuleCheckingResult generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void resolveTypeReference(const TypeReferenceNode& typeRef);
+        void resolveTypeReferencesInModule(const ModuleNode& moduleNode);
+        void resolveTypeReferencesInFunction(const FunctionDeclarationNode& functionNode);
+        void resolveTypeReferencesInConstructor(const ConstructorDeclarationNode& constructorNode);
+        void resolveTypeReferencesInOperator(const OperatorDeclarationNode& operatorNode);
+        void resolveTypeReferencesInClass(const ClassDeclarationNode& classNode);
+        void resolveTypeReferencesInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void resolveTypeReferencesInEnum(const EnumDeclarationNode& enumNode);
+        void resolveTypeReferencesInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
+        void resolveTypeReferencesInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
 
-        [[nodiscard]] ModuleCheckingResult buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules);
+        void generateInternalName(const DeclarationNode& node);
+        void generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode);
+        void generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode);
+        void generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode);
 
-        [[nodiscard]] MetadataCheckingResult checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode);
-        [[nodiscard]] ModuleCheckingResult checkModule(const ModuleNode& moduleNode, const Config& config);
-        [[nodiscard]] ImportCheckingResult checkImport(const ImportDeclarationNode& importDecl, const Config& config);
-        [[nodiscard]] ExportCheckingResult checkExport(const ExportDeclarationNode& exportDecl);
-        [[nodiscard]] ValueDeclarationCheckingResult checkValueDeclaration(const ValueDeclarationNode& varDecl);
-        [[nodiscard]] FunctionDeclarationCheckingResult checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl);
-        [[nodiscard]] ConstructorDeclarationCheckingResult checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl);
-        [[nodiscard]] OperatorDeclarationCheckingResult checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl);
-        [[nodiscard]] ClassDeclarationCheckingResult checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config);
-        [[nodiscard]] InterfaceDeclarationCheckingResult checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config);
-        [[nodiscard]] EnumDeclarationCheckingResult checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config);
-        [[nodiscard]] TypeAliasDeclarationCheckingResult checkTypeAliasDeclaration(const TypeAliasDeclarationNode& typeAliasDecl, const Config& config);
-        [[nodiscard]] StatementCheckingResult checkStatement(const StatementNode& statement);
-        [[nodiscard]] ExpressionCheckingResult checkExpression(const ExpressionNode& expression);
-        [[nodiscard]] TypeCheckingResult checkType(const TypeReferenceNode& type);
+        void collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode);
+        void collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode);
+        void collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode);
+
+        void buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules);
+
+        MetadataInfo checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode);
+        void checkModule(const ModuleNode& moduleNode, const Config& config);
+        void checkImport(const ImportDeclarationNode& importDecl, const Config& config);
+        void checkExport(const ExportDeclarationNode& exportDecl);
+        void checkValueDeclaration(const ValueDeclarationNode& varDecl);
+        void checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl);
+        void checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl);
+        void checkOperatorDeclaration(const OperatorDeclarationNode& operatorDecl);
+        void checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config);
+        void checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config);
+        void checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config);
+        void checkStatement(const StatementNode& statement);
+        void checkExpression(const ExpressionNode& expression);
 
     public:
         explicit SemanticAnalyzer(const ModuleNode& module);
