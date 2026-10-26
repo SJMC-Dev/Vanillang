@@ -92,6 +92,48 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, IdentifiersWithDigitsAndUnderscores) {
+        std::istringstream input("_ _private snake_case value2 __init__ Camel9Case");
+        Lexer lexer(input);
+
+        for (const auto name : { "_", "_private", "snake_case", "value2", "__init__" }) {
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            ASSERT_EQ(token.getKind(), TokenKind::IDENTIFIER);
+            EXPECT_EQ(token.getValue(), name);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        }
+        ASSERT_TRUE(lexer.hasNext());
+        const auto token = lexer.next();
+        ASSERT_EQ(token.getKind(), TokenKind::IDENTIFIER);
+        EXPECT_EQ(token.getValue(), "Camel9Case");
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
+    TEST(LexerTest, IdentifiersWithIllegalCharacters) {
+        std::istringstream input("caf\xC3\xA9 \xE5\x90\x8D\xE5\xAD\x97 bad\x01name del\x7F valid");
+        Lexer lexer(input);
+
+        for (const auto value : { "caf\xC3\xA9", "\xE5\x90\x8D\xE5\xAD\x97", "bad\x01name", "del\x7F" }) {
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            ASSERT_EQ(token.getKind(), TokenKind::LEXICAL_ERROR);
+            EXPECT_EQ(token.getValue(), value);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        }
+        ASSERT_TRUE(lexer.hasNext());
+        const auto token = lexer.next();
+        ASSERT_EQ(token.getKind(), TokenKind::IDENTIFIER);
+        EXPECT_EQ(token.getValue(), "valid");
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
     TEST(LexerTest, EmptyInput) {
         std::istringstream input("");
         Lexer lexer(input);
