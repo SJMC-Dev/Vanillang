@@ -5,6 +5,7 @@
 #include "collector/CollectionResult.hpp"
 #include "collector/Collector.hpp"
 #include "config/Config.hpp"
+#include "inheritance/InheritanceNode.hpp"
 #include "lexer/Lexer.hpp"
 #include "parser/Parser.hpp"
 #include "semantic/SemanticContext.hpp"
@@ -821,6 +822,163 @@ class Addable {
         EXPECT_EQ(result.getErrors().front().getMessage(), "Redeclaration of class member 'vnl-operator-addition(int)'");
     }
 
+    TEST(SemanticAnalyzerTest, AcceptsInheritanceFromNonFinalClassesAndImplementationsOfInterfaces) {
+        constexpr std::string_view source = R"(
+class Base {}
+class Box<T> {}
+interface Readable {}
+interface Writable<T> {}
+type BaseAlias = Base
+type ReadableAlias = Readable
+class Derived extends Base implements Readable, Writable<int> {}
+class Boxed extends Box<int> {}
+class Aliased extends BaseAlias implements ReadableAlias {}
+)";
+        const auto config = makeConfig("valid_inheritance.vnl");
+        auto module = parseModule(source, config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors()) << result.getErrors().front().getMessage();
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsInheritanceFromPrimitiveTypes) {
+        const auto config = makeConfig("primitive_base_class.vnl");
+        auto module = parseModule("class Derived extends int {}", config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 1);
+        EXPECT_EQ(result.getErrors().front().getMessage(), "Inheritance from primitive types is not allowed");
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsInheritanceFromNonClassTypes) {
+        const std::vector<std::string_view> sources = {
+            "interface Readable {}\nclass Derived extends Readable {}",
+            "enum State {\n    Ready\n}\nclass Derived extends State {}",
+            "enum State {\n    Ready\n}\nclass Derived extends State.Ready {}",
+            "class Derived<T> extends T {}",
+            "final class Derived<T> extends T {}",
+        };
+        for (const auto source : sources) {
+            SCOPED_TRACE(source);
+            const auto config = makeConfig("non_class_base_class.vnl");
+            auto module = parseModule(source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), "Inheritance from non-class types is not allowed");
+            const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().back().get());
+            ASSERT_NE(classDeclaration, nullptr);
+            const auto* inheritanceNode = result.getInheritanceNodeByLocalNode(classDeclaration);
+            ASSERT_NE(inheritanceNode, nullptr);
+            EXPECT_EQ(inheritanceNode->findParent(), nullptr);
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsInheritanceFromFinalClasses) {
+        const std::vector<std::string_view> sources = {
+            "final class Base {}\nclass Derived extends Base {}",
+            "final class Box<T> {}\nclass Derived extends Box<int> {}",
+            "final class Base {}\ntype Alias = Base\nclass Derived extends Alias {}",
+        };
+        for (const auto source : sources) {
+            SCOPED_TRACE(source);
+            const auto config = makeConfig("final_base_class.vnl");
+            auto module = parseModule(source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), "Inheritance from final classes is not allowed");
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsCyclicInheritanceForEveryClassInTheCycle) {
+        const std::vector<std::pair<std::string_view, std::size_t>> cases = {
+            { "class Self extends Self {}", 1 },
+            { "class First extends Second {}\nclass Second extends First {}", 2 },
+            { "class First extends Second {}\nclass Second extends Third {}\nclass Third extends First {}", 3 },
+        };
+        for (const auto& [source, errorCount] : cases) {
+            SCOPED_TRACE(source);
+            const auto config = makeConfig("cyclic_inheritance.vnl");
+            auto module = parseModule(source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            ASSERT_EQ(result.getErrors().size(), errorCount);
+            for (const auto& error : result.getErrors()) {
+                EXPECT_EQ(error.getMessage(), "Cyclic inheritance detected");
+            }
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsImplementationsOfNonInterfaceTypes) {
+        struct InvalidImplementation {
+            std::string_view source;
+            std::string_view typeName;
+            bool isLocalType;
+        };
+
+        const std::vector<InvalidImplementation> cases = {
+            { "class Derived implements int {}", "int", false },
+            { "class Base {}\nclass Derived implements Base {}", "Base", true },
+            { "enum State {\n    Ready\n}\nclass Derived implements State {}", "State", true },
+            { "class Derived<T> implements T {}", "T", false },
+        };
+        for (const auto& [source, typeName, isLocalType] : cases) {
+            SCOPED_TRACE(source);
+            const auto config = makeConfig("non_interface_implementations.vnl");
+            auto module = parseModule(source, config);
+
+            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            SemanticAnalyzer analyzer(*module, imports);
+            const auto result = analyzer.analyze(config);
+
+            const std::string fullTypeName = isLocalType ? std::string(module->getFullName()) + "." + std::string(typeName) : std::string(typeName);
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), "Type '" + fullTypeName + "' is not an interface");
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, ReportsEveryNonInterfaceTypeInImplementationLists) {
+        const auto config = makeConfig("mixed_implementations.vnl");
+        auto module = parseModule("interface Readable {}\nclass Derived implements Readable, int, string {}", config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 2);
+        EXPECT_EQ(result.getErrors()[0].getMessage(), "Type 'int' is not an interface");
+        EXPECT_EQ(result.getErrors()[1].getMessage(), "Type 'string' is not an interface");
+    }
+
+    TEST(SemanticAnalyzerTest, ReportsUndeclaredBaseClassesAndInterfacesOnce) {
+        const auto config = makeConfig("undeclared_inheritance.vnl");
+        auto module = parseModule("class Derived extends Missing implements AlsoMissing {}", config);
+
+        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 2);
+        EXPECT_EQ(result.getErrors()[0].getMessage(), "Use of undeclared type 'Missing'");
+        EXPECT_EQ(result.getErrors()[1].getMessage(), "Use of undeclared type 'AlsoMissing'");
+    }
+
     TEST(SemanticContextTest, RetainsPoppedScopesAndTheirParents) {
         const auto config = makeConfig("scopes.vnl");
         const auto module = parseModule("class Sample {}", config);
@@ -952,6 +1110,17 @@ class Addable {
     "Ready": {"category": "enummember", "associatedValues": {"payload": {"category": "enumvalue", "type": "int"}}},
     "property": {"category": "property", "type": "int", "static": true, "accessModifier": "public"},
     "parameter": {"category": "parameter", "type": "int"}
+})");
+        }
+
+        void writeInheritanceModule() const {
+            writeFile("dependency_source/api.vni", R"({
+    "Base": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+        "baseClass": null, "implementedInterfaces": [], "final": false},
+    "Sealed": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+        "baseClass": null, "implementedInterfaces": [], "final": true},
+    "Readable": {"category": "interface", "genericParameters": [], "methods": {}, "operators": {}},
+    "State": {"category": "enum", "genericParameters": [], "members": {"Ready": {"category": "enummember", "associatedValues": {}}}}
 })");
         }
 
@@ -1291,6 +1460,31 @@ class Addable {
                 EXPECT_EQ(customizedType->getGenericArguments().front(), PrimitiveType::intType());
             }
         );
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, AcceptsInheritanceFromImportedNonFinalClassesAndInterfaces) {
+        writeInheritanceModule();
+        const auto result = analyze("import pkg.api.{Base, Readable}\nclass Derived extends Base implements Readable {}\n");
+
+        ASSERT_FALSE(result.hasErrors()) << result.getErrors().front().getMessage();
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, RejectsInheritanceFromImportedFinalClassesAndNonClassTypes) {
+        writeInheritanceModule();
+        const std::vector<std::pair<std::string_view, std::string_view>> cases = {
+            { "import pkg.api.Sealed\nclass Derived extends Sealed {}\n", "Inheritance from final classes is not allowed" },
+            { "import pkg.api.Readable\nclass Derived extends Readable {}\n", "Inheritance from non-class types is not allowed" },
+            { "import pkg.api.State\nclass Derived extends State {}\n", "Inheritance from non-class types is not allowed" },
+            { "import pkg.api.Base\nclass Derived implements Base {}\n", "Type 'pkg.api.Base' is not an interface" },
+            { "import pkg.api.State\nclass Derived implements State {}\n", "Type 'pkg.api.State' is not an interface" },
+        };
+        for (const auto& [source, message] : cases) {
+            SCOPED_TRACE(source);
+            const auto result = analyze(source);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getMessage(), message);
+        }
     }
 
     TEST_F(SemanticAnalyzerImportTest, BuildsImportedPackageModuleAndMemberScopes) {
