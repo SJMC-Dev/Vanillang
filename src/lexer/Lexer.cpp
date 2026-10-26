@@ -786,7 +786,14 @@ namespace vnlc {
         }
 
         while (!eof() && !blank() && !special() && !newline()) {
-            if (peek() >= 0 && peek() < 32) {
+            char ch = static_cast<char>(peek());
+
+            bool isNumber = (ch >= '0' && ch <= '9');
+            bool isUpperCase = (ch >= 'A' && ch <= 'Z');
+            bool isLowerCase = (ch >= 'a' && ch <= 'z');
+            bool isUnderline = (ch == '_');
+
+            if (!(isNumber || isUpperCase || isLowerCase || isUnderline)) {
                 collect(tokenValue);
                 error = true;
                 break;
