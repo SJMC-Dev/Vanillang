@@ -1058,7 +1058,6 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         Config config = makeConfig("imports.vnl");
         std::shared_ptr<const ModuleNode> module;
         std::optional<CollectionResult> collectionResult;
-        ModuleCheckingResult moduleCheckingResult;
 
         void SetUp() override {
             const auto* testInfo = testing::UnitTest::GetInstance()->current_test_info();
@@ -1148,7 +1147,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             module = parseModule(source, config);
             const auto& imports = collectionResult->getImports();
             SemanticAnalyzer analyzer(*module, imports);
-            moduleCheckingResult = analyzer.checkModule(*module, config);
+            analyzer.checkModule(*module, config);
             const TypeAliasDeclarationNode* typeAlias = nullptr;
             for (const auto& topIdentifierDecl : module->getTopIdentifierDeclarations()) {
                 if (const auto* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(topIdentifierDecl.get())) {
@@ -1172,7 +1171,8 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         }
 
         const Type* checkedType(SemanticAnalyzer& analyzer, const TypeReferenceNode& type) const {
-            return analyzer.checkType(type).type;
+            analyzer.resolveTypeReference(type);
+            return analyzer.context.getTypeByTypeReferenceNode(&type);
         }
 
         const ImportedItem* findImportedNode(const SemanticResult& result, std::string_view name) const {
@@ -1215,7 +1215,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
                 "import vanillang.typesystem.Optional\ntype Result = " + primitiveName + "?\n",
                 [this, primitiveType, &primitiveName](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                     auto& context = semanticContext(analyzer);
-                    ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
+                    ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
                     EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1232,7 +1232,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
     TEST_F(SemanticAnalyzerImportTest, RegistersNestedOptionalLocalTypesWithTheirOriginalArguments) {
         withAliasType("import vanillang.typesystem.Optional\nclass Box<T> {}\ntype Result = Box<int?>?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(moduleCheckingResult.errors.empty());
+            ASSERT_TRUE(context.getErrors().empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1266,7 +1266,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             "import pkg.api.Box as ImportedBox\nimport vanillang.typesystem.Optional\ntype Result = ImportedBox<int>?\n",
             [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                 auto& context = semanticContext(analyzer);
-                ASSERT_TRUE(moduleCheckingResult.errors.empty());
+                ASSERT_TRUE(context.getErrors().empty());
                 const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                 ASSERT_NE(optionalType, nullptr);
                 EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1291,7 +1291,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalGenericParametersWithTheirOriginalDeclarations) {
         withAliasType("import vanillang.typesystem.Optional\ntype Result<T> = T?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(moduleCheckingResult.errors.empty());
+            ASSERT_TRUE(context.getErrors().empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
@@ -1351,7 +1351,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
                 "import vanillang.typesystem.Optional\ntype First = " + std::string(firstType) + "\ntype Second = " + secondType + "\n",
                 [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& secondAlias) {
                     auto& context = semanticContext(analyzer);
-                    ASSERT_TRUE(moduleCheckingResult.errors.empty());
+                    ASSERT_TRUE(context.getErrors().empty());
                     const auto& firstAlias = dynamic_cast<const TypeAliasDeclarationNode&>(*module->getTopIdentifierDeclarations().front());
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&firstAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
@@ -1432,7 +1432,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
 
         withAliasType("import pkg.api.Wrapped\ntype Result = Wrapped<int>\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
-            ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
+            ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
             const auto* customizedType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
             ASSERT_NE(customizedType, nullptr);
             EXPECT_EQ(customizedType->getFullTypeName(), "pkg.api.Box<int>");
@@ -1452,7 +1452,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             "type Result = Wrapper<int>\n",
             [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                 auto& context = semanticContext(analyzer);
-                ASSERT_TRUE(moduleCheckingResult.errors.empty()) << moduleCheckingResult.errors.front().getMessage();
+                ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
                 const auto* customizedType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(&typeAlias.getOriginalType()));
                 ASSERT_NE(customizedType, nullptr);
                 EXPECT_EQ(customizedType->getFullTypeName(), std::string(module->getFullName()) + ".Box<int>");
