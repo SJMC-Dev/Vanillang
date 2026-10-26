@@ -45,12 +45,14 @@
 #include "diagnostic/DiagnosticPhase.hpp"
 #include "diagnostic/DiagnosticSeverity.hpp"
 #include "fmt/format.h"
+#include "inheritance/ClassInheritanceNode.hpp"
 #include "symbol/RegularSymbol.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
 #include "symbol/RegularSymbolOrigin.hpp"
 #include "type/CustomizedType.hpp"
 #include "type/CustomizedTypeKind.hpp"
+#include "type/CustomizedTypeOrigin.hpp"
 #include "type/PrimitiveType.hpp"
 #include "type/Type.hpp"
 #include "vni/import/ImportedAlias.hpp"
@@ -860,7 +862,7 @@ namespace vnlc {
                 auto baseClassResult = checkType(*classDecl->getBaseClass().value());
                 const auto* baseClassType = dynamic_cast<const CustomizedType*>(baseClassResult.type);
                 mergeDiagnostics(result, std::move(baseClassResult));
-                if (baseClassType != nullptr) {
+                if (baseClassType && baseClassType->getCustomizedKind() == CustomizedTypeKind::CLASS) {
                     if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
                         classNode.setParent(&context.getOrCreateLocalInheritanceNode(*localNode));
                     } else if (const auto* importedNode = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())) {
@@ -1341,6 +1343,48 @@ namespace vnlc {
         ClassDeclarationCheckingResult result;
         if (!context.pushExistingScope(&classDecl)) {
             return result;
+        }
+
+        if (classDecl.getBaseClass().has_value()) {
+            const TypeReferenceNode* baseClassRefNode = classDecl.getBaseClass().value().get();
+            const Type* resolvedType = context.getTypeByTypeReferenceNode(baseClassRefNode);
+
+            if (dynamic_cast<const PrimitiveType*>(resolvedType)) {
+                result.errors.push_back(createError(*baseClassRefNode, "Inheritance from primitive types is not allowed"));
+            } else if (const CustomizedType* baseClassType = dynamic_cast<const CustomizedType*>(resolvedType)) {
+                if (baseClassType->getCustomizedKind() != CustomizedTypeKind::CLASS) {
+                    result.errors.push_back(createError(*baseClassRefNode, "Inheritance from non-class types is not allowed"));
+                } else {
+                    bool inheritanceFromFinal = false;
+
+                    if (baseClassType->getOrigin() == CustomizedTypeOrigin::LOCAL) {
+                        inheritanceFromFinal = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())->isFinal();
+                    } else if (baseClassType->getOrigin() == CustomizedTypeOrigin::IMPORTED) {
+                        inheritanceFromFinal = dynamic_cast<const ImportedClass*>(baseClassType->getImportedNode())->isFinal();
+                    }
+
+                    if (inheritanceFromFinal) {
+                        result.errors.push_back(createError(*baseClassRefNode, "Inheritance from final classes is not allowed"));
+                    }
+                }
+            }
+
+            const ClassInheritanceNode& inheritanceNode = context.getOrCreateLocalInheritanceNode(classDecl);
+            if (inheritanceNode.hasCycle()) {
+                result.errors.push_back(createError(*baseClassRefNode, "Cyclic inheritance detected"));
+            }
+        }
+
+        for (const auto& interfaceRefNode : classDecl.getImplementedInterfaces()) {
+            const Type* resolvedType = context.getTypeByTypeReferenceNode(interfaceRefNode.get());
+
+            if (dynamic_cast<const PrimitiveType*>(resolvedType)) {
+                result.errors.push_back(createError(*interfaceRefNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName())));
+            } else if (const CustomizedType* interfaceType = dynamic_cast<const CustomizedType*>(resolvedType)) {
+                if (interfaceType->getCustomizedKind() != CustomizedTypeKind::INTERFACE) {
+                    result.errors.push_back(createError(*interfaceRefNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName())));
+                }
+            }
         }
 
         for (const auto& propertyDecl : classDecl.getPropertyDeclarations()) {
