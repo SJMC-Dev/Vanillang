@@ -1597,8 +1597,8 @@ class Addable {
 
         ASSERT_TRUE(result.hasErrors());
         ASSERT_EQ(result.getErrors().size(), 2);
-        EXPECT_EQ(result.getErrors()[0].getMessage(), "Undefined symbol pkg");
-        EXPECT_EQ(result.getErrors()[1].getMessage(), "Undefined symbol api");
+        EXPECT_EQ(result.getErrors()[0].getMessage(), "Use of undeclared identifier pkg");
+        EXPECT_EQ(result.getErrors()[1].getMessage(), "Use of undeclared identifier api");
     }
 
     TEST_F(SemanticAnalyzerImportTest, DeclaresOnlyTheTerminalModule) {
