@@ -146,6 +146,31 @@ namespace vnlc {
         return nullptr;
     }
 
+    void SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
+        const auto name = funcDecl.getName().getIdentifierString();
+        const auto internalName = funcDecl.getInternalName();
+        const Symbol* existingSymbol = context.currentScope().lookupLocal(name);
+
+        if (existingSymbol != nullptr) {
+            const auto* existingFunction = dynamic_cast<const FunctionSymbol*>(existingSymbol);
+            if (existingFunction == nullptr) {
+                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
+                return;
+            }
+            if (existingFunction->getOverloadingByInternalName(internalName) != nullptr) {
+                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, internalName));
+                return;
+            }
+        }
+
+        FunctionSymbol functionSymbol(name);
+        functionSymbol.addOverloading(RegularSymbol(kind, static_cast<RegularSymbolAccessModifier>(funcDecl.getAccessModifier()), internalName, &funcDecl));
+
+        if (!context.currentScope().declare(std::move(functionSymbol))) {
+            context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
+        }
+    }
+
     const Type* SemanticAnalyzer::registerImportedTypeReference(std::string_view fullTypeName) {
         const auto isSpace = [](char character) { return character == ' ' || character == '\t' || character == '\r' || character == '\n'; };
         const auto trim = [&isSpace](std::string_view value) {
@@ -366,51 +391,6 @@ namespace vnlc {
         }
     }
 
-    MetadataInfo SemanticAnalyzer::checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode) {
-        bool noWarnings = false;
-        bool deprecated = false;
-
-        for (const auto& term : metadataTerms) {
-            if (term.key->getIdentifierString() == "nowarnings") {
-                noWarnings = true;
-            } else if (term.key->getIdentifierString() == "deprecated") {
-                deprecated = true;
-            } else {
-                context.reportError(declNode, fmt::format("Unknown metadata term '{}'", term.key->getIdentifierString()));
-            }
-        }
-
-        return MetadataInfo{
-            noWarnings,
-            deprecated,
-        };
-    }
-
-    void SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
-        const auto name = funcDecl.getName().getIdentifierString();
-        const auto internalName = funcDecl.getInternalName();
-        const Symbol* existingSymbol = context.currentScope().lookupLocal(name);
-
-        if (existingSymbol != nullptr) {
-            const auto* existingFunction = dynamic_cast<const FunctionSymbol*>(existingSymbol);
-            if (existingFunction == nullptr) {
-                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
-                return;
-            }
-            if (existingFunction->getOverloadingByInternalName(internalName) != nullptr) {
-                context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, internalName));
-                return;
-            }
-        }
-
-        FunctionSymbol functionSymbol(name);
-        functionSymbol.addOverloading(RegularSymbol(kind, static_cast<RegularSymbolAccessModifier>(funcDecl.getAccessModifier()), internalName, &funcDecl));
-
-        if (!context.currentScope().declare(std::move(functionSymbol))) {
-            context.reportError(funcDecl, fmt::format("Redeclaration of {} '{}'", declarationKind, name));
-        }
-    }
-
     void SemanticAnalyzer::collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode) {
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             DeclarationNode* declNode = topIdentifierDecl.get();
@@ -607,6 +587,555 @@ namespace vnlc {
         context.popScope();
     }
 
+    void SemanticAnalyzer::resolveTypeReference(const TypeReferenceNode& typeRef) {
+        const auto getPrimitiveType = [](PrimitiveTypeReferenceKind kind) -> const PrimitiveType* {
+            switch (kind) {
+                case PrimitiveTypeReferenceKind::BYTE:
+                    return PrimitiveType::byteType();
+                case PrimitiveTypeReferenceKind::SHORT:
+                    return PrimitiveType::shortType();
+                case PrimitiveTypeReferenceKind::INT:
+                    return PrimitiveType::intType();
+                case PrimitiveTypeReferenceKind::LONG:
+                    return PrimitiveType::longType();
+                case PrimitiveTypeReferenceKind::FLOAT:
+                    return PrimitiveType::floatType();
+                case PrimitiveTypeReferenceKind::DOUBLE:
+                    return PrimitiveType::doubleType();
+                case PrimitiveTypeReferenceKind::BOOLEAN:
+                    return PrimitiveType::booleanType();
+                case PrimitiveTypeReferenceKind::STRING:
+                    return PrimitiveType::stringType();
+            }
+            return nullptr;
+        };
+
+        const auto getGenericParameterCount = [](const RegularSymbol& symbol) -> std::size_t {
+            if (symbol.getKind() == RegularSymbolKind::GENERIC_PARAMETER) {
+                return 0;
+            }
+            if (symbol.getLocalNode() != nullptr) {
+                if (const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(symbol.getLocalNode())) {
+                    return classDeclaration->getGenericParameterNames().size();
+                }
+                if (const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(symbol.getLocalNode())) {
+                    return interfaceDeclaration->getGenericParameterNames().size();
+                }
+                if (const auto* enumDeclaration = dynamic_cast<const EnumDeclarationNode*>(symbol.getLocalNode())) {
+                    return enumDeclaration->getGenericParameterNames().size();
+                }
+                if (const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(symbol.getLocalNode())) {
+                    return typeAliasDeclaration->getGenericParameterNames().size();
+                }
+            } else if (symbol.getImportedNode() != nullptr) {
+                if (const auto* importedClass = dynamic_cast<const ImportedClass*>(symbol.getImportedNode())) {
+                    return importedClass->getGenericParameters().size();
+                }
+                if (const auto* importedInterface = dynamic_cast<const ImportedInterface*>(symbol.getImportedNode())) {
+                    return importedInterface->getGenericParameters().size();
+                }
+                if (const auto* importedEnum = dynamic_cast<const ImportedEnum*>(symbol.getImportedNode())) {
+                    return importedEnum->getGenericParameters().size();
+                }
+                if (const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(symbol.getImportedNode())) {
+                    return importedTypeAlias->getGenericParameters().size();
+                }
+            }
+            return 0;
+        };
+
+        using TypeSubstitutionMap = std::unordered_map<std::string, const Type*>;
+
+        using NameSubstitutionMap = std::unordered_map<std::string, std::string>;
+
+        const auto substituteImportedTypeParametersWithNames =
+            [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<std::string>& argumentNames) {
+                std::string result;
+                std::size_t tokenStart = 0;
+                const auto appendToken = [&](std::string_view token) {
+                    if (token.empty()) {
+                        return;
+                    }
+
+                    for (std::size_t index = 0; index < parameterNames.size() && index < argumentNames.size(); ++index) {
+                        if (token == parameterNames[index]) {
+                            result += argumentNames[index];
+                            return;
+                        }
+                    }
+                    result += token;
+                };
+
+                for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
+                    const char character = fullTypeName[index];
+                    if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
+                        continue;
+                    }
+
+                    appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
+                    if (character == '<' || character == '>') {
+                        result += character;
+                    } else if (character == ',') {
+                        result += ", ";
+                    }
+                    tokenStart = index + 1;
+                }
+
+                appendToken(fullTypeName.substr(tokenStart));
+                return result;
+            };
+
+        std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getFullTypeNameByTypeReferenceNode;
+
+        const std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getUnwrappedTypeNameByTypeReferenceNode =
+            [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) -> std::string {
+            if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&typeNode)) {
+                return std::string(getPrimitiveType(primitiveTypeReferenceNode->getKind())->getFullTypeName());
+            }
+
+            const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&typeNode);
+            if (customizedTypeReferenceNode == nullptr) {
+                return "";
+            }
+
+            const auto& nameParts = customizedTypeReferenceNode->getNameParts();
+            if (nameParts.size() == 1) {
+                const auto substitution = substitutions.find(std::string(nameParts.front()->getIdentifierString()));
+                if (substitution != substitutions.end()) {
+                    return substitution->second;
+                }
+            }
+
+            std::stack<std::string> identifiers;
+            std::string result;
+
+            const Scope* currentScope = &context.currentScope();
+            while (currentScope && !currentScope->lookupLocal(nameParts.front()->getIdentifierString())) {
+                currentScope = currentScope->findParent();
+            }
+
+            if (!currentScope) {
+                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
+                return "";
+            }
+
+            const auto* firstSymbol = dynamic_cast<const RegularSymbol*>(currentScope->lookupLocal(nameParts.front()->getIdentifierString()));
+            if (firstSymbol == nullptr) {
+                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
+                return "";
+            }
+
+            const RegularSymbol* referencedSymbol = firstSymbol;
+            if (nameParts.size() > 1) {
+                const Scope* referencedScope = context.getScopeByRegularSymbol(*firstSymbol);
+                for (std::size_t index = 1; index < nameParts.size(); ++index) {
+                    if (referencedScope == nullptr) {
+                        return "";
+                    }
+
+                    const auto* symbol = dynamic_cast<const RegularSymbol*>(referencedScope->lookup(nameParts[index]->getIdentifierString()));
+                    if (symbol == nullptr) {
+                        return "";
+                    }
+
+                    referencedSymbol = symbol;
+                    if (index + 1 < nameParts.size()) {
+                        referencedScope = context.getScopeByRegularSymbol(*symbol);
+                    }
+                }
+            }
+
+            if (firstSymbol->getKind() == RegularSymbolKind::GENERIC_PARAMETER) {
+                result = std::string(firstSymbol->getName());
+            } else if (referencedSymbol->getKind() == RegularSymbolKind::TYPE_ALIAS) {
+                const auto& genericArguments = customizedTypeReferenceNode->getGenericArguments();
+
+                if (referencedSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
+                    const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(referencedSymbol->getLocalNode());
+                    if (typeAliasDeclaration == nullptr) {
+                        return "";
+                    }
+
+                    NameSubstitutionMap aliasSubstitutions;
+                    const auto& genericParameterNames = typeAliasDeclaration->getGenericParameterNames();
+                    for (std::size_t index = 0; index < genericParameterNames.size() && index < genericArguments.size(); ++index) {
+                        aliasSubstitutions.emplace(
+                            std::string(genericParameterNames[index]->getIdentifierString()),
+                            getFullTypeNameByTypeReferenceNode(*genericArguments[index], substitutions)
+                        );
+                    }
+                    return getFullTypeNameByTypeReferenceNode(typeAliasDeclaration->getOriginalType(), aliasSubstitutions);
+                }
+
+                if (referencedSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
+                    const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(referencedSymbol->getImportedNode());
+                    if (importedTypeAlias == nullptr) {
+                        return "";
+                    }
+
+                    std::vector<std::string> argumentNames;
+                    for (const auto& genericArgument : genericArguments) {
+                        argumentNames.emplace_back(getFullTypeNameByTypeReferenceNode(*genericArgument, substitutions));
+                    }
+                    return substituteImportedTypeParametersWithNames(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), argumentNames);
+                }
+            } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
+                const Scope* localScope = context.getScopeByRegularSymbol(*firstSymbol);
+                if (localScope != nullptr) {
+                    while (localScope->findParent() && localScope->getKind() != ScopeKind::MODULE) {
+                        const TypeDeclarationNode* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
+                        if (const ClassDeclarationNode* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
+                            identifiers.push(std::string(classDecl->getName().getIdentifierString()));
+                        } else if (const InterfaceDeclarationNode* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
+                            identifiers.push(std::string(interfaceDecl->getName().getIdentifierString()));
+                        } else if (const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
+                            identifiers.push(std::string(enumDecl->getName().getIdentifierString()));
+                        } else if (const EnumMemberDeclarationNode* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
+                            identifiers.push(std::string(enumMemberDecl->getName().getIdentifierString()));
+                        } else if (const TypeAliasDeclarationNode* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
+                            identifiers.push(std::string(typeAliasDecl->getAliasName().getIdentifierString()));
+                        }
+
+                        localScope = localScope->findParent();
+                    }
+                }
+
+                result = module.getFullName();
+                while (!identifiers.empty()) {
+                    result.append(".");
+                    result.append(identifiers.top());
+                    identifiers.pop();
+                }
+                const std::size_t firstIndex = localScope == nullptr ? 0 : 1;
+                for (std::size_t index = firstIndex; index < nameParts.size(); ++index) {
+                    result.append(".");
+                    result.append(nameParts[index]->getIdentifierString());
+                }
+            } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
+                const Scope* importedScope = context.getScopeByRegularSymbol(*firstSymbol);
+                if (importedScope == nullptr) {
+                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
+                    return "";
+                }
+                while (importedScope != nullptr) {
+                    if (const ImportedItem* importedNode = importedScope->getImportedNode()) {
+                        identifiers.push(std::string(importedNode->getName()));
+                    }
+                    importedScope = importedScope->findParent();
+                }
+                if (identifiers.empty()) {
+                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
+                    return "";
+                }
+                result = std::move(identifiers.top());
+                identifiers.pop();
+                while (!identifiers.empty()) {
+                    result.append(".");
+                    result.append(identifiers.top());
+                    identifiers.pop();
+                }
+                for (std::size_t index = 1; index < nameParts.size(); ++index) {
+                    result.append(".");
+                    result.append(nameParts[index]->getIdentifierString());
+                }
+            }
+
+            const auto& genericArguments = customizedTypeReferenceNode->getGenericArguments();
+            if (!genericArguments.empty()) {
+                std::string argumentList = "<";
+                for (const auto& genericArgument : genericArguments) {
+                    argumentList += getFullTypeNameByTypeReferenceNode(*genericArgument, substitutions);
+                    argumentList += ", ";
+                }
+                argumentList.pop_back();
+                argumentList.pop_back();
+                argumentList += '>';
+                result += argumentList;
+            }
+
+            return result;
+        };
+
+        getFullTypeNameByTypeReferenceNode = [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) {
+            std::string result = getUnwrappedTypeNameByTypeReferenceNode(typeNode, substitutions);
+            if (!result.empty() && typeNode.hasQuestionMarkSuffix()) {
+                return fmt::format("vanillang.typesystem.Optional<{}>", result);
+            }
+            return result;
+        };
+
+        const std::function<const Type*(const TypeReferenceNode&, const TypeSubstitutionMap&, std::unordered_set<const TypeReferenceNode*>)> checkTypeWithCyclicDetection =
+            [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, std::unordered_set<const TypeReferenceNode*> visited) -> const Type* {
+            if (!visited.insert(&type).second) {
+                context.reportError(type, "Cyclic type reference detected");
+                return nullptr;
+            }
+
+            if (substitutions.empty()) {
+                const Type* existedType = context.getTypeByTypeReferenceNode(&type);
+                if (existedType) {
+                    return existedType; // avoid resolving repeatitively
+                }
+            }
+
+            const auto checkUnwrappedType = [&](const TypeReferenceNode& type) -> const Type* {
+                if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&type)) {
+                    return getPrimitiveType(primitiveTypeReferenceNode->getKind());
+                }
+
+                const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&type);
+                if (customizedTypeReferenceNode == nullptr) {
+                    return nullptr;
+                }
+
+                const auto& nameParts = customizedTypeReferenceNode->getNameParts();
+                if (nameParts.size() == 1) {
+                    const auto substitution = substitutions.find(std::string(nameParts.front()->getIdentifierString()));
+                    if (substitution != substitutions.end()) {
+                        return substitution->second;
+                    }
+                }
+                const auto isTypeDefinition = [](RegularSymbolKind kind) {
+                    switch (kind) {
+                        case RegularSymbolKind::CLASS:
+                        case RegularSymbolKind::INTERFACE:
+                        case RegularSymbolKind::ENUM:
+                        case RegularSymbolKind::ENUM_MEMBER:
+                        case RegularSymbolKind::TYPE_ALIAS:
+                        case RegularSymbolKind::GENERIC_PARAMETER:
+                            return true;
+                        default:
+                            return false;
+                    }
+                };
+
+                bool hasResolvedType = false;
+                const RegularSymbol* typeSymbol = nullptr;
+
+                const Scope* scope = &context.currentScope();
+                for (std::size_t index = 0; index < nameParts.size(); ++index) {
+                    const auto& namePart = nameParts[index];
+                    const auto* symbol = dynamic_cast<const RegularSymbol*>(scope->lookup(namePart->getIdentifierString()));
+                    if (symbol == nullptr) {
+                        context.reportError(*namePart, fmt::format("Use of undeclared type '{}'", namePart->getIdentifierString()));
+                        break;
+                    }
+
+                    if (index == nameParts.size() - 1) {
+                        if (!isTypeDefinition(symbol->getKind())) {
+                            context.reportError(*namePart, fmt::format("Identifier '{}' is not a type definition", namePart->getIdentifierString()));
+                        } else {
+                            typeSymbol = symbol;
+                            hasResolvedType = true;
+                        }
+                        break;
+                    }
+
+                    scope = context.getScopeByRegularSymbol(*symbol);
+                    if (scope == nullptr) {
+                        context.reportError(*namePart, fmt::format("Identifier '{}' does not have a scope", namePart->getIdentifierString()));
+                        break;
+                    }
+                }
+
+                if (!hasResolvedType) {
+                    return nullptr;
+                }
+
+                const std::size_t genericArgumentCount = customizedTypeReferenceNode->getGenericArguments().size();
+                const std::size_t genericParameterCount = typeSymbol == nullptr ? 0 : getGenericParameterCount(*typeSymbol);
+                if (genericArgumentCount != genericParameterCount) {
+                    context.reportError(type, fmt::format("Generic argument count mismatch: expected {}, got {}", genericParameterCount, genericArgumentCount));
+                    return nullptr;
+                }
+
+                std::vector<const Type*> genericArgumentTypes;
+                std::size_t errors = context.getErrors().size();
+                for (const auto& genericArgument : customizedTypeReferenceNode->getGenericArguments()) {
+                    const Type* genericArgumentType = checkTypeWithCyclicDetection(*genericArgument, substitutions, visited);
+                    if (genericArgumentType == nullptr) {
+                        return nullptr;
+                    }
+                    genericArgumentTypes.emplace_back(genericArgumentType);
+                }
+                if (context.getErrors().size() > errors) {
+                    return nullptr;
+                }
+
+                if (typeSymbol->getKind() == RegularSymbolKind::TYPE_ALIAS) {
+                    if (typeSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
+                        const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(typeSymbol->getLocalNode());
+                        if (typeAliasDeclaration == nullptr) {
+                            return nullptr;
+                        }
+
+                        TypeSubstitutionMap aliasSubstitutions;
+                        const auto& genericParameterNames = typeAliasDeclaration->getGenericParameterNames();
+                        for (std::size_t index = 0; index < genericParameterNames.size(); ++index) {
+                            aliasSubstitutions.emplace(std::string(genericParameterNames[index]->getIdentifierString()), genericArgumentTypes[index]);
+                        }
+
+                        return checkTypeWithCyclicDetection(typeAliasDeclaration->getOriginalType(), aliasSubstitutions, visited);
+                    }
+
+                    if (typeSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
+                        const auto substituteImportedTypeParameters =
+                            [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<const Type*>& arguments) {
+                                std::string result;
+                                std::size_t tokenStart = 0;
+                                const auto appendToken = [&](std::string_view token) {
+                                    if (token.empty()) {
+                                        return;
+                                    }
+
+                                    for (std::size_t index = 0; index < parameterNames.size() && index < arguments.size(); ++index) {
+                                        if (token == parameterNames[index]) {
+                                            if (arguments[index] != nullptr) {
+                                                result += arguments[index]->getFullTypeName();
+                                            }
+                                            return;
+                                        }
+                                    }
+                                    result += token;
+                                };
+
+                                for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
+                                    const char character = fullTypeName[index];
+                                    if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
+                                        continue;
+                                    }
+
+                                    appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
+                                    if (character == '<' || character == '>') {
+                                        result += character;
+                                    } else if (character == ',') {
+                                        result += ", ";
+                                    }
+                                    tokenStart = index + 1;
+                                }
+
+                                appendToken(fullTypeName.substr(tokenStart));
+                                return result;
+                            };
+
+                        const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(typeSymbol->getImportedNode());
+                        if (importedTypeAlias == nullptr) {
+                            return nullptr;
+                        }
+
+                        const std::string originalTypeName =
+                            substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), genericArgumentTypes);
+                        return registerImportedTypeReference(originalTypeName);
+                    }
+
+                    return nullptr;
+                }
+
+                NameSubstitutionMap nameSubstitutions;
+                for (const auto& [name, substitutedType] : substitutions) {
+                    if (substitutedType != nullptr) {
+                        nameSubstitutions.emplace(name, substitutedType->getFullTypeName());
+                    }
+                }
+                const std::string fullName = getUnwrappedTypeNameByTypeReferenceNode(type, nameSubstitutions);
+
+                const auto customizedKind = [&typeSymbol]() -> std::optional<CustomizedTypeKind> {
+                    switch (typeSymbol->getKind()) {
+                        case RegularSymbolKind::CLASS:
+                            return CustomizedTypeKind::CLASS;
+                        case RegularSymbolKind::INTERFACE:
+                            return CustomizedTypeKind::INTERFACE;
+                        case RegularSymbolKind::ENUM:
+                            return CustomizedTypeKind::ENUM;
+                        case RegularSymbolKind::ENUM_MEMBER:
+                            return CustomizedTypeKind::ENUM_MEMBER;
+                        case RegularSymbolKind::GENERIC_PARAMETER:
+                            return CustomizedTypeKind::GENERIC_PARAMETER;
+                        default:
+                            return std::nullopt;
+                    }
+                }();
+                if (!customizedKind.has_value()) {
+                    return nullptr;
+                }
+
+                const CustomizedType* existingCustomizedType = context.getCustomizedTypeByFullTypeName(fullName);
+                if (existingCustomizedType != nullptr) {
+                    return existingCustomizedType;
+                }
+
+                std::unique_ptr<CustomizedType> customizedType;
+                if (const auto* localNode = dynamic_cast<const TypeDeclarationNode*>(typeSymbol->getLocalNode())) {
+                    customizedType = std::make_unique<CustomizedType>(customizedKind.value(), fullName, std::move(genericArgumentTypes), localNode);
+                } else if (const auto* importedNode = dynamic_cast<const ImportedIdentifier*>(typeSymbol->getImportedNode())) {
+                    customizedType = std::make_unique<CustomizedType>(customizedKind.value(), fullName, std::move(genericArgumentTypes), importedNode);
+                } else {
+                    return nullptr;
+                }
+
+                const Type* resolvedType = customizedType.get();
+                context.registerCustomizedType(std::move(customizedType));
+                return resolvedType;
+            };
+
+            const Type* resolvedType = checkUnwrappedType(type);
+            if (resolvedType == nullptr) {
+                return nullptr;
+            }
+
+            if (type.hasQuestionMarkSuffix()) {
+                const std::string fullName = fmt::format("vanillang.typesystem.Optional<{}>", resolvedType->getFullTypeName());
+                const CustomizedType* optionalType = context.getCustomizedTypeByFullTypeName(fullName);
+
+                if (optionalType == nullptr) {
+                    std::unique_ptr<CustomizedType> customizedType = nullptr;
+                    const auto* currModule = dynamic_cast<const ModuleNode*>(context.currentModule()->getLocalNode());
+
+                    if (currModule->getFullName() == "vanillang.typesystem") {
+                        const EnumDeclarationNode* opt = nullptr;
+                        for (const auto& decl : currModule->getTopIdentifierDeclarations()) {
+                            const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(decl.get());
+
+                            if (enumDecl && enumDecl->getName().getIdentifierString() == "Optional") {
+                                opt = enumDecl;
+                                break;
+                            }
+                        }
+
+                        if (!opt) {
+                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            return nullptr;
+                        }
+
+                        customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
+                    } else {
+                        const ImportedItem* item = ImportedItem::getImportedItemByFullPath(imports, { "vanillang", "typesystem", "Optional" });
+                        const ImportedEnum* opt = dynamic_cast<const ImportedEnum*>(item);
+
+                        if (!opt) {
+                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            return nullptr;
+                        }
+
+                        customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
+                    }
+
+                    optionalType = customizedType.get();
+                    context.registerCustomizedType(std::move(customizedType));
+                }
+
+                resolvedType = optionalType;
+            }
+
+            if (substitutions.empty()) {
+                context.mapType(&type, resolvedType);
+            }
+            return resolvedType;
+        };
+
+        checkTypeWithCyclicDetection(typeRef, TypeSubstitutionMap{}, {});
+    }
+
     void SemanticAnalyzer::resolveTypeReferencesInModule(const ModuleNode& moduleNode) {
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             const DeclarationNode* declNode = topIdentifierDecl.get();
@@ -765,65 +1294,6 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode) {
-        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
-            const DeclarationNode* declNode = topIdentifierDecl.get();
-
-            if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
-                declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol");
-            } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
-                collectLocalFunctionSymbolsInClass(*classDecl);
-            } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
-                collectLocalFunctionSymbolsInInterface(*interfaceDecl);
-            }
-        }
-    }
-
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode) {
-        if (!context.pushExistingScope(&classNode)) {
-            return;
-        }
-        std::unordered_set<std::string> operatorNames;
-        std::unordered_set<std::string> constructorNames;
-
-        for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
-                context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
-            }
-        }
-
-        for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName()));
-            }
-        }
-
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
-        }
-
-        context.popScope();
-    }
-
-    void SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
-        if (!context.pushExistingScope(&interfaceNode)) {
-            return;
-        }
-        std::unordered_set<std::string> operatorNames;
-
-        for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
-                context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
-            }
-        }
-
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
-        }
-
-        context.popScope();
-    }
-
     void SemanticAnalyzer::generateInternalName(const DeclarationNode& node) {
         std::string name;
 
@@ -912,6 +1382,65 @@ namespace vnlc {
         }
     }
 
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInModule(const ModuleNode& moduleNode) {
+        for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
+            const DeclarationNode* declNode = topIdentifierDecl.get();
+
+            if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
+                declareFunctionOverloading(*funcDecl, RegularSymbolKind::FUNCTION, "symbol");
+            } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
+                collectLocalFunctionSymbolsInClass(*classDecl);
+            } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
+                collectLocalFunctionSymbolsInInterface(*interfaceDecl);
+            }
+        }
+    }
+
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInClass(const ClassDeclarationNode& classNode) {
+        if (!context.pushExistingScope(&classNode)) {
+            return;
+        }
+        std::unordered_set<std::string> operatorNames;
+        std::unordered_set<std::string> constructorNames;
+
+        for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
+            if (!constructorNames.insert(std::string(constructorDecl->getInternalName())).second) {
+                context.reportError(*constructorDecl, fmt::format("Redeclaration of class member '{}'", constructorDecl->getInternalName()));
+            }
+        }
+
+        for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
+            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
+                context.reportError(*operatorDecl, fmt::format("Redeclaration of class member '{}'", operatorDecl->getInternalName()));
+            }
+        }
+
+        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
+        }
+
+        context.popScope();
+    }
+
+    void SemanticAnalyzer::collectLocalFunctionSymbolsInInterface(const InterfaceDeclarationNode& interfaceNode) {
+        if (!context.pushExistingScope(&interfaceNode)) {
+            return;
+        }
+        std::unordered_set<std::string> operatorNames;
+
+        for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
+            if (!operatorNames.insert(std::string(operatorDecl->getInternalName())).second) {
+                context.reportError(*operatorDecl, fmt::format("Redeclaration of interface operator '{}'", operatorDecl->getInternalName()));
+            }
+        }
+
+        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+            declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
+        }
+
+        context.popScope();
+    }
+
     void SemanticAnalyzer::buildInheritanceGraph(const ModuleNode& localModule, const std::vector<const ImportedModule*>& importedModules) {
         for (const auto& topIdentifierDecl : localModule.getTopIdentifierDeclarations()) {
             if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(topIdentifierDecl.get())) {
@@ -993,6 +1522,26 @@ namespace vnlc {
                 }
             }
         }
+    }
+
+    MetadataInfo SemanticAnalyzer::checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode) {
+        bool noWarnings = false;
+        bool deprecated = false;
+
+        for (const auto& term : metadataTerms) {
+            if (term.key->getIdentifierString() == "nowarnings") {
+                noWarnings = true;
+            } else if (term.key->getIdentifierString() == "deprecated") {
+                deprecated = true;
+            } else {
+                context.reportError(declNode, fmt::format("Unknown metadata term '{}'", term.key->getIdentifierString()));
+            }
+        }
+
+        return MetadataInfo{
+            noWarnings,
+            deprecated,
+        };
     }
 
     void SemanticAnalyzer::checkModule(const ModuleNode& moduleNode, const Config& config) {
@@ -1686,555 +2235,6 @@ namespace vnlc {
         } else {
             context.reportError(expression, "Unknown expression type");
         }
-    }
-
-    void SemanticAnalyzer::resolveTypeReference(const TypeReferenceNode& typeRef) {
-        const auto getPrimitiveType = [](PrimitiveTypeReferenceKind kind) -> const PrimitiveType* {
-            switch (kind) {
-                case PrimitiveTypeReferenceKind::BYTE:
-                    return PrimitiveType::byteType();
-                case PrimitiveTypeReferenceKind::SHORT:
-                    return PrimitiveType::shortType();
-                case PrimitiveTypeReferenceKind::INT:
-                    return PrimitiveType::intType();
-                case PrimitiveTypeReferenceKind::LONG:
-                    return PrimitiveType::longType();
-                case PrimitiveTypeReferenceKind::FLOAT:
-                    return PrimitiveType::floatType();
-                case PrimitiveTypeReferenceKind::DOUBLE:
-                    return PrimitiveType::doubleType();
-                case PrimitiveTypeReferenceKind::BOOLEAN:
-                    return PrimitiveType::booleanType();
-                case PrimitiveTypeReferenceKind::STRING:
-                    return PrimitiveType::stringType();
-            }
-            return nullptr;
-        };
-
-        const auto getGenericParameterCount = [](const RegularSymbol& symbol) -> std::size_t {
-            if (symbol.getKind() == RegularSymbolKind::GENERIC_PARAMETER) {
-                return 0;
-            }
-            if (symbol.getLocalNode() != nullptr) {
-                if (const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(symbol.getLocalNode())) {
-                    return classDeclaration->getGenericParameterNames().size();
-                }
-                if (const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(symbol.getLocalNode())) {
-                    return interfaceDeclaration->getGenericParameterNames().size();
-                }
-                if (const auto* enumDeclaration = dynamic_cast<const EnumDeclarationNode*>(symbol.getLocalNode())) {
-                    return enumDeclaration->getGenericParameterNames().size();
-                }
-                if (const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(symbol.getLocalNode())) {
-                    return typeAliasDeclaration->getGenericParameterNames().size();
-                }
-            } else if (symbol.getImportedNode() != nullptr) {
-                if (const auto* importedClass = dynamic_cast<const ImportedClass*>(symbol.getImportedNode())) {
-                    return importedClass->getGenericParameters().size();
-                }
-                if (const auto* importedInterface = dynamic_cast<const ImportedInterface*>(symbol.getImportedNode())) {
-                    return importedInterface->getGenericParameters().size();
-                }
-                if (const auto* importedEnum = dynamic_cast<const ImportedEnum*>(symbol.getImportedNode())) {
-                    return importedEnum->getGenericParameters().size();
-                }
-                if (const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(symbol.getImportedNode())) {
-                    return importedTypeAlias->getGenericParameters().size();
-                }
-            }
-            return 0;
-        };
-
-        using TypeSubstitutionMap = std::unordered_map<std::string, const Type*>;
-
-        using NameSubstitutionMap = std::unordered_map<std::string, std::string>;
-
-        const auto substituteImportedTypeParametersWithNames =
-            [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<std::string>& argumentNames) {
-                std::string result;
-                std::size_t tokenStart = 0;
-                const auto appendToken = [&](std::string_view token) {
-                    if (token.empty()) {
-                        return;
-                    }
-
-                    for (std::size_t index = 0; index < parameterNames.size() && index < argumentNames.size(); ++index) {
-                        if (token == parameterNames[index]) {
-                            result += argumentNames[index];
-                            return;
-                        }
-                    }
-                    result += token;
-                };
-
-                for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
-                    const char character = fullTypeName[index];
-                    if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
-                        continue;
-                    }
-
-                    appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
-                    if (character == '<' || character == '>') {
-                        result += character;
-                    } else if (character == ',') {
-                        result += ", ";
-                    }
-                    tokenStart = index + 1;
-                }
-
-                appendToken(fullTypeName.substr(tokenStart));
-                return result;
-            };
-
-        std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getFullTypeNameByTypeReferenceNode;
-
-        const std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getUnwrappedTypeNameByTypeReferenceNode =
-            [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) -> std::string {
-            if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&typeNode)) {
-                return std::string(getPrimitiveType(primitiveTypeReferenceNode->getKind())->getFullTypeName());
-            }
-
-            const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&typeNode);
-            if (customizedTypeReferenceNode == nullptr) {
-                return "";
-            }
-
-            const auto& nameParts = customizedTypeReferenceNode->getNameParts();
-            if (nameParts.size() == 1) {
-                const auto substitution = substitutions.find(std::string(nameParts.front()->getIdentifierString()));
-                if (substitution != substitutions.end()) {
-                    return substitution->second;
-                }
-            }
-
-            std::stack<std::string> identifiers;
-            std::string result;
-
-            const Scope* currentScope = &context.currentScope();
-            while (currentScope && !currentScope->lookupLocal(nameParts.front()->getIdentifierString())) {
-                currentScope = currentScope->findParent();
-            }
-
-            if (!currentScope) {
-                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
-                return "";
-            }
-
-            const auto* firstSymbol = dynamic_cast<const RegularSymbol*>(currentScope->lookupLocal(nameParts.front()->getIdentifierString()));
-            if (firstSymbol == nullptr) {
-                context.reportError(*nameParts.front(), fmt::format("Use of undeclared identifier {}", nameParts.front()->getIdentifierString()));
-                return "";
-            }
-
-            const RegularSymbol* referencedSymbol = firstSymbol;
-            if (nameParts.size() > 1) {
-                const Scope* referencedScope = context.getScopeByRegularSymbol(*firstSymbol);
-                for (std::size_t index = 1; index < nameParts.size(); ++index) {
-                    if (referencedScope == nullptr) {
-                        return "";
-                    }
-
-                    const auto* symbol = dynamic_cast<const RegularSymbol*>(referencedScope->lookup(nameParts[index]->getIdentifierString()));
-                    if (symbol == nullptr) {
-                        return "";
-                    }
-
-                    referencedSymbol = symbol;
-                    if (index + 1 < nameParts.size()) {
-                        referencedScope = context.getScopeByRegularSymbol(*symbol);
-                    }
-                }
-            }
-
-            if (firstSymbol->getKind() == RegularSymbolKind::GENERIC_PARAMETER) {
-                result = std::string(firstSymbol->getName());
-            } else if (referencedSymbol->getKind() == RegularSymbolKind::TYPE_ALIAS) {
-                const auto& genericArguments = customizedTypeReferenceNode->getGenericArguments();
-
-                if (referencedSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
-                    const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(referencedSymbol->getLocalNode());
-                    if (typeAliasDeclaration == nullptr) {
-                        return "";
-                    }
-
-                    NameSubstitutionMap aliasSubstitutions;
-                    const auto& genericParameterNames = typeAliasDeclaration->getGenericParameterNames();
-                    for (std::size_t index = 0; index < genericParameterNames.size() && index < genericArguments.size(); ++index) {
-                        aliasSubstitutions.emplace(
-                            std::string(genericParameterNames[index]->getIdentifierString()),
-                            getFullTypeNameByTypeReferenceNode(*genericArguments[index], substitutions)
-                        );
-                    }
-                    return getFullTypeNameByTypeReferenceNode(typeAliasDeclaration->getOriginalType(), aliasSubstitutions);
-                }
-
-                if (referencedSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
-                    const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(referencedSymbol->getImportedNode());
-                    if (importedTypeAlias == nullptr) {
-                        return "";
-                    }
-
-                    std::vector<std::string> argumentNames;
-                    for (const auto& genericArgument : genericArguments) {
-                        argumentNames.emplace_back(getFullTypeNameByTypeReferenceNode(*genericArgument, substitutions));
-                    }
-                    return substituteImportedTypeParametersWithNames(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), argumentNames);
-                }
-            } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
-                const Scope* localScope = context.getScopeByRegularSymbol(*firstSymbol);
-                if (localScope != nullptr) {
-                    while (localScope->findParent() && localScope->getKind() != ScopeKind::MODULE) {
-                        const TypeDeclarationNode* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
-                        if (const ClassDeclarationNode* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
-                            identifiers.push(std::string(classDecl->getName().getIdentifierString()));
-                        } else if (const InterfaceDeclarationNode* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
-                            identifiers.push(std::string(interfaceDecl->getName().getIdentifierString()));
-                        } else if (const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumDecl->getName().getIdentifierString()));
-                        } else if (const EnumMemberDeclarationNode* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumMemberDecl->getName().getIdentifierString()));
-                        } else if (const TypeAliasDeclarationNode* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
-                            identifiers.push(std::string(typeAliasDecl->getAliasName().getIdentifierString()));
-                        }
-
-                        localScope = localScope->findParent();
-                    }
-                }
-
-                result = module.getFullName();
-                while (!identifiers.empty()) {
-                    result.append(".");
-                    result.append(identifiers.top());
-                    identifiers.pop();
-                }
-                const std::size_t firstIndex = localScope == nullptr ? 0 : 1;
-                for (std::size_t index = firstIndex; index < nameParts.size(); ++index) {
-                    result.append(".");
-                    result.append(nameParts[index]->getIdentifierString());
-                }
-            } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
-                const Scope* importedScope = context.getScopeByRegularSymbol(*firstSymbol);
-                if (importedScope == nullptr) {
-                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
-                    return "";
-                }
-                while (importedScope != nullptr) {
-                    if (const ImportedItem* importedNode = importedScope->getImportedNode()) {
-                        identifiers.push(std::string(importedNode->getName()));
-                    }
-                    importedScope = importedScope->findParent();
-                }
-                if (identifiers.empty()) {
-                    context.reportError(*nameParts.front(), fmt::format("Identifier '{}' does not have a scope", nameParts.front()->getIdentifierString()));
-                    return "";
-                }
-                result = std::move(identifiers.top());
-                identifiers.pop();
-                while (!identifiers.empty()) {
-                    result.append(".");
-                    result.append(identifiers.top());
-                    identifiers.pop();
-                }
-                for (std::size_t index = 1; index < nameParts.size(); ++index) {
-                    result.append(".");
-                    result.append(nameParts[index]->getIdentifierString());
-                }
-            }
-
-            const auto& genericArguments = customizedTypeReferenceNode->getGenericArguments();
-            if (!genericArguments.empty()) {
-                std::string argumentList = "<";
-                for (const auto& genericArgument : genericArguments) {
-                    argumentList += getFullTypeNameByTypeReferenceNode(*genericArgument, substitutions);
-                    argumentList += ", ";
-                }
-                argumentList.pop_back();
-                argumentList.pop_back();
-                argumentList += '>';
-                result += argumentList;
-            }
-
-            return result;
-        };
-
-        getFullTypeNameByTypeReferenceNode = [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) {
-            std::string result = getUnwrappedTypeNameByTypeReferenceNode(typeNode, substitutions);
-            if (!result.empty() && typeNode.hasQuestionMarkSuffix()) {
-                return fmt::format("vanillang.typesystem.Optional<{}>", result);
-            }
-            return result;
-        };
-
-        const std::function<const Type*(const TypeReferenceNode&, const TypeSubstitutionMap&, std::unordered_set<const TypeReferenceNode*>)> checkTypeWithCyclicDetection =
-            [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, std::unordered_set<const TypeReferenceNode*> visited) -> const Type* {
-            if (!visited.insert(&type).second) {
-                context.reportError(type, "Cyclic type reference detected");
-                return nullptr;
-            }
-
-            if (substitutions.empty()) {
-                const Type* existedType = context.getTypeByTypeReferenceNode(&type);
-                if (existedType) {
-                    return existedType; // avoid resolving repeatitively
-                }
-            }
-
-            const auto checkUnwrappedType = [&](const TypeReferenceNode& type) -> const Type* {
-                if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&type)) {
-                    return getPrimitiveType(primitiveTypeReferenceNode->getKind());
-                }
-
-                const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&type);
-                if (customizedTypeReferenceNode == nullptr) {
-                    return nullptr;
-                }
-
-                const auto& nameParts = customizedTypeReferenceNode->getNameParts();
-                if (nameParts.size() == 1) {
-                    const auto substitution = substitutions.find(std::string(nameParts.front()->getIdentifierString()));
-                    if (substitution != substitutions.end()) {
-                        return substitution->second;
-                    }
-                }
-                const auto isTypeDefinition = [](RegularSymbolKind kind) {
-                    switch (kind) {
-                        case RegularSymbolKind::CLASS:
-                        case RegularSymbolKind::INTERFACE:
-                        case RegularSymbolKind::ENUM:
-                        case RegularSymbolKind::ENUM_MEMBER:
-                        case RegularSymbolKind::TYPE_ALIAS:
-                        case RegularSymbolKind::GENERIC_PARAMETER:
-                            return true;
-                        default:
-                            return false;
-                    }
-                };
-
-                bool hasResolvedType = false;
-                const RegularSymbol* typeSymbol = nullptr;
-
-                const Scope* scope = &context.currentScope();
-                for (std::size_t index = 0; index < nameParts.size(); ++index) {
-                    const auto& namePart = nameParts[index];
-                    const auto* symbol = dynamic_cast<const RegularSymbol*>(scope->lookup(namePart->getIdentifierString()));
-                    if (symbol == nullptr) {
-                        context.reportError(*namePart, fmt::format("Use of undeclared type '{}'", namePart->getIdentifierString()));
-                        break;
-                    }
-
-                    if (index == nameParts.size() - 1) {
-                        if (!isTypeDefinition(symbol->getKind())) {
-                            context.reportError(*namePart, fmt::format("Identifier '{}' is not a type definition", namePart->getIdentifierString()));
-                        } else {
-                            typeSymbol = symbol;
-                            hasResolvedType = true;
-                        }
-                        break;
-                    }
-
-                    scope = context.getScopeByRegularSymbol(*symbol);
-                    if (scope == nullptr) {
-                        context.reportError(*namePart, fmt::format("Identifier '{}' does not have a scope", namePart->getIdentifierString()));
-                        break;
-                    }
-                }
-
-                if (!hasResolvedType) {
-                    return nullptr;
-                }
-
-                const std::size_t genericArgumentCount = customizedTypeReferenceNode->getGenericArguments().size();
-                const std::size_t genericParameterCount = typeSymbol == nullptr ? 0 : getGenericParameterCount(*typeSymbol);
-                if (genericArgumentCount != genericParameterCount) {
-                    context.reportError(type, fmt::format("Generic argument count mismatch: expected {}, got {}", genericParameterCount, genericArgumentCount));
-                    return nullptr;
-                }
-
-                std::vector<const Type*> genericArgumentTypes;
-                std::size_t errors = context.getErrors().size();
-                for (const auto& genericArgument : customizedTypeReferenceNode->getGenericArguments()) {
-                    const Type* genericArgumentType = checkTypeWithCyclicDetection(*genericArgument, substitutions, visited);
-                    if (genericArgumentType == nullptr) {
-                        return nullptr;
-                    }
-                    genericArgumentTypes.emplace_back(genericArgumentType);
-                }
-                if (context.getErrors().size() > errors) {
-                    return nullptr;
-                }
-
-                if (typeSymbol->getKind() == RegularSymbolKind::TYPE_ALIAS) {
-                    if (typeSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
-                        const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(typeSymbol->getLocalNode());
-                        if (typeAliasDeclaration == nullptr) {
-                            return nullptr;
-                        }
-
-                        TypeSubstitutionMap aliasSubstitutions;
-                        const auto& genericParameterNames = typeAliasDeclaration->getGenericParameterNames();
-                        for (std::size_t index = 0; index < genericParameterNames.size(); ++index) {
-                            aliasSubstitutions.emplace(std::string(genericParameterNames[index]->getIdentifierString()), genericArgumentTypes[index]);
-                        }
-
-                        return checkTypeWithCyclicDetection(typeAliasDeclaration->getOriginalType(), aliasSubstitutions, visited);
-                    }
-
-                    if (typeSymbol->getOrigin() == RegularSymbolOrigin::IMPORTED) {
-                        const auto substituteImportedTypeParameters =
-                            [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<const Type*>& arguments) {
-                                std::string result;
-                                std::size_t tokenStart = 0;
-                                const auto appendToken = [&](std::string_view token) {
-                                    if (token.empty()) {
-                                        return;
-                                    }
-
-                                    for (std::size_t index = 0; index < parameterNames.size() && index < arguments.size(); ++index) {
-                                        if (token == parameterNames[index]) {
-                                            if (arguments[index] != nullptr) {
-                                                result += arguments[index]->getFullTypeName();
-                                            }
-                                            return;
-                                        }
-                                    }
-                                    result += token;
-                                };
-
-                                for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
-                                    const char character = fullTypeName[index];
-                                    if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
-                                        continue;
-                                    }
-
-                                    appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
-                                    if (character == '<' || character == '>') {
-                                        result += character;
-                                    } else if (character == ',') {
-                                        result += ", ";
-                                    }
-                                    tokenStart = index + 1;
-                                }
-
-                                appendToken(fullTypeName.substr(tokenStart));
-                                return result;
-                            };
-
-                        const auto* importedTypeAlias = dynamic_cast<const ImportedTypeAlias*>(typeSymbol->getImportedNode());
-                        if (importedTypeAlias == nullptr) {
-                            return nullptr;
-                        }
-
-                        const std::string originalTypeName =
-                            substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), genericArgumentTypes);
-                        return registerImportedTypeReference(originalTypeName);
-                    }
-
-                    return nullptr;
-                }
-
-                NameSubstitutionMap nameSubstitutions;
-                for (const auto& [name, substitutedType] : substitutions) {
-                    if (substitutedType != nullptr) {
-                        nameSubstitutions.emplace(name, substitutedType->getFullTypeName());
-                    }
-                }
-                const std::string fullName = getUnwrappedTypeNameByTypeReferenceNode(type, nameSubstitutions);
-
-                const auto customizedKind = [&typeSymbol]() -> std::optional<CustomizedTypeKind> {
-                    switch (typeSymbol->getKind()) {
-                        case RegularSymbolKind::CLASS:
-                            return CustomizedTypeKind::CLASS;
-                        case RegularSymbolKind::INTERFACE:
-                            return CustomizedTypeKind::INTERFACE;
-                        case RegularSymbolKind::ENUM:
-                            return CustomizedTypeKind::ENUM;
-                        case RegularSymbolKind::ENUM_MEMBER:
-                            return CustomizedTypeKind::ENUM_MEMBER;
-                        case RegularSymbolKind::GENERIC_PARAMETER:
-                            return CustomizedTypeKind::GENERIC_PARAMETER;
-                        default:
-                            return std::nullopt;
-                    }
-                }();
-                if (!customizedKind.has_value()) {
-                    return nullptr;
-                }
-
-                const CustomizedType* existingCustomizedType = context.getCustomizedTypeByFullTypeName(fullName);
-                if (existingCustomizedType != nullptr) {
-                    return existingCustomizedType;
-                }
-
-                std::unique_ptr<CustomizedType> customizedType;
-                if (const auto* localNode = dynamic_cast<const TypeDeclarationNode*>(typeSymbol->getLocalNode())) {
-                    customizedType = std::make_unique<CustomizedType>(customizedKind.value(), fullName, std::move(genericArgumentTypes), localNode);
-                } else if (const auto* importedNode = dynamic_cast<const ImportedIdentifier*>(typeSymbol->getImportedNode())) {
-                    customizedType = std::make_unique<CustomizedType>(customizedKind.value(), fullName, std::move(genericArgumentTypes), importedNode);
-                } else {
-                    return nullptr;
-                }
-
-                const Type* resolvedType = customizedType.get();
-                context.registerCustomizedType(std::move(customizedType));
-                return resolvedType;
-            };
-
-            const Type* resolvedType = checkUnwrappedType(type);
-            if (resolvedType == nullptr) {
-                return nullptr;
-            }
-
-            if (type.hasQuestionMarkSuffix()) {
-                const std::string fullName = fmt::format("vanillang.typesystem.Optional<{}>", resolvedType->getFullTypeName());
-                const CustomizedType* optionalType = context.getCustomizedTypeByFullTypeName(fullName);
-
-                if (optionalType == nullptr) {
-                    std::unique_ptr<CustomizedType> customizedType = nullptr;
-                    const auto* currModule = dynamic_cast<const ModuleNode*>(context.currentModule()->getLocalNode());
-
-                    if (currModule->getFullName() == "vanillang.typesystem") {
-                        const EnumDeclarationNode* opt = nullptr;
-                        for (const auto& decl : currModule->getTopIdentifierDeclarations()) {
-                            const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(decl.get());
-
-                            if (enumDecl && enumDecl->getName().getIdentifierString() == "Optional") {
-                                opt = enumDecl;
-                                break;
-                            }
-                        }
-
-                        if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
-                            return nullptr;
-                        }
-
-                        customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
-                    } else {
-                        const ImportedItem* item = ImportedItem::getImportedItemByFullPath(imports, { "vanillang", "typesystem", "Optional" });
-                        const ImportedEnum* opt = dynamic_cast<const ImportedEnum*>(item);
-
-                        if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
-                            return nullptr;
-                        }
-
-                        customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
-                    }
-
-                    optionalType = customizedType.get();
-                    context.registerCustomizedType(std::move(customizedType));
-                }
-
-                resolvedType = optionalType;
-            }
-
-            if (substitutions.empty()) {
-                context.mapType(&type, resolvedType);
-            }
-            return resolvedType;
-        };
-
-        checkTypeWithCyclicDetection(typeRef, TypeSubstitutionMap{}, {});
     }
 
     SemanticResult SemanticAnalyzer::analyze(const Config& config) {
