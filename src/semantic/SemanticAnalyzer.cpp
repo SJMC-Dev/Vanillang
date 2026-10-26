@@ -1186,7 +1186,7 @@ namespace vnlc {
 
         for (auto& item : exportDecl.getNameList()) {
             if (context.currentScope().lookup(item.name->getIdentifierString()) == nullptr) {
-                result.errors.push_back(createError(exportDecl, fmt::format("Undefined symbol {}", item.name->getIdentifierString())));
+                result.errors.push_back(createError(exportDecl, fmt::format("Use of undeclared identifier {}", item.name->getIdentifierString())));
             }
         }
 
