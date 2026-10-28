@@ -34,6 +34,7 @@
 #include "ast/statement/ExpressionStatementNode.hpp"
 #include "ast/statement/ForStatementNode.hpp"
 #include "ast/statement/IfStatementNode.hpp"
+#include "ast/statement/ReloadStatementNode.hpp"
 #include "ast/statement/ReturnStatementNode.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
@@ -2029,208 +2030,319 @@ namespace vnlc {
 
     void SemanticAnalyzer::checkStatement(const StatementNode& statement) {
         if (auto* stmt = dynamic_cast<const BlockStatementNode*>(&statement)) {
-            context.pushScope(std::make_unique<Scope>(ScopeKind::BLOCK, &context.currentScope(), stmt));
-
-            for (const auto& child : stmt->getStatements()) {
-                checkStatement(*child);
-            }
-
-            context.popScope();
+            checkBlockStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const BreakStatementNode*>(&statement)) {
-            if (!context.currentLoop()) {
-                context.reportError(*stmt, "Break statement not within a loop");
-            }
-
-            const auto& label = stmt->getLabel();
-            if (label.has_value()) {
-                const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
-                if (labelSymbol == nullptr) {
-                    context.reportError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
-                } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                    context.reportError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
-                }
-            }
+            checkBreakStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const ContinueStatementNode*>(&statement)) {
-            if (!context.currentLoop()) {
-                context.reportError(*stmt, "Continue statement not within a loop");
-            }
-
-            const auto& label = stmt->getLabel();
-            if (label.has_value()) {
-                const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
-                if (labelSymbol == nullptr) {
-                    context.reportError(*stmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
-                } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                    context.reportError(*stmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
-                }
-            }
+            checkContinueStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const ExpressionStatementNode*>(&statement)) {
-            checkExpression(stmt->getExpression());
+            checkExpressionStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const ForStatementNode*>(&statement)) {
-            context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), stmt));
-
-            const auto& label = stmt->getLabel();
-            if (label.has_value()) {
-                RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), stmt);
-                if (!context.currentScope().declare(std::move(labelSymbol))) {
-                    context.reportError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
-                }
-            }
-
-            const auto& loopVariable = stmt->getLoopVariable();
-            RegularSymbol loopVariableSymbol(
-                RegularSymbolKind::VARIABLE,
-                static_cast<RegularSymbolAccessModifier>(loopVariable.getAccessModifier()),
-                loopVariable.getName().getIdentifierString(),
-                &loopVariable
-            );
-            if (!context.currentScope().declare(std::move(loopVariableSymbol))) {
-                context.reportError(loopVariable, fmt::format("Redeclaration of symbol '{}'", loopVariable.getName().getIdentifierString()));
-            }
-
-            if (loopVariable.getType().has_value()) {
-                resolveTypeReference(*loopVariable.getType().value());
-            }
-            checkValueDeclaration(stmt->getLoopVariable());
-            checkExpression(stmt->getIterableExpression());
-            checkStatement(stmt->getBody());
-
-            context.popScope();
+            checkForStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const IfStatementNode*>(&statement)) {
-            checkExpression(stmt->getCondition());
-            checkStatement(stmt->getThenBranch());
-            if (stmt->getElseBranch().has_value()) {
-                checkStatement(*stmt->getElseBranch().value());
-            }
+            checkIfStatement(*stmt);
+        } else if (auto* stmt = dynamic_cast<const ReloadStatementNode*>(&statement)) {
+            checkReloadStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const ReturnStatementNode*>(&statement)) {
-            if (stmt->getReturnValue().has_value()) {
-                checkExpression(*stmt->getReturnValue().value());
-            }
+            checkReturnStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const SwitchStatementNode*>(&statement)) {
-            context.pushScope(std::make_unique<Scope>(ScopeKind::SWITCH, &context.currentScope(), stmt));
-
-            checkExpression(stmt->getSwitchExpression());
-
-            if (stmt->getSwitchKind() == SwitchStatementKind::LITERAL_MATCH) {
-                for (const auto& item : stmt->getLiteralMatchItems()) {
-                    checkStatement(*item.body);
-                }
-            } else if (stmt->getSwitchKind() == SwitchStatementKind::TYPE_MATCH) {
-                for (const auto& item : stmt->getTypeMatchItems()) {
-                    resolveTypeReference(*item.type);
-                    checkStatement(*item.body);
-                }
-            }
-
-            if (stmt->getDefaultCaseBody().has_value()) {
-                checkStatement(*stmt->getDefaultCaseBody().value());
-            }
-
-            context.popScope();
+            checkSwitchStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const VariableDeclarationStatementNode*>(&statement)) {
-            const auto& varDecl = stmt->getVariableDeclaration();
-            RegularSymbol variableSymbol(RegularSymbolKind::VARIABLE, static_cast<RegularSymbolAccessModifier>(varDecl.getAccessModifier()), varDecl.getName().getIdentifierString(), &varDecl);
-            if (!context.currentScope().declare(std::move(variableSymbol))) {
-                context.reportError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString()));
-            }
-            if (varDecl.getType().has_value()) {
-                resolveTypeReference(*varDecl.getType().value());
-            }
-            checkValueDeclaration(varDecl);
+            checkVariableDeclarationStatement(*stmt);
         } else if (auto* stmt = dynamic_cast<const WhileStatementNode*>(&statement)) {
-            context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), stmt));
-
-            const auto& label = stmt->getLabel();
-            if (label.has_value()) {
-                RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), stmt);
-                if (!context.currentScope().declare(std::move(labelSymbol))) {
-                    context.reportError(*stmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
-                }
-            }
-
-            checkExpression(stmt->getCondition());
-            checkStatement(stmt->getBody());
-
-            context.popScope();
+            checkWhileStatement(*stmt);
         } else {
             context.reportError(statement, "Unknown statement type");
         }
     }
 
+    void SemanticAnalyzer::checkBlockStatement(const BlockStatementNode& blockStmt) {
+        context.pushScope(std::make_unique<Scope>(ScopeKind::BLOCK, &context.currentScope(), &blockStmt));
+
+        for (const auto& child : blockStmt.getStatements()) {
+            checkStatement(*child);
+        }
+
+        context.popScope();
+    }
+
+    void SemanticAnalyzer::checkBreakStatement(const BreakStatementNode& breakStmt) {
+        if (!context.currentLoop()) {
+            context.reportError(breakStmt, "Break statement not within a loop");
+        }
+
+        const auto& label = breakStmt.getLabel();
+        if (label.has_value()) {
+            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
+            if (labelSymbol == nullptr) {
+                context.reportError(breakStmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+            } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
+                context.reportError(breakStmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+            }
+        }
+    }
+
+    void SemanticAnalyzer::checkContinueStatement(const ContinueStatementNode& continueStmt) {
+        if (!context.currentLoop()) {
+            context.reportError(continueStmt, "Continue statement not within a loop");
+        }
+
+        const auto& label = continueStmt.getLabel();
+        if (label.has_value()) {
+            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
+            if (labelSymbol == nullptr) {
+                context.reportError(continueStmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+            } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
+                context.reportError(continueStmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+            }
+        }
+    }
+
+    void SemanticAnalyzer::checkExpressionStatement(const ExpressionStatementNode& exprStmt) {
+        checkExpression(exprStmt.getExpression());
+    }
+
+    void SemanticAnalyzer::checkForStatement(const ForStatementNode& forStmt) {
+        context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), &forStmt));
+
+        const auto& label = forStmt.getLabel();
+        if (label.has_value()) {
+            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), &forStmt);
+            if (!context.currentScope().declare(std::move(labelSymbol))) {
+                context.reportError(forStmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+            }
+        }
+
+        const auto& loopVariable = forStmt.getLoopVariable();
+        RegularSymbol loopVariableSymbol(
+            RegularSymbolKind::VARIABLE,
+            static_cast<RegularSymbolAccessModifier>(loopVariable.getAccessModifier()),
+            loopVariable.getName().getIdentifierString(),
+            &loopVariable
+        );
+        if (!context.currentScope().declare(std::move(loopVariableSymbol))) {
+            context.reportError(loopVariable, fmt::format("Redeclaration of symbol '{}'", loopVariable.getName().getIdentifierString()));
+        }
+
+        if (loopVariable.getType().has_value()) {
+            resolveTypeReference(*loopVariable.getType().value());
+        }
+        checkValueDeclaration(forStmt.getLoopVariable());
+        checkExpression(forStmt.getIterableExpression());
+        checkStatement(forStmt.getBody());
+
+        context.popScope();
+    }
+
+    void SemanticAnalyzer::checkIfStatement(const IfStatementNode& ifStmt) {
+        checkExpression(ifStmt.getCondition());
+        checkStatement(ifStmt.getThenBranch());
+        if (ifStmt.getElseBranch().has_value()) {
+            checkStatement(*ifStmt.getElseBranch().value());
+        }
+    }
+
+    void SemanticAnalyzer::checkReloadStatement(const ReloadStatementNode& reloadStmt) {}
+
+    void SemanticAnalyzer::checkReturnStatement(const ReturnStatementNode& returnStmt) {
+        if (returnStmt.getReturnValue().has_value()) {
+            checkExpression(*returnStmt.getReturnValue().value());
+        }
+    }
+
+    void SemanticAnalyzer::checkSwitchStatement(const SwitchStatementNode& switchStmt) {
+        context.pushScope(std::make_unique<Scope>(ScopeKind::SWITCH, &context.currentScope(), &switchStmt));
+
+        checkExpression(switchStmt.getSwitchExpression());
+
+        if (switchStmt.getSwitchKind() == SwitchStatementKind::LITERAL_MATCH) {
+            for (const auto& item : switchStmt.getLiteralMatchItems()) {
+                checkStatement(*item.body);
+            }
+        } else if (switchStmt.getSwitchKind() == SwitchStatementKind::TYPE_MATCH) {
+            for (const auto& item : switchStmt.getTypeMatchItems()) {
+                resolveTypeReference(*item.type);
+                checkStatement(*item.body);
+            }
+        }
+
+        if (switchStmt.getDefaultCaseBody().has_value()) {
+            checkStatement(*switchStmt.getDefaultCaseBody().value());
+        }
+
+        context.popScope();
+    }
+
+    void SemanticAnalyzer::checkVariableDeclarationStatement(const VariableDeclarationStatementNode& varDeclStmt) {
+        const auto& varDecl = varDeclStmt.getVariableDeclaration();
+        RegularSymbol variableSymbol(RegularSymbolKind::VARIABLE, static_cast<RegularSymbolAccessModifier>(varDecl.getAccessModifier()), varDecl.getName().getIdentifierString(), &varDecl);
+        if (!context.currentScope().declare(std::move(variableSymbol))) {
+            context.reportError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString()));
+        }
+        if (varDecl.getType().has_value()) {
+            resolveTypeReference(*varDecl.getType().value());
+        }
+        checkValueDeclaration(varDecl);
+    }
+
+    void SemanticAnalyzer::checkWhileStatement(const WhileStatementNode& whileStmt) {
+        context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), &whileStmt));
+
+        const auto& label = whileStmt.getLabel();
+        if (label.has_value()) {
+            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), &whileStmt);
+            if (!context.currentScope().declare(std::move(labelSymbol))) {
+                context.reportError(whileStmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+            }
+        }
+
+        checkExpression(whileStmt.getCondition());
+        checkStatement(whileStmt.getBody());
+
+        context.popScope();
+    }
+
     void SemanticAnalyzer::checkExpression(const ExpressionNode& expression) {
         if (auto* expr = dynamic_cast<const BinaryExpressionNode*>(&expression)) {
-            // TODO: Implement binary expression checking
-            checkExpression(expr->getLeft());
-            checkExpression(expr->getRight());
+            checkBinaryExpression(*expr);
         } else if (auto* expr = dynamic_cast<const ConditionalExpressionNode*>(&expression)) {
-            // TODO: Implement conditional expression checking
-            checkExpression(expr->getCondition());
-            checkExpression(expr->getThenExpression());
-            checkExpression(expr->getElseExpression());
+            checkConditionalExpression(*expr);
         } else if (auto* expr = dynamic_cast<const DictLiteralExpressionNode*>(&expression)) {
-            // TODO: Implement dictionary literal expression checking
-            for (const auto& entry : expr->getEntries()) {
-                checkExpression(*entry.second);
-            }
+            checkDictLiteralExpression(*expr);
         } else if (auto* expr = dynamic_cast<const FunctionCallExpressionNode*>(&expression)) {
-            // TODO: Implement function call expression checking
-            checkExpression(expr->getCallee());
-            for (const auto& argument : expr->getArguments()) {
-                checkExpression(*argument);
-            }
-            if (expr->getContext().has_value()) {
-                checkExpression(*expr->getContext().value());
-            }
+            checkFunctionCallExpression(*expr);
         } else if (auto* expr = dynamic_cast<const IdentifierLikeExpressionNode*>(&expression)) {
-            // TODO: Implement identifier expression checking
-        } else if (dynamic_cast<const PrimitiveTypeExpressionNode*>(&expression) != nullptr) {
+            checkIdentifierLikeExpression(*expr);
+        } else if (auto* expr = dynamic_cast<const PrimitiveTypeExpressionNode*>(&expression)) {
+            checkPrimitiveTypeExpression(*expr);
         } else if (auto* expr = dynamic_cast<const ListLikeLiteralExpressionNode*>(&expression)) {
-            // TODO: Implement list-like literal expression checking
-            for (const auto& element : expr->getElements()) {
-                checkExpression(*element);
-            }
+            checkListLikeLiteralExpression(*expr);
         } else if (auto* expr = dynamic_cast<const MemberAccessExpressionNode*>(&expression)) {
-            // TODO: Implement member access expression checking
-            checkExpression(expr->getObject());
-            checkExpression(expr->getMember());
+            checkMemberAccessExpression(*expr);
         } else if (auto* expr = dynamic_cast<const RangeExpressionNode*>(&expression)) {
-            // TODO: Implement range expression checking
-            if (expr->getStart().has_value()) {
-                checkExpression(*expr->getStart().value());
-            }
-            if (expr->getEnd().has_value()) {
-                checkExpression(*expr->getEnd().value());
-            }
+            checkRangeExpression(*expr);
         } else if (auto* expr = dynamic_cast<const SelectorLiteralExpressionNode*>(&expression)) {
-            // TODO: Implement selector literal expression checking
-            for (const auto& argument : expr->getArguments()) {
-                checkExpression(*argument.second);
-            }
+            checkSelectorLiteralExpression(*expr);
         } else if (auto* expr = dynamic_cast<const SimpleLiteralExpressionNode*>(&expression)) {
-            // TODO: Implement simple literal expression checking
+            checkSimpleLiteralExpression(*expr);
         } else if (auto* expr = dynamic_cast<const StringLiteralExpressionNode*>(&expression)) {
-            // TODO: Implement string literal expression checking
-            for (const auto& part : expr->getParts()) {
-                if (const auto* nestedExpression = std::get_if<std::unique_ptr<ExpressionNode>>(&part)) {
-                    checkExpression(**nestedExpression);
-                }
-            }
+            checkStringLiteralExpression(*expr);
         } else if (auto* expr = dynamic_cast<const SubscriptExpressionNode*>(&expression)) {
-            // TODO: Implement subscript expression checking
-            checkExpression(expr->getObject());
-            checkExpression(expr->getIndex());
+            checkSubscriptExpression(*expr);
         } else if (auto* expr = dynamic_cast<const SuperExpressionNode*>(&expression)) {
-            // TODO: Implement super expression checking
+            checkSuperExpression(*expr);
         } else if (auto* expr = dynamic_cast<const NoneExpressionNode*>(&expression)) {
-            // TODO: Implement none expression checking
+            checkNoneExpression(*expr);
         } else if (auto* expr = dynamic_cast<const ThisExpressionNode*>(&expression)) {
-            // TODO: Implement this expression checking
+            checkThisExpression(*expr);
         } else if (auto* expr = dynamic_cast<const UnaryExpressionNode*>(&expression)) {
-            // TODO: Implement unary expression checking
-            checkExpression(expr->getOperand());
+            checkUnaryExpression(*expr);
         } else {
             context.reportError(expression, "Unknown expression type");
         }
+    }
+
+    void SemanticAnalyzer::checkBinaryExpression(const BinaryExpressionNode& binaryExpr) {
+        // TODO: Implement binary expression checking
+        checkExpression(binaryExpr.getLeft());
+        checkExpression(binaryExpr.getRight());
+    }
+
+    void SemanticAnalyzer::checkConditionalExpression(const ConditionalExpressionNode& conditionalExpr) {
+        // TODO: Implement conditional expression checking
+        checkExpression(conditionalExpr.getCondition());
+        checkExpression(conditionalExpr.getThenExpression());
+        checkExpression(conditionalExpr.getElseExpression());
+    }
+
+    void SemanticAnalyzer::checkDictLiteralExpression(const DictLiteralExpressionNode& dictLiteralExpr) {
+        // TODO: Implement dictionary literal expression checking
+        for (const auto& entry : dictLiteralExpr.getEntries()) {
+            checkExpression(*entry.second);
+        }
+    }
+
+    void SemanticAnalyzer::checkFunctionCallExpression(const FunctionCallExpressionNode& funcCallExpr) {
+        // TODO: Implement function call expression checking
+        checkExpression(funcCallExpr.getCallee());
+        for (const auto& argument : funcCallExpr.getArguments()) {
+            checkExpression(*argument);
+        }
+        if (funcCallExpr.getContext().has_value()) {
+            checkExpression(*funcCallExpr.getContext().value());
+        }
+    }
+
+    void SemanticAnalyzer::checkIdentifierLikeExpression(const IdentifierLikeExpressionNode& identifierLikeExpr) {
+        // TODO: Implement identifier expression checking
+    }
+
+    void SemanticAnalyzer::checkPrimitiveTypeExpression(const PrimitiveTypeExpressionNode& primitiveTypeExpr) {}
+
+    void SemanticAnalyzer::checkListLikeLiteralExpression(const ListLikeLiteralExpressionNode& listLikeLiteralExpr) {
+        // TODO: Implement list-like literal expression checking
+        for (const auto& element : listLikeLiteralExpr.getElements()) {
+            checkExpression(*element);
+        }
+    }
+
+    void SemanticAnalyzer::checkMemberAccessExpression(const MemberAccessExpressionNode& memberAccessExpr) {
+        // TODO: Implement member access expression checking
+        checkExpression(memberAccessExpr.getObject());
+        checkExpression(memberAccessExpr.getMember());
+    }
+
+    void SemanticAnalyzer::checkRangeExpression(const RangeExpressionNode& rangeExpr) {
+        // TODO: Implement range expression checking
+        if (rangeExpr.getStart().has_value()) {
+            checkExpression(*rangeExpr.getStart().value());
+        }
+        if (rangeExpr.getEnd().has_value()) {
+            checkExpression(*rangeExpr.getEnd().value());
+        }
+    }
+
+    void SemanticAnalyzer::checkSelectorLiteralExpression(const SelectorLiteralExpressionNode& selectorLiteralExpr) {
+        // TODO: Implement selector literal expression checking
+        for (const auto& argument : selectorLiteralExpr.getArguments()) {
+            checkExpression(*argument.second);
+        }
+    }
+
+    void SemanticAnalyzer::checkSimpleLiteralExpression(const SimpleLiteralExpressionNode& simpleLiteralExpr) {
+        // TODO: Implement simple literal expression checking
+    }
+
+    void SemanticAnalyzer::checkStringLiteralExpression(const StringLiteralExpressionNode& stringLiteralExpr) {
+        // TODO: Implement string literal expression checking
+        for (const auto& part : stringLiteralExpr.getParts()) {
+            if (const auto* nestedExpression = std::get_if<std::unique_ptr<ExpressionNode>>(&part)) {
+                checkExpression(**nestedExpression);
+            }
+        }
+    }
+
+    void SemanticAnalyzer::checkSubscriptExpression(const SubscriptExpressionNode& subscriptExpr) {
+        // TODO: Implement subscript expression checking
+        checkExpression(subscriptExpr.getObject());
+        checkExpression(subscriptExpr.getIndex());
+    }
+
+    void SemanticAnalyzer::checkSuperExpression(const SuperExpressionNode& superExpr) {
+        // TODO: Implement super expression checking
+    }
+
+    void SemanticAnalyzer::checkNoneExpression(const NoneExpressionNode& noneExpr) {
+        // TODO: Implement none expression checking
+    }
+
+    void SemanticAnalyzer::checkThisExpression(const ThisExpressionNode& thisExpr) {
+        // TODO: Implement this expression checking
+    }
+
+    void SemanticAnalyzer::checkUnaryExpression(const UnaryExpressionNode& unaryExpr) {
+        // TODO: Implement unary expression checking
+        checkExpression(unaryExpr.getOperand());
     }
 
     SemanticResult SemanticAnalyzer::analyze(const Config& config) {

@@ -13,9 +13,37 @@
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
+#include "ast/expression/BinaryExpressionNode.hpp"
+#include "ast/expression/ConditionalExpressionNode.hpp"
+#include "ast/expression/DictLiteralExpressionNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
+#include "ast/expression/FunctionCallExpressionNode.hpp"
+#include "ast/expression/IdentifierLikeExpressionNode.hpp"
+#include "ast/expression/ListLikeLiteralExpressionNode.hpp"
+#include "ast/expression/MemberAccessExpressionNode.hpp"
+#include "ast/expression/NoneExpressionNode.hpp"
+#include "ast/expression/PrimitiveTypeExpressionNode.hpp"
+#include "ast/expression/RangeExpressionNode.hpp"
+#include "ast/expression/SelectorLiteralExpressionNode.hpp"
+#include "ast/expression/SimpleLiteralExpressionNode.hpp"
+#include "ast/expression/StringLiteralExpressionNode.hpp"
+#include "ast/expression/SubscriptExpressionNode.hpp"
+#include "ast/expression/SuperExpressionNode.hpp"
+#include "ast/expression/ThisExpressionNode.hpp"
+#include "ast/expression/UnaryExpressionNode.hpp"
 #include "ast/module/ModuleNode.hpp"
+#include "ast/statement/BlockStatementNode.hpp"
+#include "ast/statement/BreakStatementNode.hpp"
+#include "ast/statement/ContinueStatementNode.hpp"
+#include "ast/statement/ExpressionStatementNode.hpp"
+#include "ast/statement/ForStatementNode.hpp"
+#include "ast/statement/IfStatementNode.hpp"
+#include "ast/statement/ReloadStatementNode.hpp"
+#include "ast/statement/ReturnStatementNode.hpp"
 #include "ast/statement/StatementNode.hpp"
+#include "ast/statement/SwitchStatementNode.hpp"
+#include "ast/statement/VariableDeclarationStatementNode.hpp"
+#include "ast/statement/WhileStatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "config/Config.hpp"
 #include "metadata/MetadataInfo.hpp"
@@ -98,8 +126,38 @@ namespace vnlc {
         void checkClassDeclaration(const ClassDeclarationNode& classDecl, const Config& config);
         void checkInterfaceDeclaration(const InterfaceDeclarationNode& interfaceDecl, const Config& config);
         void checkEnumDeclaration(const EnumDeclarationNode& enumDecl, const Config& config);
+
         void checkStatement(const StatementNode& statement);
+        void checkBlockStatement(const BlockStatementNode& blockStmt);
+        void checkBreakStatement(const BreakStatementNode& breakStmt);
+        void checkContinueStatement(const ContinueStatementNode& continueStmt);
+        void checkExpressionStatement(const ExpressionStatementNode& exprStmt);
+        void checkForStatement(const ForStatementNode& forStmt);
+        void checkIfStatement(const IfStatementNode& ifStmt);
+        void checkReloadStatement(const ReloadStatementNode& reloadStmt);
+        void checkReturnStatement(const ReturnStatementNode& returnStmt);
+        void checkSwitchStatement(const SwitchStatementNode& switchStmt);
+        void checkVariableDeclarationStatement(const VariableDeclarationStatementNode& varDeclStmt);
+        void checkWhileStatement(const WhileStatementNode& whileStmt);
+
         void checkExpression(const ExpressionNode& expression);
+        void checkBinaryExpression(const BinaryExpressionNode& binaryExpr);
+        void checkConditionalExpression(const ConditionalExpressionNode& conditionalExpr);
+        void checkDictLiteralExpression(const DictLiteralExpressionNode& dictLiteralExpr);
+        void checkFunctionCallExpression(const FunctionCallExpressionNode& funcCallExpr);
+        void checkIdentifierLikeExpression(const IdentifierLikeExpressionNode& identifierLikeExpr);
+        void checkPrimitiveTypeExpression(const PrimitiveTypeExpressionNode& primitiveTypeExpr);
+        void checkListLikeLiteralExpression(const ListLikeLiteralExpressionNode& listLikeLiteralExpr);
+        void checkMemberAccessExpression(const MemberAccessExpressionNode& memberAccessExpr);
+        void checkRangeExpression(const RangeExpressionNode& rangeExpr);
+        void checkSelectorLiteralExpression(const SelectorLiteralExpressionNode& selectorLiteralExpr);
+        void checkSimpleLiteralExpression(const SimpleLiteralExpressionNode& simpleLiteralExpr);
+        void checkStringLiteralExpression(const StringLiteralExpressionNode& stringLiteralExpr);
+        void checkSubscriptExpression(const SubscriptExpressionNode& subscriptExpr);
+        void checkSuperExpression(const SuperExpressionNode& superExpr);
+        void checkNoneExpression(const NoneExpressionNode& noneExpr);
+        void checkThisExpression(const ThisExpressionNode& thisExpr);
+        void checkUnaryExpression(const UnaryExpressionNode& unaryExpr);
 
     public:
         explicit SemanticAnalyzer(const ModuleNode& module);
