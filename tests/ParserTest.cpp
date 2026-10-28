@@ -64,8 +64,8 @@ namespace vnlc {
         auto result = parseModule(input, config);
     }
 
-    TEST(ParserTest, StripsSourceExtensionsCaseInsensitivelyAndKeepsModuleNameCase) {
-        for (const auto fileName : { "Sample.vnl", "Sample.VNL", "Sample.Vnl" }) {
+    TEST(ParserTest, StripsSourceExtensionsCaseInsensitively) {
+        for (const auto fileName : { "sample.vnl", "sample.VNL", "sample.Vnl" }) {
             SCOPED_TRACE(fileName);
             std::stringstream input("class Item {}\n");
 
@@ -81,8 +81,8 @@ namespace vnlc {
             };
 
             auto result = parseModule(input, config);
-            EXPECT_EQ(result.getModuleNode().getName(), "Sample");
-            EXPECT_TRUE(result.getModuleNode().getFullName().ends_with(".Sample"));
+            EXPECT_EQ(result.getModuleNode().getName(), "sample");
+            EXPECT_TRUE(result.getModuleNode().getFullName().ends_with(".sample"));
         }
     }
 

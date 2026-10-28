@@ -591,19 +591,27 @@ namespace vnlc {
         EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.nested.models.sample");
     }
 
-    TEST_F(CollectorTest, StripsSourceExtensionsCaseInsensitivelyAndKeepsModuleNameCase) {
-        for (const auto fileName : { "Sample.vnl", "Sample.VNL", "Sample.Vnl" }) {
+    TEST_F(CollectorTest, StripsSourceExtensionsCaseInsensitively) {
+        for (const auto fileName : { "sample.vnl", "sample.VNL", "sample.Vnl" }) {
             SCOPED_TRACE(fileName);
             config.inputFilePath = config.packageRootPath / "models" / fileName;
             const auto result = collect("class Item {}\n");
 
-            EXPECT_EQ(result.getModuleOutline().getName(), "Sample");
-            EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.models.Sample");
+            EXPECT_EQ(result.getModuleOutline().getName(), "sample");
+            EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.models.sample");
         }
     }
 
+    TEST_F(CollectorTest, AcceptsDigitsAfterTheFirstCharacterOfModuleAndPackageNames) {
+        config.inputFilePath = config.packageRootPath / "models2" / "sample2.vnl";
+        const auto result = collect("class Item {}\n");
+
+        EXPECT_EQ(result.getModuleOutline().getName(), "sample2");
+        EXPECT_EQ(result.getModuleOutline().getFullName(), "collector_test_package.models2.sample2");
+    }
+
     TEST_F(CollectorTest, RejectsIllegalModuleAndPackageNames) {
-        for (const auto path : { "int.vnl", "bad-name.vnl", "bad-name/module.vnl", "class/module.vnl", "123/module.vnl", "Models/module.vnl", "models2/module.vnl" }) {
+        for (const auto path : { "int.vnl", "bad-name.vnl", "bad-name/module.vnl", "class/module.vnl", "123/module.vnl", "Models/module.vnl", "Module.vnl" }) {
             SCOPED_TRACE(path);
             config.inputFilePath = config.packageRootPath / path;
             config.inputFilePath.make_preferred();
