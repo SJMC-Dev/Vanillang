@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace vnlc {
-    PackageReader::PackageReader(std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& packages) : packages(packages) {}
+    PackageReader::PackageReader(ImportedRootPackageMap& packages) : packages(packages) {}
 
     void PackageReader::readPackageFromPath(std::string_view path, const Config& config) {
         readFromAnotherRootPackage(path, config.dependencyPackageRootPaths);
@@ -41,14 +41,7 @@ namespace vnlc {
             throw PackageReaderError(fmt::format("Package path {} is not a directory", currentPath.string()));
         }
         if (!packages.contains(names.front())) {
-            packages.emplace(
-                names.front(),
-                std::make_unique<ImportedPackage>(
-                    names.front(),
-                    std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>(),
-                    std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()
-                )
-            );
+            packages.emplace(names.front(), std::make_unique<ImportedPackage>(names.front(), ImportedRootPackageMap(), std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()));
         }
         ImportedPackage* currentPackage = packages.at(names.front()).get();
 
@@ -82,13 +75,7 @@ namespace vnlc {
             }
 
             if (!currentPackage->getSubPackages().contains(name)) {
-                currentPackage->addSubPackage(
-                    std::make_unique<ImportedPackage>(
-                        name,
-                        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>(),
-                        std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()
-                    )
-                );
+                currentPackage->addSubPackage(std::make_unique<ImportedPackage>(name, ImportedRootPackageMap(), std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()));
             }
             currentPackage = currentPackage->getSubPackages().at(name).get();
             currentPath = std::move(packagePath.value());
@@ -110,13 +97,7 @@ namespace vnlc {
             if (entry.is_directory()) {
                 std::string name = entry.path().filename().string();
                 if (!package.getSubPackages().contains(name)) {
-                    package.addSubPackage(
-                        std::make_unique<ImportedPackage>(
-                            name,
-                            std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>(),
-                            std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()
-                        )
-                    );
+                    package.addSubPackage(std::make_unique<ImportedPackage>(name, ImportedRootPackageMap(), std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()));
                 }
                 readPackageContents(entry.path(), *package.getSubPackages().at(name), activePackagePaths);
             } else if (isModuleInterfaceFile(entry)) {
