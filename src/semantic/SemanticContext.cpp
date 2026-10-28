@@ -73,8 +73,8 @@ namespace vnlc {
         inferredOperatorReturnTypeMap.emplace(operatorDeclaration, type);
     }
 
-    void SemanticContext::mapInferredExpressionType(const ExpressionNode* expressionNode, const Type* type) {
-        inferredExpressionTypeMap.emplace(expressionNode, type);
+    void SemanticContext::mapExpressionAnalysisResult(const ExpressionNode* expressionNode, ExpressionAnalysisResult result) {
+        expressionAnalysisResultMap.emplace(expressionNode, result);
     }
 
     ClassInheritanceNode& SemanticContext::getOrCreateLocalInheritanceNode(const ClassDeclarationNode& localNode) {
@@ -157,14 +157,6 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Type* SemanticContext::getInferredExpressionType(const ExpressionNode* expressionNode) const {
-        auto it = inferredExpressionTypeMap.find(expressionNode);
-        if (it != inferredExpressionTypeMap.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
     const Scope* SemanticContext::getScopeByAstNode(const AstNode* astNode) const {
         if (astNode == nullptr) return nullptr;
         for (auto it = scopeStack.rbegin(); it != scopeStack.rend(); ++it) {
@@ -213,6 +205,14 @@ namespace vnlc {
         auto it = importedInheritanceMap.find(importedNode);
         if (it != importedInheritanceMap.end()) {
             return it->second;
+        }
+        return nullptr;
+    }
+
+    const ExpressionAnalysisResult* SemanticContext::getExpressionAnalysisResult(const ExpressionNode* expressionNode) const {
+        auto it = expressionAnalysisResultMap.find(expressionNode);
+        if (it != expressionAnalysisResultMap.end()) {
+            return &it->second;
         }
         return nullptr;
     }
@@ -369,8 +369,8 @@ namespace vnlc {
         return std::move(inferredOperatorReturnTypeMap);
     }
 
-    std::unordered_map<const ExpressionNode*, const Type*> SemanticContext::takeInferredExpressionTypeMap() {
-        return std::move(inferredExpressionTypeMap);
+    std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult> SemanticContext::takeExpressionAnalysisResultMap() {
+        return std::move(expressionAnalysisResultMap);
     }
 
     std::vector<std::unique_ptr<InheritanceNode>> SemanticContext::takeInheritanceNodes() {

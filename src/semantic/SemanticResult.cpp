@@ -15,7 +15,7 @@ namespace vnlc {
         std::unordered_map<const ValueDeclarationNode*, const Type*>&& inferredValueTypeMap,
         std::unordered_map<const FunctionDeclarationNode*, const Type*>&& inferredFunctionReturnTypeMap,
         std::unordered_map<const OperatorDeclarationNode*, const Type*>&& inferredOperatorReturnTypeMap,
-        std::unordered_map<const ExpressionNode*, const Type*>&& inferredExpressionTypeMap,
+        std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult>&& expressionAnalysisResultMap,
         std::vector<std::unique_ptr<InheritanceNode>>&& inheritanceNodes,
         std::unordered_map<const TypeDeclarationNode*, InheritanceNode*>&& localInheritanceMap,
         std::unordered_map<const ImportedIdentifier*, InheritanceNode*>&& importedInheritanceMap
@@ -30,7 +30,7 @@ namespace vnlc {
           inferredValueTypeMap(std::move(inferredValueTypeMap)),
           inferredFunctionReturnTypeMap(std::move(inferredFunctionReturnTypeMap)),
           inferredOperatorReturnTypeMap(std::move(inferredOperatorReturnTypeMap)),
-          inferredExpressionTypeMap(std::move(inferredExpressionTypeMap)),
+          expressionAnalysisResultMap(std::move(expressionAnalysisResultMap)),
           inheritanceNodes(std::move(inheritanceNodes)),
           localInheritanceMap(std::move(localInheritanceMap)),
           importedInheritanceMap(std::move(importedInheritanceMap)) {}
@@ -113,10 +113,10 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Type* SemanticResult::getInferredExpressionType(const ExpressionNode* expressionNode) const {
-        auto it = inferredExpressionTypeMap.find(expressionNode);
-        if (it != inferredExpressionTypeMap.end()) {
-            return it->second;
+    const ExpressionAnalysisResult* SemanticResult::getExpressionAnalysisResult(const ExpressionNode* expressionNode) const {
+        auto it = expressionAnalysisResultMap.find(expressionNode);
+        if (it != expressionAnalysisResultMap.end()) {
+            return &it->second;
         }
         return nullptr;
     }

@@ -12,6 +12,7 @@
 #include "diagnostic/Diagnostic.hpp"
 #include "inheritance/InheritanceNode.hpp"
 #include "scope/Scope.hpp"
+#include "semantic/ExpressionAnalysisResult.hpp"
 #include "type/CustomizedType.hpp"
 #include "type/Type.hpp"
 #include "vni/import/ImportedIdentifier.hpp"
@@ -33,7 +34,7 @@ namespace vnlc {
         std::unordered_map<const ValueDeclarationNode*, const Type*> inferredValueTypeMap;
         std::unordered_map<const FunctionDeclarationNode*, const Type*> inferredFunctionReturnTypeMap;
         std::unordered_map<const OperatorDeclarationNode*, const Type*> inferredOperatorReturnTypeMap;
-        std::unordered_map<const ExpressionNode*, const Type*> inferredExpressionTypeMap;
+        std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult> expressionAnalysisResultMap;
         std::vector<std::unique_ptr<InheritanceNode>> inheritanceNodes;
         std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> localInheritanceMap;
         std::unordered_map<const ImportedIdentifier*, InheritanceNode*> importedInheritanceMap;
@@ -50,7 +51,7 @@ namespace vnlc {
             std::unordered_map<const ValueDeclarationNode*, const Type*>&& inferredValueTypeMap,
             std::unordered_map<const FunctionDeclarationNode*, const Type*>&& inferredFunctionReturnTypeMap,
             std::unordered_map<const OperatorDeclarationNode*, const Type*>&& inferredOperatorReturnTypeMap,
-            std::unordered_map<const ExpressionNode*, const Type*>&& inferredExpressionTypeMap,
+            std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult>&& expressionAnalysisResultMap,
             std::vector<std::unique_ptr<InheritanceNode>>&& inheritanceNodes,
             std::unordered_map<const TypeDeclarationNode*, InheritanceNode*>&& localInheritanceMap,
             std::unordered_map<const ImportedIdentifier*, InheritanceNode*>&& importedInheritanceMap
@@ -74,7 +75,7 @@ namespace vnlc {
         [[nodiscard]] const Type* getInferredValueType(const ValueDeclarationNode* valueDeclaration) const;
         [[nodiscard]] const Type* getInferredFunctionReturnType(const FunctionDeclarationNode* functionDeclaration) const;
         [[nodiscard]] const Type* getInferredOperatorReturnType(const OperatorDeclarationNode* operatorDeclaration) const;
-        [[nodiscard]] const Type* getInferredExpressionType(const ExpressionNode* expressionNode) const;
+        [[nodiscard]] const ExpressionAnalysisResult* getExpressionAnalysisResult(const ExpressionNode* expressionNode) const;
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const;
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
     };

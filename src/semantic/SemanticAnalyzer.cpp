@@ -1831,7 +1831,8 @@ namespace vnlc {
         }
 
         if (hasTypeReference && hasInitializer) {
-            const Type* exprType = context.getInferredExpressionType(varDecl.getInitializer()->get());
+            const ExpressionAnalysisResult* exprResult = context.getExpressionAnalysisResult(varDecl.getInitializer()->get());
+            const Type* exprType = exprResult ? exprResult->valueType : nullptr;
             const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
 
             if (exprType && declType && !exprType->canConvertTo(*declType)) {
@@ -2356,7 +2357,7 @@ namespace vnlc {
         auto inferredValueTypes = context.takeInferredValueTypeMap();
         auto inferredFunctionReturnTypes = context.takeInferredFunctionReturnTypeMap();
         auto inferredOperatorReturnTypes = context.takeInferredOperatorReturnTypeMap();
-        auto inferredExpressionTypes = context.takeInferredExpressionTypeMap();
+        auto expressionAnalysisResults = context.takeExpressionAnalysisResultMap();
         auto inheritanceNodes = context.takeInheritanceNodes();
         auto localInheritances = context.takeLocalInheritanceMap();
         auto importedInheritances = context.takeImportedInheritanceMap();
@@ -2371,7 +2372,7 @@ namespace vnlc {
             std::move(inferredValueTypes),
             std::move(inferredFunctionReturnTypes),
             std::move(inferredOperatorReturnTypes),
-            std::move(inferredExpressionTypes),
+            std::move(expressionAnalysisResults),
             std::move(inheritanceNodes),
             std::move(localInheritances),
             std::move(importedInheritances)

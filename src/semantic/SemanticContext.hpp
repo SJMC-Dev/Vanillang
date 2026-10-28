@@ -19,6 +19,7 @@
 #include "inheritance/InheritanceNode.hpp"
 #include "inheritance/InterfaceInheritanceNode.hpp"
 #include "scope/Scope.hpp"
+#include "semantic/ExpressionAnalysisResult.hpp"
 #include "symbol/RegularSymbol.hpp"
 #include "type/CustomizedType.hpp"
 #include "type/Type.hpp"
@@ -50,7 +51,8 @@ namespace vnlc {
         std::unordered_map<const ValueDeclarationNode*, const Type*> inferredValueTypeMap;
         std::unordered_map<const FunctionDeclarationNode*, const Type*> inferredFunctionReturnTypeMap;
         std::unordered_map<const OperatorDeclarationNode*, const Type*> inferredOperatorReturnTypeMap;
-        std::unordered_map<const ExpressionNode*, const Type*> inferredExpressionTypeMap;
+
+        std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult> expressionAnalysisResultMap;
 
         std::vector<std::unique_ptr<InheritanceNode>> inheritanceNodes;
         std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> localInheritanceMap;
@@ -69,6 +71,7 @@ namespace vnlc {
         void reportError(const AstNode& node, std::string_view message);
         void reportWarning(const AstNode& node, std::string_view message);
         void reportNote(const AstNode& node, std::string_view message);
+
         void pushScope(std::unique_ptr<Scope>&& scope);
         bool pushExistingScope(const AstNode* astNode);
         void popScope();
@@ -79,7 +82,9 @@ namespace vnlc {
         void mapInferredValueType(const ValueDeclarationNode* valueDeclaration, const Type* type);
         void mapInferredFunctionReturnType(const FunctionDeclarationNode* functionDeclaration, const Type* type);
         void mapInferredOperatorReturnType(const OperatorDeclarationNode* operatorDeclaration, const Type* type);
-        void mapInferredExpressionType(const ExpressionNode* expressionNode, const Type* type);
+
+        void mapExpressionAnalysisResult(const ExpressionNode* expressionNode, ExpressionAnalysisResult result);
+
         ClassInheritanceNode& getOrCreateLocalInheritanceNode(const ClassDeclarationNode& localNode);
         InterfaceInheritanceNode& getOrCreateLocalInheritanceNode(const InterfaceDeclarationNode& localNode);
         EnumInheritanceNode& getOrCreateLocalInheritanceNode(const EnumDeclarationNode& localNode);
@@ -91,12 +96,13 @@ namespace vnlc {
 
         [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const;
         [[nodiscard]] const Type* getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const;
-        [[nodiscard]] const Type* getInferredExpressionType(const ExpressionNode* expressionNode) const;
         [[nodiscard]] const Scope* getScopeByAstNode(const AstNode* astNode) const;
         [[nodiscard]] const Scope* getScopeByImportedNode(const ImportedItem* importedNode) const;
         [[nodiscard]] const Scope* getScopeByRegularSymbol(const RegularSymbol& symbol) const;
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const;
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
+
+        [[nodiscard]] const ExpressionAnalysisResult* getExpressionAnalysisResult(const ExpressionNode* expressionNode) const;
 
         [[nodiscard]] Scope& currentScope();
 
@@ -124,7 +130,7 @@ namespace vnlc {
         [[nodiscard]] std::unordered_map<const ValueDeclarationNode*, const Type*> takeInferredValueTypeMap();
         [[nodiscard]] std::unordered_map<const FunctionDeclarationNode*, const Type*> takeInferredFunctionReturnTypeMap();
         [[nodiscard]] std::unordered_map<const OperatorDeclarationNode*, const Type*> takeInferredOperatorReturnTypeMap();
-        [[nodiscard]] std::unordered_map<const ExpressionNode*, const Type*> takeInferredExpressionTypeMap();
+        [[nodiscard]] std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult> takeExpressionAnalysisResultMap();
         [[nodiscard]] std::vector<std::unique_ptr<InheritanceNode>> takeInheritanceNodes();
         [[nodiscard]] std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> takeLocalInheritanceMap();
         [[nodiscard]] std::unordered_map<const ImportedIdentifier*, InheritanceNode*> takeImportedInheritanceMap();
