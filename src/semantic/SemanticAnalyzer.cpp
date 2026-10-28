@@ -189,7 +189,6 @@ namespace vnlc {
         }
 
         const std::size_t genericArgumentStart = fullTypeName.find('<');
-        std::string_view unwrappedTypeName = trim(fullTypeName.substr(0, genericArgumentStart));
 
         std::vector<const Type*> genericArgumentTypes;
         if (genericArgumentStart != std::string_view::npos) {
@@ -606,7 +605,8 @@ namespace vnlc {
             if (symbol.getKind() == RegularSymbolKind::GENERIC_PARAMETER) {
                 return 0;
             }
-            if (symbol.getLocalNode() != nullptr) {
+
+            if (symbol.getOrigin() == RegularSymbolOrigin::LOCAL) {
                 if (const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(symbol.getLocalNode())) {
                     return classDeclaration->getGenericParameterNames().size();
                 }
@@ -619,7 +619,7 @@ namespace vnlc {
                 if (const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationNode*>(symbol.getLocalNode())) {
                     return typeAliasDeclaration->getGenericParameterNames().size();
                 }
-            } else if (symbol.getImportedNode() != nullptr) {
+            } else if (symbol.getOrigin() == RegularSymbolOrigin::IMPORTED) {
                 if (const auto* importedClass = dynamic_cast<const ImportedClass*>(symbol.getImportedNode())) {
                     return importedClass->getGenericParameters().size();
                 }
@@ -633,53 +633,52 @@ namespace vnlc {
                     return importedTypeAlias->getGenericParameters().size();
                 }
             }
+
             return 0;
         };
 
         using TypeSubstitutionMap = std::unordered_map<std::string, const Type*>;
         using NameSubstitutionMap = std::unordered_map<std::string, std::string>;
 
-        const auto substituteImportedTypeParametersWithNames =
-            [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<std::string>& argumentNames) {
-                std::string result;
-                std::size_t tokenStart = 0;
-                const auto appendToken = [&](std::string_view token) {
-                    if (token.empty()) {
-                        return;
-                    }
-
-                    for (std::size_t index = 0; index < parameterNames.size() && index < argumentNames.size(); ++index) {
-                        if (token == parameterNames[index]) {
-                            result += argumentNames[index];
-                            return;
-                        }
-                    }
-                    result += token;
-                };
-
-                for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
-                    const char character = fullTypeName[index];
-                    if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
-                        continue;
-                    }
-
-                    appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
-                    if (character == '<' || character == '>') {
-                        result += character;
-                    } else if (character == ',') {
-                        result += ", ";
-                    }
-                    tokenStart = index + 1;
+        const auto substituteImportedTypeParameters = [](std::string_view fullTypeName, const std::vector<std::string>& parameterNames, const std::vector<std::string>& argumentNames) {
+            std::string result;
+            std::size_t tokenStart = 0;
+            const auto appendToken = [&](std::string_view token) {
+                if (token.empty()) {
+                    return;
                 }
 
-                appendToken(fullTypeName.substr(tokenStart));
-                return result;
+                for (std::size_t index = 0; index < parameterNames.size() && index < argumentNames.size(); ++index) {
+                    if (token == parameterNames[index]) {
+                        result += argumentNames[index];
+                        return;
+                    }
+                }
+                result += token;
             };
+
+            for (std::size_t index = 0; index < fullTypeName.size(); ++index) {
+                const char character = fullTypeName[index];
+                if (character != '<' && character != '>' && character != ',' && character != ' ' && character != '\t' && character != '\r' && character != '\n') {
+                    continue;
+                }
+
+                appendToken(fullTypeName.substr(tokenStart, index - tokenStart));
+                if (character == '<' || character == '>') {
+                    result += character;
+                } else if (character == ',') {
+                    result += ", ";
+                }
+                tokenStart = index + 1;
+            }
+
+            appendToken(fullTypeName.substr(tokenStart));
+            return result;
+        };
 
         std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getFullTypeNameByTypeReferenceNode;
 
-        const std::function<std::string(const TypeReferenceNode&, const NameSubstitutionMap&)> getUnwrappedTypeNameByTypeReferenceNode =
-            [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) -> std::string {
+        const auto getUnwrappedTypeNameByTypeReferenceNode = [&](const TypeReferenceNode& typeNode, const NameSubstitutionMap& substitutions) -> std::string {
             if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&typeNode)) {
                 return std::string(getPrimitiveType(primitiveTypeReferenceNode->getKind())->getFullTypeName());
             }
@@ -768,7 +767,7 @@ namespace vnlc {
                     for (const auto& genericArgument : genericArguments) {
                         argumentNames.emplace_back(getFullTypeNameByTypeReferenceNode(*genericArgument, substitutions));
                     }
-                    return substituteImportedTypeParametersWithNames(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), argumentNames);
+                    return substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), argumentNames);
                 }
             } else if (firstSymbol->getOrigin() == RegularSymbolOrigin::LOCAL) {
                 const Scope* localScope = context.getScopeByRegularSymbol(*firstSymbol);
@@ -1014,10 +1013,9 @@ namespace vnlc {
                             return nullptr;
                         }
 
-                        const std::string originalTypeName =
-                            substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), genericArgumentTypes);
-                        registerImportedTypeReference(originalTypeName);
-                        return context.getTypeByFullTypeName(originalTypeName);
+                        std::string originalName = substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), genericArgumentTypes);
+                        registerImportedTypeReference(originalName);
+                        return context.getTypeByFullTypeName(originalName);
                     }
 
                     return nullptr;
