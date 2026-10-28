@@ -44,6 +44,7 @@
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "fmt/format.h"
 #include "inheritance/ClassInheritanceNode.hpp"
+#include "semantic/ExpressionAnalysisResult.hpp"
 #include "symbol/RegularSymbol.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
@@ -1828,15 +1829,19 @@ namespace vnlc {
 
         if (hasInitializer) {
             checkExpression(*varDecl.getInitializer().value());
-        }
-
-        if (hasTypeReference && hasInitializer) {
             const ExpressionAnalysisResult* exprResult = context.getExpressionAnalysisResult(varDecl.getInitializer()->get());
-            const Type* exprType = exprResult ? exprResult->valueType : nullptr;
-            const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
 
-            if (exprType && declType && !exprType->canConvertTo(*declType)) {
-                context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
+            if (exprResult && exprResult->valueType == nullptr) {
+                context.reportError(*varDecl.getInitializer().value(), "Initializer expression does not have a value");
+            }
+
+            if (hasTypeReference) {
+                const Type* exprType = exprResult ? exprResult->valueType : nullptr;
+                const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
+
+                if (exprType && declType && !exprType->canConvertTo(*declType)) {
+                    context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
+                }
             }
         }
     }
