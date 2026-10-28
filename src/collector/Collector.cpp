@@ -110,7 +110,7 @@ namespace vnlc {
         return name;
     }
 
-    void Collector::collectImport(const Config& config, std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports, std::vector<Diagnostic>& errors) {
+    void Collector::collectImport(const Config& config, ImportedRootPackageMap& imports, std::vector<Diagnostic>& errors) {
         Token importToken = peek();
         if (!match(TokenKind::IMPORT)) {
             throw SyntaxError("Expected 'import' keyword", peek().getLine(), peek().getColumn());
@@ -123,7 +123,7 @@ namespace vnlc {
             throw SyntaxError("Expected newline after import declaration", peek().getLine(), peek().getColumn());
         }
 
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> stagedImports;
+        ImportedRootPackageMap stagedImports;
         PackageReader reader(stagedImports);
 
         try {
@@ -398,7 +398,7 @@ namespace vnlc {
         return Diagnostic(DiagnosticPhase::COLLECTOR, DiagnosticSeverity::ERROR, std::string(message), token.getLine(), token.getColumn(), token.getOffset(), token.getLength());
     }
 
-    void Collector::mergeImports(std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& target, std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>&& source) {
+    void Collector::mergeImports(ImportedRootPackageMap& target, ImportedRootPackageMap&& source) {
         for (auto& [name, package] : source) {
             auto existing = target.find(name);
             if (existing == target.end()) {
@@ -525,7 +525,7 @@ namespace vnlc {
 
         skipNewlines();
 
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        ImportedRootPackageMap imports;
         std::vector<Diagnostic> errors;
 
         while (check(TokenKind::IMPORT)) {

@@ -38,7 +38,7 @@ namespace vnlc {
 
         [[nodiscard]] std::string consumeIdentifier();
 
-        void collectImport(const Config& config, std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports, std::vector<Diagnostic>& errors);
+        void collectImport(const Config& config, ImportedRootPackageMap& imports, std::vector<Diagnostic>& errors);
         void collectImportPath(std::vector<std::string> prefix, bool allowSelf, std::vector<std::vector<std::string>>& paths);
         void collectImportPathList(std::vector<std::string> prefix, std::vector<std::vector<std::string>>& paths);
 
@@ -54,7 +54,7 @@ namespace vnlc {
 
         [[nodiscard]] static std::string joinPath(const std::vector<std::string>& path);
         [[nodiscard]] static Diagnostic makeError(const Token& token, std::string_view message);
-        static void mergeImports(std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& target, std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>&& source);
+        static void mergeImports(ImportedRootPackageMap& target, ImportedRootPackageMap&& source);
 
         static void collectTypeDependencies(std::string_view type, std::unordered_set<std::string>& dependencies);
         static void collectImportDependencies(const ImportedItem& item, std::unordered_set<std::string>& dependencies, std::unordered_set<const ImportedModule*>& visitedModules);

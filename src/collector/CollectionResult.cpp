@@ -1,11 +1,7 @@
 #include "CollectionResult.hpp"
 
 namespace vnlc {
-    CollectionResult::CollectionResult(
-        std::unique_ptr<ModuleOutline>&& moduleOutline,
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>&& imports,
-        std::vector<Diagnostic>&& errors
-    ) noexcept
+    CollectionResult::CollectionResult(std::unique_ptr<ModuleOutline>&& moduleOutline, ImportedRootPackageMap&& imports, std::vector<Diagnostic>&& errors) noexcept
         : moduleOutline(std::move(moduleOutline)),
           imports(std::move(imports)),
           errors(std::move(errors)) {}
@@ -14,7 +10,7 @@ namespace vnlc {
         return *moduleOutline;
     }
 
-    const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& CollectionResult::getImports() const noexcept {
+    const ImportedRootPackageMap& CollectionResult::getImports() const noexcept {
         return imports;
     }
 

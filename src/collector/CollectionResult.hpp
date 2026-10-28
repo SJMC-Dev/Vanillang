@@ -3,25 +3,19 @@
 
 #include "diagnostic/Diagnostic.hpp"
 #include "outline/ModuleOutline.hpp"
-#include "vni/import/ImportedPackage.hpp"
+#include "vni/import/ImportedRootPackageMap.hpp"
 #include <memory>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace vnlc {
     class CollectionResult {
     private:
         std::unique_ptr<ModuleOutline> moduleOutline;
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        ImportedRootPackageMap imports;
         std::vector<Diagnostic> errors;
 
     public:
-        CollectionResult(
-            std::unique_ptr<ModuleOutline>&& moduleOutline,
-            std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>&& imports,
-            std::vector<Diagnostic>&& errors
-        ) noexcept;
+        CollectionResult(std::unique_ptr<ModuleOutline>&& moduleOutline, ImportedRootPackageMap&& imports, std::vector<Diagnostic>&& errors) noexcept;
 
         CollectionResult(const CollectionResult&) = delete;
         CollectionResult& operator=(const CollectionResult&) = delete;
@@ -29,7 +23,7 @@ namespace vnlc {
         CollectionResult& operator=(CollectionResult&&) noexcept = default;
 
         [[nodiscard]] const ModuleOutline& getModuleOutline() const noexcept;
-        [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& getImports() const noexcept;
+        [[nodiscard]] const ImportedRootPackageMap& getImports() const noexcept;
         [[nodiscard]] const std::vector<Diagnostic>& getErrors() const noexcept;
     };
 } // namespace vnlc
