@@ -162,17 +162,17 @@ namespace vnlc {
             return nlohmann::json::parse(input);
         }
 
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> makeNestedImports() {
+        ImportedRootPackageMap makeNestedImports() {
             std::unordered_map<std::string, std::unique_ptr<ImportedIdentifier>> identifiers;
             identifiers.emplace("State", std::make_unique<ImportedEnum>("State", std::vector<std::string>{ "T" }, std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>{}));
 
             std::unordered_map<std::string, std::unique_ptr<ImportedModule>> modules;
             modules.emplace("api", std::make_unique<ImportedModule>("api", std::move(identifiers)));
 
-            std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> subPackages;
-            subPackages.emplace("sub", std::make_unique<ImportedPackage>("sub", std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>{}, std::move(modules)));
+            ImportedRootPackageMap subPackages;
+            subPackages.emplace("sub", std::make_unique<ImportedPackage>("sub", ImportedRootPackageMap{}, std::move(modules)));
 
-            std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            ImportedRootPackageMap imports;
             imports.emplace("root", std::make_unique<ImportedPackage>("root", std::move(subPackages), std::unordered_map<std::string, std::unique_ptr<ImportedModule>>{}));
             return imports;
         }
@@ -484,7 +484,7 @@ namespace vnlc {
     TEST_F(VniTest, ImportedItemResolvesFullTypeNameThroughNestedPackages) {
         const auto imports = makeNestedImports();
 
-        const auto* item = ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.State");
+        const auto* item = imports.getImportedItemByFullTypeName("root.sub.api.State");
 
         ASSERT_NE(item, nullptr);
         EXPECT_NE(dynamic_cast<const ImportedEnum*>(item), nullptr);
@@ -493,24 +493,24 @@ namespace vnlc {
 
     TEST_F(VniTest, ImportedItemIgnoresGenericArgumentsAndSurroundingSpacesInFullTypeName) {
         const auto imports = makeNestedImports();
-        const auto* expected = ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.State");
+        const auto* expected = imports.getImportedItemByFullTypeName("root.sub.api.State");
         ASSERT_NE(expected, nullptr);
 
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.State<int>"), expected);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.State<root.sub.api.State<int>, string>"), expected);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, " \troot.sub.api.State <int>\n"), expected);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("root.sub.api.State<int>"), expected);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("root.sub.api.State<root.sub.api.State<int>, string>"), expected);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName(" \troot.sub.api.State <int>\n"), expected);
     }
 
     TEST_F(VniTest, ImportedItemReturnsNullForUnresolvableFullTypeName) {
         const auto imports = makeNestedImports();
 
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, ""), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "   "), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "<int>"), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "missing.sub.api.State"), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.Missing"), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "root..api.State"), nullptr);
-        EXPECT_EQ(ImportedItem::getImportedItemByFullTypeName(imports, "root.sub.api.State."), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName(""), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("   "), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("<int>"), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("missing.sub.api.State"), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("root.sub.api.Missing"), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("root..api.State"), nullptr);
+        EXPECT_EQ(imports.getImportedItemByFullTypeName("root.sub.api.State."), nullptr);
     }
 
     TEST_F(VniTest, ModuleInterfaceFileReaderReadsModuleInterfaceFile) {
@@ -851,7 +851,7 @@ namespace vnlc {
         Config config{};
         config.dependencyPackageRootPaths.emplace("available", dependencyRoot / "available");
 
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> packages;
+        ImportedRootPackageMap packages;
         PackageReader reader(packages);
 
         EXPECT_THROW(reader.readPackageFromPath("missing.module", config), PackageReaderError);
@@ -874,7 +874,7 @@ namespace vnlc {
         Config config{};
         config.dependencyPackageRootPaths.emplace("package", packageRoot);
 
-        std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> packages;
+        ImportedRootPackageMap packages;
         PackageReader reader(packages);
         reader.readPackageFromPath("package.api", config);
 
