@@ -509,7 +509,7 @@ namespace vnlc {
                 throw IllegalModuleOrPackageNameError(namePart);
             } else if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE)) {
                 throw IllegalModuleOrPackageNameError(namePart);
-            } else if (!pathStream.eof() && namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz_") != std::string::npos) {
+            } else if (namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
                 throw IllegalModuleOrPackageNameError(namePart);
             }
 
