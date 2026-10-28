@@ -11,6 +11,7 @@
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
+#include "ast/module/ModuleNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include "diagnostic/Diagnostic.hpp"
 #include "inheritance/ClassInheritanceNode.hpp"
@@ -28,6 +29,8 @@
 #include "vni/import/ImportedEnumMember.hpp"
 #include "vni/import/ImportedIdentifier.hpp"
 #include "vni/import/ImportedInterface.hpp"
+#include "vni/import/ImportedPackage.hpp"
+#include "vni/import/ImportedRootPackageMap.hpp"
 #include <memory>
 #include <string>
 #include <string_view>
@@ -38,6 +41,9 @@
 namespace vnlc {
     class SemanticContext {
     private:
+        const ModuleNode& module;
+        const ImportedRootPackageMap& imports;
+
         std::vector<Diagnostic> errors;
         std::vector<Diagnostic> warnings;
         std::vector<Diagnostic> notes;
@@ -62,15 +68,20 @@ namespace vnlc {
         std::size_t switchDepth = 0;
 
     public:
-        SemanticContext() = default;
+        SemanticContext(const ModuleNode& module, const ImportedRootPackageMap& imports);
         SemanticContext(const SemanticContext&) = delete;
-        SemanticContext& operator=(const SemanticContext&) = delete;
         SemanticContext(SemanticContext&&) noexcept = default;
-        SemanticContext& operator=(SemanticContext&&) noexcept = default;
 
         void reportError(const AstNode& node, std::string_view message);
         void reportWarning(const AstNode& node, std::string_view message);
         void reportNote(const AstNode& node, std::string_view message);
+
+        [[nodiscard]] const ModuleNode& getModule() const;
+        [[nodiscard]] const ImportedRootPackageMap& getImports() const;
+
+        [[nodiscard]] const ImportedItem* getImportedItemByFullPath(const std::vector<std::string>& fullPath) const;
+        [[nodiscard]] const ImportedItem* getImportedItemByFullTypeName(std::string_view fullTypeName) const;
+        [[nodiscard]] const ImportedPackage* getImportedRootPackageByName(std::string_view name) const;
 
         void pushScope(std::unique_ptr<Scope>&& scope);
         bool pushExistingScope(const AstNode* astNode);
@@ -94,7 +105,8 @@ namespace vnlc {
         EnumInheritanceNode& getOrCreateImportedInheritanceNode(const ImportedEnum& importedNode);
         EnumMemberInheritanceNode& getOrCreateImportedInheritanceNode(const ImportedEnumMember& importedNode);
 
-        [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const;
+        [[nodiscard]] const Type* getTypeByFullTypeName(std::string_view fullTypeName) const;
+        [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const;
         [[nodiscard]] const Type* getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const;
         [[nodiscard]] const Scope* getScopeByAstNode(const AstNode* astNode) const;
         [[nodiscard]] const Scope* getScopeByImportedNode(const ImportedItem* importedNode) const;
@@ -106,14 +118,15 @@ namespace vnlc {
 
         [[nodiscard]] Scope& currentScope();
 
-        [[nodiscard]] const Scope* currentModule();
-        [[nodiscard]] const Scope* currentFunction();
-        [[nodiscard]] const Scope* currentClass();
-        [[nodiscard]] const Scope* currentInterface();
-        [[nodiscard]] const Scope* currentEnum();
-        [[nodiscard]] const Scope* currentBlock();
-        [[nodiscard]] const Scope* currentLoop();
-        [[nodiscard]] const Scope* currentSwitch();
+        [[nodiscard]] const Scope* currentModuleScope() const noexcept;
+        [[nodiscard]] const Scope* currentFunctionScope() const noexcept;
+        [[nodiscard]] const Scope* currentClassScope() const noexcept;
+        [[nodiscard]] const Scope* currentInterfaceScope() const noexcept;
+        [[nodiscard]] const Scope* currentEnumScope() const noexcept;
+        [[nodiscard]] const Scope* currentEnumMemberScope() const noexcept;
+        [[nodiscard]] const Scope* currentBlockScope() const noexcept;
+        [[nodiscard]] const Scope* currentLoopScope() const noexcept;
+        [[nodiscard]] const Scope* currentSwitchScope() const noexcept;
 
         [[nodiscard]] const std::vector<Diagnostic>& getErrors() const noexcept;
         [[nodiscard]] const std::vector<Diagnostic>& getWarnings() const noexcept;

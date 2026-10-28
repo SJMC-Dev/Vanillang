@@ -49,16 +49,10 @@
 #include "metadata/MetadataInfo.hpp"
 #include "semantic/SemanticContext.hpp"
 #include "semantic/SemanticResult.hpp"
-#include "symbol/RegularSymbolAccessModifier.hpp"
 #include "symbol/RegularSymbolKind.hpp"
-#include "type/Type.hpp"
 #include "vni/import/ImportedItem.hpp"
 #include "vni/import/ImportedModule.hpp"
-#include "vni/import/ImportedPackage.hpp"
-#include <memory>
-#include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace vnlc {
@@ -68,18 +62,11 @@ namespace vnlc {
         friend class SemanticAnalyzerImportTest;
 
     private:
-        const ModuleNode& module;
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports;
         SemanticContext context;
 
-        [[nodiscard]] static RegularSymbolKind getImportedSymbolKind(const ImportedItem& item);
-        [[nodiscard]] static std::optional<ScopeKind> getImportedScopeKind(const ImportedItem& item);
-        [[nodiscard]] static RegularSymbolAccessModifier getImportedAccessModifier(const ImportedItem& item);
-
-        [[nodiscard]] const ImportedPackage* getImportedRootPackageByName(std::string_view name) const;
-
         void declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind);
-        const Type* registerImportedTypeReference(std::string_view fullTypeName);
+
+        void registerImportedTypeReference(std::string_view fullTypeName);
         void registerImportedTypeReferences(const ImportedItem& importedItem);
         void registerImportedScopes(const ImportedItem& item, const Scope* parent);
 
@@ -161,7 +148,7 @@ namespace vnlc {
 
     public:
         explicit SemanticAnalyzer(const ModuleNode& module);
-        SemanticAnalyzer(const ModuleNode& module, const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports);
+        SemanticAnalyzer(const ModuleNode& module, const ImportedRootPackageMap& imports);
 
         SemanticAnalyzer() = delete;
         SemanticAnalyzer(const SemanticAnalyzer&) = delete;

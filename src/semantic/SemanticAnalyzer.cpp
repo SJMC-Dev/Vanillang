@@ -36,6 +36,7 @@
 #include "ast/statement/IfStatementNode.hpp"
 #include "ast/statement/ReloadStatementNode.hpp"
 #include "ast/statement/ReturnStatementNode.hpp"
+#include "ast/statement/StatementNode.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
 #include "ast/statement/WhileStatementNode.hpp"
@@ -83,70 +84,64 @@
 #include <unordered_set>
 
 namespace vnlc {
-    SemanticAnalyzer::SemanticAnalyzer(const ModuleNode& module, const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>>& imports) : module(module), imports(imports) {}
-
-    RegularSymbolKind SemanticAnalyzer::getImportedSymbolKind(const ImportedItem& item) {
-        if (dynamic_cast<const ImportedPackage*>(&item)) return RegularSymbolKind::PACKAGE;
-        if (dynamic_cast<const ImportedModule*>(&item)) return RegularSymbolKind::MODULE;
-        if (dynamic_cast<const ImportedLet*>(&item)) return RegularSymbolKind::VARIABLE;
-        if (dynamic_cast<const ImportedFunc*>(&item)) return RegularSymbolKind::FUNCTION;
-        if (dynamic_cast<const ImportedClass*>(&item)) return RegularSymbolKind::CLASS;
-        if (dynamic_cast<const ImportedInterface*>(&item)) return RegularSymbolKind::INTERFACE;
-        if (dynamic_cast<const ImportedEnum*>(&item)) return RegularSymbolKind::ENUM;
-        if (dynamic_cast<const ImportedTypeAlias*>(&item)) return RegularSymbolKind::TYPE_ALIAS;
-        if (dynamic_cast<const ImportedEnumMember*>(&item)) return RegularSymbolKind::ENUM_MEMBER;
-        if (dynamic_cast<const ImportedProperty*>(&item) || dynamic_cast<const ImportedEnumValue*>(&item)) return RegularSymbolKind::PROPERTY;
-        if (dynamic_cast<const ImportedMethod*>(&item)) return RegularSymbolKind::METHOD;
-        if (dynamic_cast<const ImportedConstructor*>(&item)) return RegularSymbolKind::METHOD;
-        if (dynamic_cast<const ImportedParameter*>(&item)) return RegularSymbolKind::PARAMETER;
-        return RegularSymbolKind::IMPORT_ALIAS;
-    }
-
-    std::optional<ScopeKind> SemanticAnalyzer::getImportedScopeKind(const ImportedItem& item) {
-        switch (getImportedSymbolKind(item)) {
-            case RegularSymbolKind::PACKAGE:
-                return ScopeKind::PACKAGE;
-            case RegularSymbolKind::MODULE:
-                return ScopeKind::MODULE;
-            case RegularSymbolKind::CLASS:
-                return ScopeKind::CLASS;
-            case RegularSymbolKind::INTERFACE:
-                return ScopeKind::INTERFACE;
-            case RegularSymbolKind::ENUM:
-                return ScopeKind::ENUM;
-            case RegularSymbolKind::ENUM_MEMBER:
-                return ScopeKind::ENUM_MEMBER;
-            case RegularSymbolKind::TYPE_ALIAS:
-                return ScopeKind::TYPE_ALIAS;
-            case RegularSymbolKind::FUNCTION:
-            case RegularSymbolKind::METHOD:
-                return ScopeKind::FUNCTION;
-            default:
-                return std::nullopt;
+    namespace {
+        RegularSymbolKind getImportedSymbolKind(const ImportedItem& item) {
+            if (dynamic_cast<const ImportedPackage*>(&item)) return RegularSymbolKind::PACKAGE;
+            if (dynamic_cast<const ImportedModule*>(&item)) return RegularSymbolKind::MODULE;
+            if (dynamic_cast<const ImportedLet*>(&item)) return RegularSymbolKind::VARIABLE;
+            if (dynamic_cast<const ImportedFunc*>(&item)) return RegularSymbolKind::FUNCTION;
+            if (dynamic_cast<const ImportedClass*>(&item)) return RegularSymbolKind::CLASS;
+            if (dynamic_cast<const ImportedInterface*>(&item)) return RegularSymbolKind::INTERFACE;
+            if (dynamic_cast<const ImportedEnum*>(&item)) return RegularSymbolKind::ENUM;
+            if (dynamic_cast<const ImportedTypeAlias*>(&item)) return RegularSymbolKind::TYPE_ALIAS;
+            if (dynamic_cast<const ImportedEnumMember*>(&item)) return RegularSymbolKind::ENUM_MEMBER;
+            if (dynamic_cast<const ImportedProperty*>(&item) || dynamic_cast<const ImportedEnumValue*>(&item)) return RegularSymbolKind::PROPERTY;
+            if (dynamic_cast<const ImportedMethod*>(&item)) return RegularSymbolKind::METHOD;
+            if (dynamic_cast<const ImportedConstructor*>(&item)) return RegularSymbolKind::METHOD;
+            if (dynamic_cast<const ImportedParameter*>(&item)) return RegularSymbolKind::PARAMETER;
+            return RegularSymbolKind::IMPORT_ALIAS;
         }
-    }
 
-    RegularSymbolAccessModifier SemanticAnalyzer::getImportedAccessModifier(const ImportedItem& item) {
-        std::string_view accessModifier;
-        if (const auto* property = dynamic_cast<const ImportedProperty*>(&item)) {
-            accessModifier = property->getAccessModifier();
-        } else if (const auto* method = dynamic_cast<const ImportedMethod*>(&item)) {
-            accessModifier = method->getAccessModifier();
-        } else if (const auto* constructor = dynamic_cast<const ImportedConstructor*>(&item)) {
-            accessModifier = constructor->getAccessModifier();
+        std::optional<ScopeKind> getImportedScopeKind(const ImportedItem& item) {
+            switch (getImportedSymbolKind(item)) {
+                case RegularSymbolKind::PACKAGE:
+                    return ScopeKind::PACKAGE;
+                case RegularSymbolKind::MODULE:
+                    return ScopeKind::MODULE;
+                case RegularSymbolKind::CLASS:
+                    return ScopeKind::CLASS;
+                case RegularSymbolKind::INTERFACE:
+                    return ScopeKind::INTERFACE;
+                case RegularSymbolKind::ENUM:
+                    return ScopeKind::ENUM;
+                case RegularSymbolKind::ENUM_MEMBER:
+                    return ScopeKind::ENUM_MEMBER;
+                case RegularSymbolKind::TYPE_ALIAS:
+                    return ScopeKind::TYPE_ALIAS;
+                case RegularSymbolKind::FUNCTION:
+                case RegularSymbolKind::METHOD:
+                    return ScopeKind::FUNCTION;
+                default:
+                    return std::nullopt;
+            }
         }
-        if (accessModifier == "private") return RegularSymbolAccessModifier::PRIVATE;
-        if (accessModifier == "protected") return RegularSymbolAccessModifier::PROTECTED;
-        return RegularSymbolAccessModifier::PUBLIC;
-    }
 
-    const ImportedPackage* SemanticAnalyzer::getImportedRootPackageByName(std::string_view name) const {
-        auto it = imports.find(std::string(name));
-        if (it != imports.end()) {
-            return it->second.get();
+        RegularSymbolAccessModifier getImportedAccessModifier(const ImportedItem& item) {
+            std::string_view accessModifier;
+            if (const auto* property = dynamic_cast<const ImportedProperty*>(&item)) {
+                accessModifier = property->getAccessModifier();
+            } else if (const auto* method = dynamic_cast<const ImportedMethod*>(&item)) {
+                accessModifier = method->getAccessModifier();
+            } else if (const auto* constructor = dynamic_cast<const ImportedConstructor*>(&item)) {
+                accessModifier = constructor->getAccessModifier();
+            }
+            if (accessModifier == "private") return RegularSymbolAccessModifier::PRIVATE;
+            if (accessModifier == "protected") return RegularSymbolAccessModifier::PROTECTED;
+            return RegularSymbolAccessModifier::PUBLIC;
         }
-        return nullptr;
-    }
+    } // namespace
+
+    SemanticAnalyzer::SemanticAnalyzer(const ModuleNode& module, const ImportedRootPackageMap& imports) : context(module, imports) {}
 
     void SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
         const auto name = funcDecl.getName().getIdentifierString();
@@ -173,7 +168,7 @@ namespace vnlc {
         }
     }
 
-    const Type* SemanticAnalyzer::registerImportedTypeReference(std::string_view fullTypeName) {
+    void SemanticAnalyzer::registerImportedTypeReference(std::string_view fullTypeName) {
         const auto isSpace = [](char character) { return character == ' ' || character == '\t' || character == '\r' || character == '\n'; };
         const auto trim = [&isSpace](std::string_view value) {
             while (!value.empty() && isSpace(value.front())) {
@@ -184,23 +179,17 @@ namespace vnlc {
             }
             return value;
         };
-
         fullTypeName = trim(fullTypeName);
-        if (fullTypeName.empty()) {
-            return nullptr;
-        }
 
-        const std::string fullName(fullTypeName);
-        if (const CustomizedType* existingType = context.getCustomizedTypeByFullTypeName(fullName)) {
-            return existingType;
+        if (fullTypeName.empty()) {
+            return;
+        }
+        if (context.getTypeByFullTypeName(fullTypeName)) {
+            return;
         }
 
         const std::size_t genericArgumentStart = fullTypeName.find('<');
         std::string_view unwrappedTypeName = trim(fullTypeName.substr(0, genericArgumentStart));
-
-        if (const PrimitiveType* primitiveType = PrimitiveType::getPrimitiveTypeByFullTypeName(unwrappedTypeName)) {
-            return primitiveType;
-        }
 
         std::vector<const Type*> genericArgumentTypes;
         if (genericArgumentStart != std::string_view::npos) {
@@ -219,7 +208,7 @@ namespace vnlc {
             }
 
             if (genericArgumentEnd == std::string_view::npos) {
-                return nullptr;
+                return;
             }
 
             std::size_t argumentStart = genericArgumentStart + 1;
@@ -231,9 +220,10 @@ namespace vnlc {
                     --depth;
                 } else if (fullTypeName[index] == ',' && depth == 0) {
                     const std::string_view argument = trim(fullTypeName.substr(argumentStart, index - argumentStart));
-                    const Type* argumentType = registerImportedTypeReference(argument);
+                    registerImportedTypeReference(argument);
+                    const Type* argumentType = context.getTypeByFullTypeName(argument);
                     if (argumentType == nullptr) {
-                        return nullptr;
+                        return;
                     }
                     genericArgumentTypes.emplace_back(argumentType);
                     argumentStart = index + 1;
@@ -241,14 +231,15 @@ namespace vnlc {
             }
 
             const std::string_view lastArgument = trim(fullTypeName.substr(argumentStart, genericArgumentEnd - argumentStart));
-            const Type* lastArgumentType = registerImportedTypeReference(lastArgument);
+            registerImportedTypeReference(lastArgument);
+            const Type* lastArgumentType = context.getTypeByFullTypeName(lastArgument);
             if (lastArgumentType == nullptr) {
-                return nullptr;
+                return;
             }
             genericArgumentTypes.emplace_back(lastArgumentType);
         }
 
-        const ImportedItem* importedType = ImportedItem::getImportedItemByFullTypeName(imports, fullTypeName);
+        const ImportedItem* importedType = context.getImportedItemByFullTypeName(fullTypeName);
 
         // imported type references should never be type aliases
         const auto customizedTypeKind = [&importedType]() -> std::optional<CustomizedTypeKind> {
@@ -259,18 +250,17 @@ namespace vnlc {
             return std::nullopt;
         }();
         if (!customizedTypeKind.has_value()) {
-            return nullptr;
+            return;
         }
 
         const auto* importedIdentifier = dynamic_cast<const ImportedIdentifier*>(importedType);
         if (importedIdentifier == nullptr) {
-            return nullptr;
+            return;
         }
 
-        auto customizedType = std::make_unique<CustomizedType>(customizedTypeKind.value(), fullName, std::move(genericArgumentTypes), importedIdentifier);
-        const Type* type = customizedType.get();
+        auto customizedType = std::make_unique<CustomizedType>(customizedTypeKind.value(), fullTypeName, std::move(genericArgumentTypes), importedIdentifier);
         context.registerCustomizedType(std::move(customizedType));
-        return type;
+        return;
     }
 
     void SemanticAnalyzer::registerImportedTypeReferences(const ImportedItem& importedItem) {
@@ -647,7 +637,6 @@ namespace vnlc {
         };
 
         using TypeSubstitutionMap = std::unordered_map<std::string, const Type*>;
-
         using NameSubstitutionMap = std::unordered_map<std::string, std::string>;
 
         const auto substituteImportedTypeParametersWithNames =
@@ -802,7 +791,7 @@ namespace vnlc {
                     }
                 }
 
-                result = module.getFullName();
+                result = context.getModule().getFullName();
                 while (!identifiers.empty()) {
                     result.append(".");
                     result.append(identifiers.top());
@@ -1027,7 +1016,8 @@ namespace vnlc {
 
                         const std::string originalTypeName =
                             substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), importedTypeAlias->getGenericParameters(), genericArgumentTypes);
-                        return registerImportedTypeReference(originalTypeName);
+                        registerImportedTypeReference(originalTypeName);
+                        return context.getTypeByFullTypeName(originalTypeName);
                     }
 
                     return nullptr;
@@ -1091,7 +1081,7 @@ namespace vnlc {
 
                 if (optionalType == nullptr) {
                     std::unique_ptr<CustomizedType> customizedType = nullptr;
-                    const auto* currModule = dynamic_cast<const ModuleNode*>(context.currentModule()->getLocalNode());
+                    const auto* currModule = &context.getModule();
 
                     if (currModule->getFullName() == "vanillang.typesystem") {
                         const EnumDeclarationNode* opt = nullptr;
@@ -1111,7 +1101,7 @@ namespace vnlc {
 
                         customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
                     } else {
-                        const ImportedItem* item = ImportedItem::getImportedItemByFullPath(imports, { "vanillang", "typesystem", "Optional" });
+                        const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "typesystem", "Optional" });
                         const ImportedEnum* opt = dynamic_cast<const ImportedEnum*>(item);
 
                         if (!opt) {
@@ -1512,13 +1502,13 @@ namespace vnlc {
 
                 ClassInheritanceNode& classNode = context.getOrCreateImportedInheritanceNode(*importedClass);
                 if (importedClass->getBaseClass().has_value()) {
-                    if (const auto* baseClass = dynamic_cast<const ImportedClass*>(ImportedItem::getImportedItemByFullTypeName(imports, importedClass->getBaseClass().value()))) {
+                    if (const auto* baseClass = dynamic_cast<const ImportedClass*>(context.getImportedItemByFullTypeName(importedClass->getBaseClass().value()))) {
                         classNode.setParent(&context.getOrCreateImportedInheritanceNode(*baseClass));
                     }
                 }
 
                 for (const auto& implementedInterface : importedClass->getImplementedInterfaces()) {
-                    if (const auto* interfaceNode = dynamic_cast<const ImportedInterface*>(ImportedItem::getImportedItemByFullTypeName(imports, implementedInterface))) {
+                    if (const auto* interfaceNode = dynamic_cast<const ImportedInterface*>(context.getImportedItemByFullTypeName(implementedInterface))) {
                         classNode.addImplementedInterface(&context.getOrCreateImportedInheritanceNode(*interfaceNode));
                     }
                 }
@@ -1573,7 +1563,7 @@ namespace vnlc {
         };
 
         std::vector<const ImportedModule*> importedModules;
-        for (const auto& item : imports) {
+        for (const auto& item : context.getImports()) {
             const ImportedItem* node = item.second.get();
             collectModuleNode(node, importedModules);
         }
@@ -1643,7 +1633,7 @@ namespace vnlc {
                     }
                 }
 
-                target = ImportedItem::getImportedItemByFullPath(imports, path);
+                target = context.getImportedItemByFullPath(path);
                 if (target == nullptr) {
                     context.reportError(location, fmt::format("Could not find imported alias target '{}'", importedAlias->getSource()));
                     return;
@@ -1679,7 +1669,7 @@ namespace vnlc {
                     }
                     const ImportedItem* parentItem = target;
                     if (target == nullptr) {
-                        target = getImportedRootPackageByName(name);
+                        target = context.getImportedRootPackageByName(name);
                     } else {
                         target = target->getChildByName(name);
                     }
@@ -1759,8 +1749,8 @@ namespace vnlc {
         std::unordered_set<std::string> reportedRedeclarations;
 
         for (const auto& binding : bindings) {
-            const auto* package = getImportedRootPackageByName(binding.path.front());
-            const ImportedItem* target = ImportedItem::getImportedItemByFullPath(imports, binding.path);
+            const auto* package = context.getImportedRootPackageByName(binding.path.front());
+            const ImportedItem* target = context.getImportedItemByFullPath(binding.path);
             if (target == nullptr) {
                 continue;
             }
@@ -2073,7 +2063,7 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::checkBreakStatement(const BreakStatementNode& breakStmt) {
-        if (!context.currentLoop()) {
+        if (!context.currentLoopScope()) {
             context.reportError(breakStmt, "Break statement not within a loop");
         }
 
@@ -2089,7 +2079,7 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::checkContinueStatement(const ContinueStatementNode& continueStmt) {
-        if (!context.currentLoop()) {
+        if (!context.currentLoopScope()) {
             context.reportError(continueStmt, "Continue statement not within a loop");
         }
 
@@ -2352,7 +2342,7 @@ namespace vnlc {
     }
 
     SemanticResult SemanticAnalyzer::analyze(const Config& config) {
-        checkModule(module, config);
+        checkModule(context.getModule(), config);
 
         auto diagnostics = context.takeDiagnostics();
         auto customizedTypes = context.takeCustomizedTypeRegistry();

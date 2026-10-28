@@ -1,9 +1,17 @@
 #include "SemanticContext.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "type/PrimitiveType.hpp"
+#include "vni/import/ImportedPackage.hpp"
+#include <algorithm>
+#include <array>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace vnlc {
+    SemanticContext::SemanticContext(const ModuleNode& module, const ImportedRootPackageMap& imports) : module(module), imports(imports) {}
+
     void SemanticContext::reportError(const AstNode& node, std::string_view message) {
         errors.emplace_back(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::ERROR, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
     }
@@ -14,6 +22,26 @@ namespace vnlc {
 
     void SemanticContext::reportNote(const AstNode& node, std::string_view message) {
         notes.emplace_back(DiagnosticPhase::SEMANTIC, DiagnosticSeverity::NOTE, std::string(message), node.locate().first, node.locate().second, node.getOffset(), node.getLength());
+    }
+
+    const ModuleNode& SemanticContext::getModule() const {
+        return module;
+    }
+
+    const ImportedRootPackageMap& SemanticContext::getImports() const {
+        return imports;
+    }
+
+    const ImportedItem* SemanticContext::getImportedItemByFullPath(const std::vector<std::string>& fullPath) const {
+        return imports.getImportedItemByFullPath(fullPath);
+    }
+
+    const ImportedItem* SemanticContext::getImportedItemByFullTypeName(std::string_view fullTypeName) const {
+        return imports.getImportedItemByFullTypeName(fullTypeName);
+    }
+
+    const ImportedPackage* SemanticContext::getImportedRootPackageByName(std::string_view name) const {
+        return imports.getImportedRootPackageByName(name);
     }
 
     void SemanticContext::pushScope(std::unique_ptr<Scope>&& scope) {
@@ -141,8 +169,29 @@ namespace vnlc {
         return static_cast<EnumMemberInheritanceNode&>(*it->second);
     }
 
-    const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const {
-        auto it = customizedTypeRegistry.find(fullTypeName);
+    const Type* SemanticContext::getTypeByFullTypeName(std::string_view fullTypeName) const {
+        static const std::array<std::string_view, 8> primitiveTypes = { "byte", "short", "int", "long", "float", "double", "bool", "string" };
+        const auto getPrimitiveTypeByFullTypeName = [](std::string_view name) -> const PrimitiveType* {
+            if (name == "byte") return PrimitiveType::byteType();
+            if (name == "short") return PrimitiveType::shortType();
+            if (name == "int") return PrimitiveType::intType();
+            if (name == "long") return PrimitiveType::longType();
+            if (name == "float") return PrimitiveType::floatType();
+            if (name == "double") return PrimitiveType::doubleType();
+            if (name == "bool") return PrimitiveType::booleanType();
+            if (name == "string") return PrimitiveType::stringType();
+            return nullptr;
+        };
+
+        if (std::find(primitiveTypes.begin(), primitiveTypes.end(), fullTypeName) != primitiveTypes.end()) {
+            return getPrimitiveTypeByFullTypeName(fullTypeName);
+        } else {
+            return getCustomizedTypeByFullTypeName(fullTypeName);
+        }
+    }
+
+    const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const {
+        auto it = customizedTypeRegistry.find(std::string(fullTypeName));
         if (it != customizedTypeRegistry.end()) {
             return it->second.get();
         }
@@ -221,8 +270,8 @@ namespace vnlc {
         return *scopeStack.back();
     }
 
-    const Scope* SemanticContext::currentModule() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentModuleScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::MODULE) {
                 return current;
@@ -233,8 +282,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentFunction() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentFunctionScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::FUNCTION) {
                 return current;
@@ -245,8 +294,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentClass() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentClassScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::CLASS) {
                 return current;
@@ -257,8 +306,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentInterface() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentInterfaceScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::INTERFACE) {
                 return current;
@@ -269,8 +318,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentEnum() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentEnumScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::ENUM) {
                 return current;
@@ -281,8 +330,20 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentBlock() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentEnumMemberScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
+        while (current != nullptr) {
+            if (current->getKind() == ScopeKind::ENUM_MEMBER) {
+                return current;
+            }
+            current = current->findParent();
+        }
+
+        return nullptr;
+    }
+
+    const Scope* SemanticContext::currentBlockScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::BLOCK) {
                 return current;
@@ -293,8 +354,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentLoop() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentLoopScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::LOOP) {
                 return current;
@@ -305,8 +366,8 @@ namespace vnlc {
         return nullptr;
     }
 
-    const Scope* SemanticContext::currentSwitch() {
-        const Scope* current = &currentScope();
+    const Scope* SemanticContext::currentSwitchScope() const noexcept {
+        const Scope* current = scopeStack.back().get();
         while (current != nullptr) {
             if (current->getKind() == ScopeKind::SWITCH) {
                 return current;
