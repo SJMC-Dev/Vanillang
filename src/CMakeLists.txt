@@ -110,6 +110,7 @@ add_executable(
     vni/import/PackageReader.cpp
     vni/export/ModuleInterfaceFileGenerator.cpp
     utils/Utils.cpp
+    vni/import/ImportedRootPackageMap.cpp
 )
 
 target_include_directories(
