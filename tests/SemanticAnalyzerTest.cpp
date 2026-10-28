@@ -12,6 +12,7 @@
 #include "semantic/SemanticResult.hpp"
 #include "type/CustomizedTypeKind.hpp"
 #include "type/PrimitiveType.hpp"
+#include "vni/import/ImportedRootPackageMap.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -81,7 +82,7 @@ type Identity<T> = T
         const auto config = makeConfig("generic_arguments.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -98,7 +99,7 @@ type Result = Boxed<int>
         const auto config = makeConfig("local_alias_type_names.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -122,7 +123,7 @@ type Result = Box<Alias<int>>
         const auto config = makeConfig("nested_alias_type_names.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -149,7 +150,7 @@ type Result = Baz<float>
         const auto config = makeConfig("nested_alias_arguments.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -174,7 +175,7 @@ type ExtraArgument = Box<Missing, Missing>
         const auto config = makeConfig("generic_argument_errors.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -191,7 +192,7 @@ type Invalid = Missing<Unknown>
         const auto config = makeConfig("invalid_generic_type.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -209,7 +210,7 @@ func test() {
         const auto config = makeConfig("primitive_type_expression.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -227,7 +228,7 @@ class Vec3 {
         const auto config = makeConfig("operator_errors.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -252,7 +253,7 @@ interface Resettable {
         const auto config = makeConfig("parameterless_internal_names.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -299,7 +300,7 @@ class Later {}
         const auto config = makeConfig("resolved_parameter_internal_names.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -339,7 +340,7 @@ func convert(first: string, second: int) {}
         const auto config = makeConfig("function_overload_signatures.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -385,7 +386,7 @@ func afterInterface(input: T) {}
         const auto config = makeConfig("member_internal_name_scopes.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -449,7 +450,7 @@ func afterInterface(input: T) {}
             const auto config = makeConfig("invalid_parameter_internal_names.vnl");
             auto module = parseModule(std::string(source) + "\nfunc after(value: int) {}\n", config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -501,7 +502,7 @@ class Later {}
         ASSERT_NE(interfaceDeclaration, nullptr);
         ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -562,7 +563,7 @@ func value(input: int) {}
         const auto config = makeConfig("function_collision.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -612,7 +613,7 @@ interface Reader {
             const auto config = makeConfig("duplicate_function_signatures.vnl");
             auto module = parseModule(testCase.source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -654,7 +655,7 @@ class Value {
             const auto config = makeConfig("duplicate_constructor_signatures.vnl");
             auto module = parseModule(testCase.source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -715,7 +716,7 @@ interface Addable {
             const auto config = makeConfig("duplicate_operator_signatures.vnl");
             auto module = parseModule(testCase.source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -744,7 +745,7 @@ interface Invocable {
         const auto config = makeConfig("distinct_constructor_operator_signatures.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -788,7 +789,7 @@ class Vec3 {
         const auto config = makeConfig("native_operators.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -813,7 +814,7 @@ class Addable {
         const auto config = makeConfig("duplicate_native_operator_signatures.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -837,7 +838,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto config = makeConfig("valid_inheritance.vnl");
         auto module = parseModule(source, config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -848,7 +849,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto config = makeConfig("primitive_base_class.vnl");
         auto module = parseModule("class Derived extends int {}", config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -869,7 +870,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             const auto config = makeConfig("non_class_base_class.vnl");
             auto module = parseModule(source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -894,7 +895,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             const auto config = makeConfig("final_base_class.vnl");
             auto module = parseModule(source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -914,7 +915,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             const auto config = makeConfig("cyclic_inheritance.vnl");
             auto module = parseModule(source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -943,7 +944,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             const auto config = makeConfig("non_interface_implementations.vnl");
             auto module = parseModule(source, config);
 
-            const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+            const ImportedRootPackageMap imports;
             SemanticAnalyzer analyzer(*module, imports);
             const auto result = analyzer.analyze(config);
 
@@ -957,7 +958,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto config = makeConfig("mixed_implementations.vnl");
         auto module = parseModule("interface Readable {}\nclass Derived implements Readable, int, string {}", config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -970,7 +971,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto config = makeConfig("undeclared_inheritance.vnl");
         auto module = parseModule("class Derived extends Missing implements AlsoMissing {}", config);
 
-        const std::unordered_map<std::string, std::unique_ptr<ImportedPackage>> imports;
+        const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
         const auto result = analyzer.analyze(config);
 
@@ -983,7 +984,8 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto config = makeConfig("scopes.vnl");
         const auto module = parseModule("class Sample {}", config);
         const auto* classDeclaration = module->getTopIdentifierDeclarations().front().get();
-        SemanticContext context;
+        const ImportedRootPackageMap imports;
+        SemanticContext context(*module, imports);
 
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, module.get()));
         const auto* moduleScope = &context.currentScope();
@@ -1013,7 +1015,8 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         const auto module = parseModule("", config);
         const ImportedModule importedModule("api", {});
         const ImportedModule anotherModule("other", {});
-        SemanticContext context;
+        const ImportedRootPackageMap imports;
+        SemanticContext context(*module, imports);
 
         context.pushScope(std::make_unique<Scope>(ScopeKind::MODULE, nullptr, module.get()));
         const auto* localScope = &context.currentScope();
