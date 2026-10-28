@@ -1996,12 +1996,8 @@ namespace vnlc {
             return;
         }
 
-        for (const auto& member : interfaceDecl.getMethodDeclarations()) {
-            if (auto* funcDecl = dynamic_cast<FunctionDeclarationNode*>(member.get())) {
-                checkFunctionDeclaration(*funcDecl);
-            } else {
-                context.reportError(*member, "Invalid interface member declaration");
-            }
+        for (const auto& funcDecl : interfaceDecl.getMethodDeclarations()) {
+            checkFunctionDeclaration(*funcDecl);
         }
 
         for (const auto& operatorDecl : interfaceDecl.getOperatorDeclarations()) {
