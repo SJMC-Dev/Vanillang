@@ -313,7 +313,7 @@ namespace vnlc {
                     }
                 }
 
-                target = ImportedItem::getImportedItemByFullPath(collectionResult.getImports(), path);
+                target = collectionResult.getImports().getImportedItemByFullPath(path);
                 if (target == nullptr) {
                     return;
                 }
@@ -2632,7 +2632,7 @@ namespace vnlc {
                     std::vector<std::string> importedPath = context.prefix;
                     importedPath.erase(importedPath.begin());
                     importedPath.insert(importedPath.begin(), binding->second.begin(), binding->second.end());
-                    importedItem = ImportedItem::getImportedItemByFullPath(collectionResult.getImports(), importedPath);
+                    importedItem = collectionResult.getImports().getImportedItemByFullPath(importedPath);
                 }
 
                 isTypeDeclaration =
