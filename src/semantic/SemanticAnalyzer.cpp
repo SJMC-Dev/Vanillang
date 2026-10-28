@@ -263,7 +263,6 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::registerImportedTypeReferences(const ImportedItem& importedItem) {
-        const auto registerTypeReference = [&](std::string_view fullTypeName) { registerImportedTypeReference(fullTypeName); };
         const auto registerChildren = [&](const auto& children) {
             for (const auto& [name, child] : children) {
                 registerImportedTypeReferences(*child);
@@ -271,33 +270,33 @@ namespace vnlc {
         };
         const auto registerParameters = [&](const auto& parameters) {
             for (const auto& [name, parameter] : parameters) {
-                registerTypeReference(parameter->getType());
+                registerImportedTypeReference(parameter->getType());
             }
         };
 
         if (const auto* let = dynamic_cast<const ImportedLet*>(&importedItem)) {
-            registerTypeReference(let->getType());
+            registerImportedTypeReference(let->getType());
         } else if (const auto* function = dynamic_cast<const ImportedFunc*>(&importedItem)) {
-            registerTypeReference(function->getReturnType());
+            registerImportedTypeReference(function->getReturnType());
             registerParameters(function->getParameters());
         } else if (const auto* method = dynamic_cast<const ImportedMethod*>(&importedItem)) {
-            registerTypeReference(method->getReturnType());
+            registerImportedTypeReference(method->getReturnType());
             registerParameters(method->getParameters());
         } else if (const auto* operatorNode = dynamic_cast<const ImportedOperator*>(&importedItem)) {
-            registerTypeReference(operatorNode->getReturnType());
+            registerImportedTypeReference(operatorNode->getReturnType());
             registerParameters(operatorNode->getParameters());
         } else if (const auto* constructor = dynamic_cast<const ImportedConstructor*>(&importedItem)) {
             registerParameters(constructor->getParameters());
         } else if (const auto* property = dynamic_cast<const ImportedProperty*>(&importedItem)) {
-            registerTypeReference(property->getType());
+            registerImportedTypeReference(property->getType());
         } else if (const auto* parameter = dynamic_cast<const ImportedParameter*>(&importedItem)) {
-            registerTypeReference(parameter->getType());
+            registerImportedTypeReference(parameter->getType());
         } else if (const auto* classType = dynamic_cast<const ImportedClass*>(&importedItem)) {
             if (classType->getBaseClass().has_value()) {
-                registerTypeReference(classType->getBaseClass().value());
+                registerImportedTypeReference(classType->getBaseClass().value());
             }
             for (const auto& interfaceName : classType->getImplementedInterfaces()) {
-                registerTypeReference(interfaceName);
+                registerImportedTypeReference(interfaceName);
             }
             registerChildren(classType->getProperties());
             registerChildren(classType->getMethods());
@@ -311,9 +310,9 @@ namespace vnlc {
         } else if (const auto* enumMember = dynamic_cast<const ImportedEnumMember*>(&importedItem)) {
             registerChildren(enumMember->getAssociatedValues());
         } else if (const auto* enumValue = dynamic_cast<const ImportedEnumValue*>(&importedItem)) {
-            registerTypeReference(enumValue->getType());
+            registerImportedTypeReference(enumValue->getType());
         } else if (const auto* typeAlias = dynamic_cast<const ImportedTypeAlias*>(&importedItem)) {
-            registerTypeReference(typeAlias->getOriginalType());
+            registerImportedTypeReference(typeAlias->getOriginalType());
         } else if (const auto* module = dynamic_cast<const ImportedModule*>(&importedItem)) {
             registerChildren(module->getIdentifiers());
         } else if (const auto* package = dynamic_cast<const ImportedPackage*>(&importedItem)) {
