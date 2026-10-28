@@ -25,8 +25,6 @@ namespace vnlc {
         PrimitiveType(const PrimitiveType&) = delete;
         PrimitiveType(PrimitiveType&&) noexcept = delete;
 
-        [[nodiscard]] static const PrimitiveType* getPrimitiveTypeByFullTypeName(std::string_view name);
-
         [[nodiscard]] PrimitiveTypeKind getPrimitiveKind() const noexcept;
         [[nodiscard]] std::string_view getFullTypeName() const noexcept override;
         [[nodiscard]] bool canConvertTo(const Type& other) const noexcept override;
