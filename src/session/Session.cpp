@@ -9,7 +9,7 @@
 #include <fstream>
 
 namespace vnlc {
-    Session::Session(Config&& config) : config(config) {}
+    Session::Session(Config&& config) : config(std::move(config)) {}
 
     void Session::run() {
         VNLC_LOG_INFO("Session started.");
