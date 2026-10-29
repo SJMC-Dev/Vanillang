@@ -437,7 +437,13 @@ namespace vnlc {
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+
+                if (peek() == '>') {
+                    collect(tokenValue);
+                    return Token(TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                } else {
+                    return Token(TokenKind::LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                }
             } else if (peek() == '<') {
                 collect(tokenValue);
 

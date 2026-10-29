@@ -82,16 +82,8 @@ namespace vnlc {
                 return "exponent";
             case OperatorDeclarationKind::Kind::EQUAL:
                 return "equality";
-            case OperatorDeclarationKind::Kind::NOT_EQUAL:
-                return "inequality";
-            case OperatorDeclarationKind::Kind::LESS_THAN:
-                return "lessThan";
-            case OperatorDeclarationKind::Kind::GREATER_THAN:
-                return "greaterThan";
-            case OperatorDeclarationKind::Kind::LESS_THAN_OR_EQUAL:
-                return "lessThanOrEqual";
-            case OperatorDeclarationKind::Kind::GREATER_THAN_OR_EQUAL:
-                return "greaterThanOrEqual";
+            case OperatorDeclarationKind::Kind::COMPARISON:
+                return "comparison";
             case OperatorDeclarationKind::Kind::BITWISE_AND:
                 return "bitwiseAnd";
             case OperatorDeclarationKind::Kind::BITWISE_OR:

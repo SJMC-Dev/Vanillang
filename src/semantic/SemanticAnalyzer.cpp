@@ -1802,6 +1802,32 @@ namespace vnlc {
             }
         }
 
+        const Type* requiredReturnType = nullptr;
+        switch (operatorDecl.getKind()) {
+            case OperatorDeclarationKind::Kind::EQUAL:
+                requiredReturnType = PrimitiveType::booleanType();
+                break;
+            case OperatorDeclarationKind::Kind::COMPARISON:
+                requiredReturnType = PrimitiveType::intType();
+                break;
+            default:
+                break;
+        }
+
+        if (requiredReturnType != nullptr) {
+            const auto& returnTypeRefNode = operatorDecl.getReturnType();
+            const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnType->getFullTypeName());
+
+            if (returnTypeRefNode.has_value()) {
+                const Type* returnType = context.getTypeByTypeReferenceNode(returnTypeRefNode.value().get());
+                if (returnType != nullptr && returnType != requiredReturnType) {
+                    context.reportError(*returnTypeRefNode.value(), message);
+                }
+            } else if (!hasBody) {
+                context.reportError(operatorDecl, message);
+            }
+        }
+
         // TODO: Implement return type inference
 
         context.popScope();

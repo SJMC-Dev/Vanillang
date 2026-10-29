@@ -209,6 +209,8 @@ namespace vnlc {
                 return "VnlcTokenKind::LEFT_ANGLE";
             case TokenKind::LEFT_ANGLE_EQUAL:
                 return "VnlcTokenKind::LEFT_ANGLE_EQUAL";
+            case TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE:
+                return "VnlcTokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE";
             case TokenKind::DOUBLE_AMPERSAND:
                 return "VnlcTokenKind::DOUBLE_AMPERSAND";
             case TokenKind::DOUBLE_PIPE:
