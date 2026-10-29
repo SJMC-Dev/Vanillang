@@ -1,5 +1,7 @@
 #include "SemanticContext.hpp"
+#include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
 #include "type/PrimitiveType.hpp"
 #include "type/PrimitiveTypeNames.hpp"
 #include "vni/import/ImportedPackage.hpp"
@@ -205,6 +207,30 @@ namespace vnlc {
     const Type* SemanticContext::getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const {
         auto it = typeMap.find(typeNode);
         if (it != typeMap.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    const Type* SemanticContext::getInferredValueType(const ValueDeclarationNode& valueDecl) const {
+        auto it = inferredValueTypeMap.find(&valueDecl);
+        if (it != inferredValueTypeMap.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    const Type* SemanticContext::getInferredFunctionReturnType(const FunctionDeclarationNode& funcDecl) const {
+        auto it = inferredFunctionReturnTypeMap.find(&funcDecl);
+        if (it != inferredFunctionReturnTypeMap.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    const Type* SemanticContext::getInferredOperatorReturnType(const OperatorDeclarationNode& opDecl) const {
+        auto it = inferredOperatorReturnTypeMap.find(&opDecl);
+        if (it != inferredOperatorReturnTypeMap.end()) {
             return it->second;
         }
         return nullptr;

@@ -1804,33 +1804,37 @@ namespace vnlc {
             }
         }
 
-        const Type* requiredReturnType = nullptr;
+        // TODO: Implement return type inference
+
+        std::optional<std::string> requiredReturnTypeName;
         switch (operatorDecl.getKind()) {
             case OperatorDeclarationKind::Kind::EQUAL:
-                requiredReturnType = PrimitiveType::booleanType();
+                requiredReturnTypeName = PrimitiveTypeNames::Boolean;
                 break;
             case OperatorDeclarationKind::Kind::COMPARISON:
-                requiredReturnType = PrimitiveType::intType();
+                requiredReturnTypeName = StandardLibraryTypeNames::Optional(StandardLibraryTypeNames::Ordering);
                 break;
             default:
                 break;
         }
 
-        if (requiredReturnType != nullptr) {
+        if (requiredReturnTypeName.has_value()) {
             const auto& returnTypeRefNode = operatorDecl.getReturnType();
-            const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnType->getFullTypeName());
+            const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnTypeName.value());
 
             if (returnTypeRefNode.has_value()) {
                 const Type* returnType = context.getTypeByTypeReferenceNode(returnTypeRefNode.value().get());
-                if (returnType != nullptr && returnType != requiredReturnType) {
+                if (returnType != nullptr && returnType->getFullTypeName() != requiredReturnTypeName.value()) {
                     context.reportError(*returnTypeRefNode.value(), message);
+                }
+            } else if (const Type* inferredReturnType = context.getInferredOperatorReturnType(operatorDecl)) {
+                if (inferredReturnType->getFullTypeName() != requiredReturnTypeName.value()) {
+                    context.reportError(operatorDecl, message);
                 }
             } else if (!hasBody) {
                 context.reportError(operatorDecl, message);
             }
         }
-
-        // TODO: Implement return type inference
 
         context.popScope();
     }

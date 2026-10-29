@@ -105,6 +105,9 @@ namespace vnlc {
         [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const;
         [[nodiscard]] const Type* getTypeByFullTypeName(std::string_view fullTypeName) const;
         [[nodiscard]] const Type* getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const;
+        [[nodiscard]] const Type* getInferredValueType(const ValueDeclarationNode& valueDecl) const;
+        [[nodiscard]] const Type* getInferredFunctionReturnType(const FunctionDeclarationNode& funcDecl) const;
+        [[nodiscard]] const Type* getInferredOperatorReturnType(const OperatorDeclarationNode& opDecl) const;
 
         [[nodiscard]] const Scope* getScopeByAstNode(const AstNode* astNode) const;
         [[nodiscard]] const Scope* getScopeByImportedNode(const ImportedItem* importedNode) const;
