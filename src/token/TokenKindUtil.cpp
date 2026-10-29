@@ -6,297 +6,297 @@ namespace vnlc {
     std::string_view TokenKindUtil::toString(TokenKind kind) {
         switch (kind) {
             case TokenKind::IDENTIFIER:
-                return "VnlcTokenKind::IDENTIFIER";
+                return "vnlc::TokenKind::IDENTIFIER";
             case TokenKind::NUMBER:
-                return "VnlcTokenKind::NUMBER";
+                return "vnlc::TokenKind::NUMBER";
             case TokenKind::CHAR:
-                return "VnlcTokenKind::CHAR";
+                return "vnlc::TokenKind::CHAR";
             case TokenKind::STRING:
-                return "VnlcTokenKind::STRING";
+                return "vnlc::TokenKind::STRING";
             case TokenKind::VAR:
-                return "VnlcTokenKind::VAR";
+                return "vnlc::TokenKind::VAR";
             case TokenKind::LET:
-                return "VnlcTokenKind::LET";
+                return "vnlc::TokenKind::LET";
             case TokenKind::CONST_KEYWORD:
-                return "VnlcTokenKind::CONST";
+                return "vnlc::TokenKind::CONST";
             case TokenKind::BYTE_TYPE:
-                return "VnlcTokenKind::BYTE_TYPE";
+                return "vnlc::TokenKind::BYTE_TYPE";
             case TokenKind::SHORT_TYPE:
-                return "VnlcTokenKind::SHORT_TYPE";
+                return "vnlc::TokenKind::SHORT_TYPE";
             case TokenKind::INT_TYPE:
-                return "VnlcTokenKind::INT_TYPE";
+                return "vnlc::TokenKind::INT_TYPE";
             case TokenKind::LONG_TYPE:
-                return "VnlcTokenKind::LONG_TYPE";
+                return "vnlc::TokenKind::LONG_TYPE";
             case TokenKind::FLOAT_TYPE:
-                return "VnlcTokenKind::FLOAT_TYPE";
+                return "vnlc::TokenKind::FLOAT_TYPE";
             case TokenKind::DOUBLE_TYPE:
-                return "VnlcTokenKind::DOUBLE_TYPE";
+                return "vnlc::TokenKind::DOUBLE_TYPE";
             case TokenKind::BOOL_TYPE:
-                return "VnlcTokenKind::BOOL_TYPE";
+                return "vnlc::TokenKind::BOOL_TYPE";
             case TokenKind::STRING_TYPE:
-                return "VnlcTokenKind::STRING_TYPE";
+                return "vnlc::TokenKind::STRING_TYPE";
             case TokenKind::FUNC:
-                return "VnlcTokenKind::FUNC";
+                return "vnlc::TokenKind::FUNC";
             case TokenKind::INIT:
-                return "VnlcTokenKind::INIT";
+                return "vnlc::TokenKind::INIT";
             case TokenKind::OP:
-                return "VnlcTokenKind::OP";
+                return "vnlc::TokenKind::OP";
             case TokenKind::RETURN:
-                return "VnlcTokenKind::RETURN";
+                return "vnlc::TokenKind::RETURN";
             case TokenKind::IF:
-                return "VnlcTokenKind::IF";
+                return "vnlc::TokenKind::IF";
             case TokenKind::ELSE:
-                return "VnlcTokenKind::ELSE";
+                return "vnlc::TokenKind::ELSE";
             case TokenKind::FOR:
-                return "VnlcTokenKind::FOR";
+                return "vnlc::TokenKind::FOR";
             case TokenKind::WHILE:
-                return "VnlcTokenKind::WHILE";
+                return "vnlc::TokenKind::WHILE";
             case TokenKind::LABEL:
-                return "VnlcTokenKind::LABEL";
+                return "vnlc::TokenKind::LABEL";
             case TokenKind::BREAK:
-                return "VnlcTokenKind::BREAK";
+                return "vnlc::TokenKind::BREAK";
             case TokenKind::CONTINUE:
-                return "VnlcTokenKind::CONTINUE";
+                return "vnlc::TokenKind::CONTINUE";
             case TokenKind::SWITCH:
-                return "VnlcTokenKind::SWITCH";
+                return "vnlc::TokenKind::SWITCH";
             case TokenKind::CASE:
-                return "VnlcTokenKind::CASE";
+                return "vnlc::TokenKind::CASE";
             case TokenKind::DEFAULT:
-                return "VnlcTokenKind::DEFAULT";
+                return "vnlc::TokenKind::DEFAULT";
             case TokenKind::WHEN:
-                return "VnlcTokenKind::WHEN";
+                return "vnlc::TokenKind::WHEN";
             case TokenKind::CONTEXT:
-                return "VnlcTokenKind::CONTEXT";
+                return "vnlc::TokenKind::CONTEXT";
             case TokenKind::VOID_KEYWORD:
-                return "VnlcTokenKind::VOID";
+                return "vnlc::TokenKind::VOID";
             case TokenKind::NATIVE:
-                return "VnlcTokenKind::NATIVE";
+                return "vnlc::TokenKind::NATIVE";
             case TokenKind::CALLEE:
-                return "VnlcTokenKind::CALLEE";
+                return "vnlc::TokenKind::CALLEE";
             case TokenKind::IN_KEYWORD:
-                return "VnlcTokenKind::IN";
+                return "vnlc::TokenKind::IN";
             case TokenKind::RELOAD:
-                return "VnlcTokenKind::RELOAD";
+                return "vnlc::TokenKind::RELOAD";
             case TokenKind::CLASS:
-                return "VnlcTokenKind::CLASS";
+                return "vnlc::TokenKind::CLASS";
             case TokenKind::INTERFACE:
-                return "VnlcTokenKind::INTERFACE";
+                return "vnlc::TokenKind::INTERFACE";
             case TokenKind::ABSTRACT:
-                return "VnlcTokenKind::ABSTRACT";
+                return "vnlc::TokenKind::ABSTRACT";
             case TokenKind::TYPE:
-                return "VnlcTokenKind::TYPE";
+                return "vnlc::TokenKind::TYPE";
             case TokenKind::ENUM:
-                return "VnlcTokenKind::ENUM";
+                return "vnlc::TokenKind::ENUM";
             case TokenKind::RECORD:
-                return "VnlcTokenKind::RECORD";
+                return "vnlc::TokenKind::RECORD";
             case TokenKind::EXTENDS:
-                return "VnlcTokenKind::EXTENDS";
+                return "vnlc::TokenKind::EXTENDS";
             case TokenKind::IMPLEMENTS:
-                return "VnlcTokenKind::IMPLEMENTS";
+                return "vnlc::TokenKind::IMPLEMENTS";
             case TokenKind::THIS:
-                return "VnlcTokenKind::THIS";
+                return "vnlc::TokenKind::THIS";
             case TokenKind::SUPER:
-                return "VnlcTokenKind::SUPER";
+                return "vnlc::TokenKind::SUPER";
             case TokenKind::PRIVATE:
-                return "VnlcTokenKind::PRIVATE";
+                return "vnlc::TokenKind::PRIVATE";
             case TokenKind::PROTECTED:
-                return "VnlcTokenKind::PROTECTED";
+                return "vnlc::TokenKind::PROTECTED";
             case TokenKind::PUBLIC:
-                return "VnlcTokenKind::PUBLIC";
+                return "vnlc::TokenKind::PUBLIC";
             case TokenKind::READONLY:
-                return "VnlcTokenKind::READONLY";
+                return "vnlc::TokenKind::READONLY";
             case TokenKind::STATIC:
-                return "VnlcTokenKind::STATIC";
+                return "vnlc::TokenKind::STATIC";
             case TokenKind::INSTANCEOF:
-                return "VnlcTokenKind::INSTANCEOF";
+                return "vnlc::TokenKind::INSTANCEOF";
             case TokenKind::FINAL:
-                return "VnlcTokenKind::FINAL";
+                return "vnlc::TokenKind::FINAL";
             case TokenKind::OVERRIDE:
-                return "VnlcTokenKind::OVERRIDE";
+                return "vnlc::TokenKind::OVERRIDE";
             case TokenKind::NONE:
-                return "VnlcTokenKind::NONE";
+                return "vnlc::TokenKind::NONE";
             case TokenKind::TRUE_LITERAL:
-                return "VnlcTokenKind::TRUE";
+                return "vnlc::TokenKind::TRUE";
             case TokenKind::FALSE_LITERAL:
-                return "VnlcTokenKind::FALSE";
+                return "vnlc::TokenKind::FALSE";
             case TokenKind::IMPORT:
-                return "VnlcTokenKind::IMPORT";
+                return "vnlc::TokenKind::IMPORT";
             case TokenKind::EXPORT:
-                return "VnlcTokenKind::EXPORT";
+                return "vnlc::TokenKind::EXPORT";
             case TokenKind::AS:
-                return "VnlcTokenKind::AS";
+                return "vnlc::TokenKind::AS";
             case TokenKind::MODULE:
-                return "VnlcTokenKind::MODULE";
+                return "vnlc::TokenKind::MODULE";
             case TokenKind::PARENT:
-                return "VnlcTokenKind::PARENT";
+                return "vnlc::TokenKind::PARENT";
             case TokenKind::LAMBDA:
-                return "VnlcTokenKind::LAMBDA";
+                return "vnlc::TokenKind::LAMBDA";
             case TokenKind::COMMAND:
-                return "VnlcTokenKind::COMMAND";
+                return "vnlc::TokenKind::COMMAND";
             case TokenKind::ASYNC:
-                return "VnlcTokenKind::ASYNC";
+                return "vnlc::TokenKind::ASYNC";
             case TokenKind::AWAIT:
-                return "VnlcTokenKind::AWAIT";
+                return "vnlc::TokenKind::AWAIT";
             case TokenKind::GENERATOR:
-                return "VnlcTokenKind::GENERATOR";
+                return "vnlc::TokenKind::GENERATOR";
             case TokenKind::YIELD:
-                return "VnlcTokenKind::YIELD";
+                return "vnlc::TokenKind::YIELD";
             case TokenKind::FROM:
-                return "VnlcTokenKind::FROM";
+                return "vnlc::TokenKind::FROM";
             case TokenKind::DECORATOR:
-                return "VnlcTokenKind::DECORATOR";
+                return "vnlc::TokenKind::DECORATOR";
             case TokenKind::DECORATE:
-                return "VnlcTokenKind::DECORATE";
+                return "vnlc::TokenKind::DECORATE";
             case TokenKind::PANIC:
-                return "VnlcTokenKind::PANIC";
+                return "vnlc::TokenKind::PANIC";
             case TokenKind::ASSERT:
-                return "VnlcTokenKind::ASSERT";
+                return "vnlc::TokenKind::ASSERT";
             case TokenKind::TYPEOF:
-                return "VnlcTokenKind::TYPEOF";
+                return "vnlc::TokenKind::TYPEOF";
             case TokenKind::DEFER:
-                return "VnlcTokenKind::DEFER";
+                return "vnlc::TokenKind::DEFER";
             case TokenKind::ASSET:
-                return "VnlcTokenKind::ASSET";
+                return "vnlc::TokenKind::ASSET";
             case TokenKind::DEFINE:
-                return "VnlcTokenKind::DEFINE";
+                return "vnlc::TokenKind::DEFINE";
             case TokenKind::METADATA:
-                return "VnlcTokenKind::METADATA";
+                return "vnlc::TokenKind::METADATA";
             case TokenKind::PLUS:
-                return "VnlcTokenKind::PLUS";
+                return "vnlc::TokenKind::PLUS";
             case TokenKind::MINUS:
-                return "VnlcTokenKind::MINUS";
+                return "vnlc::TokenKind::MINUS";
             case TokenKind::ASTERISK:
-                return "VnlcTokenKind::ASTERISK";
+                return "vnlc::TokenKind::ASTERISK";
             case TokenKind::SLASH:
-                return "VnlcTokenKind::SLASH";
+                return "vnlc::TokenKind::SLASH";
             case TokenKind::DOUBLE_SLASH:
-                return "VnlcTokenKind::DOUBLE_SLASH";
+                return "vnlc::TokenKind::DOUBLE_SLASH";
             case TokenKind::PERCENT:
-                return "VnlcTokenKind::PERCENT";
+                return "vnlc::TokenKind::PERCENT";
             case TokenKind::DOUBLE_ASTERISK:
-                return "VnlcTokenKind::DOUBLE_ASTERISK";
+                return "vnlc::TokenKind::DOUBLE_ASTERISK";
             case TokenKind::PLUS_EQUAL:
-                return "VnlcTokenKind::PLUS_EQUAL";
+                return "vnlc::TokenKind::PLUS_EQUAL";
             case TokenKind::MINUS_EQUAL:
-                return "VnlcTokenKind::MINUS_EQUAL";
+                return "vnlc::TokenKind::MINUS_EQUAL";
             case TokenKind::ASTERISK_EQUAL:
-                return "VnlcTokenKind::ASTERISK_EQUAL";
+                return "vnlc::TokenKind::ASTERISK_EQUAL";
             case TokenKind::SLASH_EQUAL:
-                return "VnlcTokenKind::SLASH_EQUAL";
+                return "vnlc::TokenKind::SLASH_EQUAL";
             case TokenKind::DOUBLE_SLASH_EQUAL:
-                return "VnlcTokenKind::DOUBLE_SLASH_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_SLASH_EQUAL";
             case TokenKind::PERCENT_EQUAL:
-                return "VnlcTokenKind::PERCENT_EQUAL";
+                return "vnlc::TokenKind::PERCENT_EQUAL";
             case TokenKind::DOUBLE_ASTERISK_EQUAL:
-                return "VnlcTokenKind::DOUBLE_ASTERISK_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_ASTERISK_EQUAL";
             case TokenKind::EQUAL:
-                return "VnlcTokenKind::EQUAL";
+                return "vnlc::TokenKind::EQUAL";
             case TokenKind::DOUBLE_QUESTION_EQUAL:
-                return "VnlcTokenKind::DOUBLE_QUESTION_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_QUESTION_EQUAL";
             case TokenKind::DOUBLE_EQUAL:
-                return "VnlcTokenKind::DOUBLE_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_EQUAL";
             case TokenKind::TRIPLE_EQUAL:
-                return "VnlcTokenKind::TRIPLE_EQUAL";
+                return "vnlc::TokenKind::TRIPLE_EQUAL";
             case TokenKind::EXCLAMATION_EQUAL:
-                return "VnlcTokenKind::EXCLAMATION_EQUAL";
+                return "vnlc::TokenKind::EXCLAMATION_EQUAL";
             case TokenKind::EXCLAMATION_DOUBLE_EQUAL:
-                return "VnlcTokenKind::EXCLAMATION_DOUBLE_EQUAL";
+                return "vnlc::TokenKind::EXCLAMATION_DOUBLE_EQUAL";
             case TokenKind::RIGHT_ANGLE:
-                return "VnlcTokenKind::RIGHT_ANGLE";
+                return "vnlc::TokenKind::RIGHT_ANGLE";
             case TokenKind::RIGHT_ANGLE_EQUAL:
-                return "VnlcTokenKind::RIGHT_ANGLE_EQUAL";
+                return "vnlc::TokenKind::RIGHT_ANGLE_EQUAL";
             case TokenKind::LEFT_ANGLE:
-                return "VnlcTokenKind::LEFT_ANGLE";
+                return "vnlc::TokenKind::LEFT_ANGLE";
             case TokenKind::LEFT_ANGLE_EQUAL:
-                return "VnlcTokenKind::LEFT_ANGLE_EQUAL";
+                return "vnlc::TokenKind::LEFT_ANGLE_EQUAL";
             case TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE:
-                return "VnlcTokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE";
+                return "vnlc::TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE";
             case TokenKind::DOUBLE_AMPERSAND:
-                return "VnlcTokenKind::DOUBLE_AMPERSAND";
+                return "vnlc::TokenKind::DOUBLE_AMPERSAND";
             case TokenKind::DOUBLE_PIPE:
-                return "VnlcTokenKind::DOUBLE_PIPE";
+                return "vnlc::TokenKind::DOUBLE_PIPE";
             case TokenKind::DOUBLE_QUESTION:
-                return "VnlcTokenKind::DOUBLE_QUESTION";
+                return "vnlc::TokenKind::DOUBLE_QUESTION";
             case TokenKind::EXCLAMATION:
-                return "VnlcTokenKind::EXCLAMATION";
+                return "vnlc::TokenKind::EXCLAMATION";
             case TokenKind::ARROW:
-                return "VnlcTokenKind::ARROW";
+                return "vnlc::TokenKind::ARROW";
             case TokenKind::AMPERSAND:
-                return "VnlcTokenKind::AMPERSAND";
+                return "vnlc::TokenKind::AMPERSAND";
             case TokenKind::PIPE:
-                return "VnlcTokenKind::PIPE";
+                return "vnlc::TokenKind::PIPE";
             case TokenKind::CARET:
-                return "VnlcTokenKind::CARET";
+                return "vnlc::TokenKind::CARET";
             case TokenKind::TILDE:
-                return "VnlcTokenKind::TILDE";
+                return "vnlc::TokenKind::TILDE";
             case TokenKind::DOUBLE_LEFT_ANGLE:
-                return "VnlcTokenKind::DOUBLE_LEFT_ANGLE";
+                return "vnlc::TokenKind::DOUBLE_LEFT_ANGLE";
             case TokenKind::DOUBLE_RIGHT_ANGLE:
-                return "VnlcTokenKind::DOUBLE_RIGHT_ANGLE";
+                return "vnlc::TokenKind::DOUBLE_RIGHT_ANGLE";
             case TokenKind::TRIPLE_RIGHT_ANGLE:
-                return "VnlcTokenKind::TRIPLE_RIGHT_ANGLE";
+                return "vnlc::TokenKind::TRIPLE_RIGHT_ANGLE";
             case TokenKind::AMPERSAND_EQUAL:
-                return "VnlcTokenKind::AMPERSAND_EQUAL";
+                return "vnlc::TokenKind::AMPERSAND_EQUAL";
             case TokenKind::PIPE_EQUAL:
-                return "VnlcTokenKind::PIPE_EQUAL";
+                return "vnlc::TokenKind::PIPE_EQUAL";
             case TokenKind::CARET_EQUAL:
-                return "VnlcTokenKind::CARET_EQUAL";
+                return "vnlc::TokenKind::CARET_EQUAL";
             case TokenKind::DOUBLE_LEFT_ANGLE_EQUAL:
-                return "VnlcTokenKind::DOUBLE_LEFT_ANGLE_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_LEFT_ANGLE_EQUAL";
             case TokenKind::DOUBLE_RIGHT_ANGLE_EQUAL:
-                return "VnlcTokenKind::DOUBLE_RIGHT_ANGLE_EQUAL";
+                return "vnlc::TokenKind::DOUBLE_RIGHT_ANGLE_EQUAL";
             case TokenKind::TRIPLE_RIGHT_ANGLE_EQUAL:
-                return "VnlcTokenKind::TRIPLE_RIGHT_ANGLE_EQUAL";
+                return "vnlc::TokenKind::TRIPLE_RIGHT_ANGLE_EQUAL";
             case TokenKind::DOT:
-                return "VnlcTokenKind::DOT";
+                return "vnlc::TokenKind::DOT";
             case TokenKind::COMMA:
-                return "VnlcTokenKind::COMMA";
+                return "vnlc::TokenKind::COMMA";
             case TokenKind::SEMICOLON:
-                return "VnlcTokenKind::SEMICOLON";
+                return "vnlc::TokenKind::SEMICOLON";
             case TokenKind::COLON:
-                return "VnlcTokenKind::COLON";
+                return "vnlc::TokenKind::COLON";
             case TokenKind::DOUBLE_COLON:
-                return "VnlcTokenKind::DOUBLE_COLON";
+                return "vnlc::TokenKind::DOUBLE_COLON";
             case TokenKind::QUESTION:
-                return "VnlcTokenKind::QUESTION";
+                return "vnlc::TokenKind::QUESTION";
             case TokenKind::QUESTION_DOT:
-                return "VnlcTokenKind::QUESTION_DOT";
+                return "vnlc::TokenKind::QUESTION_DOT";
             case TokenKind::EXCLAMATION_DOT:
-                return "VnlcTokenKind::EXCLAMATION_DOT";
+                return "vnlc::TokenKind::EXCLAMATION_DOT";
             case TokenKind::DOUBLE_DOT:
-                return "VnlcTokenKind::DOUBLE_DOT";
+                return "vnlc::TokenKind::DOUBLE_DOT";
             case TokenKind::TRIPLE_DOT:
-                return "VnlcTokenKind::TRIPLE_DOT";
+                return "vnlc::TokenKind::TRIPLE_DOT";
             case TokenKind::LEFT_PARENTHESIS:
-                return "VnlcTokenKind::LEFT_PARENTHESIS";
+                return "vnlc::TokenKind::LEFT_PARENTHESIS";
             case TokenKind::RIGHT_PARENTHESIS:
-                return "VnlcTokenKind::RIGHT_PARENTHESIS";
+                return "vnlc::TokenKind::RIGHT_PARENTHESIS";
             case TokenKind::LEFT_BRACE:
-                return "VnlcTokenKind::LEFT_BRACE";
+                return "vnlc::TokenKind::LEFT_BRACE";
             case TokenKind::RIGHT_BRACE:
-                return "VnlcTokenKind::RIGHT_BRACE";
+                return "vnlc::TokenKind::RIGHT_BRACE";
             case TokenKind::LEFT_BRACKET:
-                return "VnlcTokenKind::LEFT_BRACKET";
+                return "vnlc::TokenKind::LEFT_BRACKET";
             case TokenKind::RIGHT_BRACKET:
-                return "VnlcTokenKind::RIGHT_BRACKET";
+                return "vnlc::TokenKind::RIGHT_BRACKET";
             case TokenKind::SELECTOR_PREFIX:
-                return "VnlcTokenKind::SELECTOR_PREFIX";
+                return "vnlc::TokenKind::SELECTOR_PREFIX";
             case TokenKind::INTERPOLATION_START:
-                return "VnlcTokenKind::INTERPOLATION_START";
+                return "vnlc::TokenKind::INTERPOLATION_START";
             case TokenKind::SINGLE_LINE_COMMENT:
-                return "VnlcTokenKind::SINGLE_LINE_COMMENT";
+                return "vnlc::TokenKind::SINGLE_LINE_COMMENT";
             case TokenKind::MULTI_LINE_COMMENT:
-                return "VnlcTokenKind::MULTI_LINE_COMMENT";
+                return "vnlc::TokenKind::MULTI_LINE_COMMENT";
             case TokenKind::BLANK:
-                return "VnlcTokenKind::BLANK";
+                return "vnlc::TokenKind::BLANK";
             case TokenKind::NEWLINE:
-                return "VnlcTokenKind::NEWLINE";
+                return "vnlc::TokenKind::NEWLINE";
             case TokenKind::LEXICAL_ERROR:
-                return "VnlcTokenKind::LEXICAL_ERROR";
+                return "vnlc::TokenKind::LEXICAL_ERROR";
             case TokenKind::END_OF_FILE:
-                return "VnlcTokenKind::END_OF_FILE";
+                return "vnlc::TokenKind::END_OF_FILE";
             default:
-                return "Unknown VnlcTokenKind";
+                return "Unknown vnlc::TokenKind";
         }
     }
 
