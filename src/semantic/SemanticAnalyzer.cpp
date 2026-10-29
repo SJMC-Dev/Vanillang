@@ -55,6 +55,8 @@
 #include "type/CustomizedTypeKind.hpp"
 #include "type/CustomizedTypeOrigin.hpp"
 #include "type/PrimitiveType.hpp"
+#include "type/PrimitiveTypeNames.hpp"
+#include "type/StandardLibraryTypeNames.hpp"
 #include "type/Type.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
@@ -961,7 +963,7 @@ namespace vnlc {
             }
 
             if (type.hasQuestionMarkSuffix()) {
-                const std::string fullName = fmt::format("vanillang.typesystem.Optional<{}>", resolvedType->getFullTypeName());
+                const std::string fullName = StandardLibraryTypeNames::Optional(resolvedType->getFullTypeName());
                 const CustomizedType* optionalType = context.getCustomizedTypeByFullTypeName(fullName);
 
                 if (optionalType == nullptr) {

@@ -1,6 +1,7 @@
 #include "SemanticContext.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "type/PrimitiveType.hpp"
+#include "type/PrimitiveTypeNames.hpp"
 #include "vni/import/ImportedPackage.hpp"
 #include <algorithm>
 #include <array>
@@ -169,17 +170,28 @@ namespace vnlc {
         return static_cast<EnumMemberInheritanceNode&>(*it->second);
     }
 
+    const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const {
+        auto it = customizedTypeRegistry.find(std::string(fullTypeName));
+        if (it != customizedTypeRegistry.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
     const Type* SemanticContext::getTypeByFullTypeName(std::string_view fullTypeName) const {
-        static const std::array<std::string_view, 8> primitiveTypes = { "byte", "short", "int", "long", "float", "double", "bool", "string" };
+        static const std::array<std::string_view, 8> primitiveTypes = {
+            PrimitiveTypeNames::Byte,  PrimitiveTypeNames::Short,  PrimitiveTypeNames::Int,     PrimitiveTypeNames::Long,
+            PrimitiveTypeNames::Float, PrimitiveTypeNames::Double, PrimitiveTypeNames::Boolean, PrimitiveTypeNames::String,
+        };
         const auto getPrimitiveTypeByFullTypeName = [](std::string_view name) -> const PrimitiveType* {
-            if (name == "byte") return PrimitiveType::byteType();
-            if (name == "short") return PrimitiveType::shortType();
-            if (name == "int") return PrimitiveType::intType();
-            if (name == "long") return PrimitiveType::longType();
-            if (name == "float") return PrimitiveType::floatType();
-            if (name == "double") return PrimitiveType::doubleType();
-            if (name == "bool") return PrimitiveType::booleanType();
-            if (name == "string") return PrimitiveType::stringType();
+            if (name == PrimitiveTypeNames::Byte) return PrimitiveType::byteType();
+            if (name == PrimitiveTypeNames::Short) return PrimitiveType::shortType();
+            if (name == PrimitiveTypeNames::Int) return PrimitiveType::intType();
+            if (name == PrimitiveTypeNames::Long) return PrimitiveType::longType();
+            if (name == PrimitiveTypeNames::Float) return PrimitiveType::floatType();
+            if (name == PrimitiveTypeNames::Double) return PrimitiveType::doubleType();
+            if (name == PrimitiveTypeNames::Boolean) return PrimitiveType::booleanType();
+            if (name == PrimitiveTypeNames::String) return PrimitiveType::stringType();
             return nullptr;
         };
 
@@ -188,14 +200,6 @@ namespace vnlc {
         } else {
             return getCustomizedTypeByFullTypeName(fullTypeName);
         }
-    }
-
-    const CustomizedType* SemanticContext::getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const {
-        auto it = customizedTypeRegistry.find(std::string(fullTypeName));
-        if (it != customizedTypeRegistry.end()) {
-            return it->second.get();
-        }
-        return nullptr;
     }
 
     const Type* SemanticContext::getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const {
@@ -388,14 +392,6 @@ namespace vnlc {
 
     const std::vector<Diagnostic>& SemanticContext::getNotes() const noexcept {
         return notes;
-    }
-
-    std::size_t SemanticContext::getLoopDepth() const noexcept {
-        return loopDepth;
-    }
-
-    std::size_t SemanticContext::getSwitchDepth() const noexcept {
-        return switchDepth;
     }
 
     std::tuple<std::vector<Diagnostic>, std::vector<Diagnostic>, std::vector<Diagnostic>> SemanticContext::takeDiagnostics() {

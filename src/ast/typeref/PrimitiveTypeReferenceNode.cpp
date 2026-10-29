@@ -1,4 +1,5 @@
 #include "PrimitiveTypeReferenceNode.hpp"
+#include "type/PrimitiveTypeNames.hpp"
 
 namespace vnlc {
     PrimitiveTypeReferenceNode::PrimitiveTypeReferenceNode(PrimitiveTypeReferenceKind kind, bool questionMarkSuffix, const Token& firstToken, const Token& lastToken) noexcept
@@ -12,21 +13,21 @@ namespace vnlc {
     std::string_view PrimitiveTypeReferenceNode::getPrimitiveTypeName() const noexcept {
         switch (kind) {
             case PrimitiveTypeReferenceKind::BYTE:
-                return "byte";
+                return PrimitiveTypeNames::Byte;
             case PrimitiveTypeReferenceKind::SHORT:
-                return "short";
+                return PrimitiveTypeNames::Short;
             case PrimitiveTypeReferenceKind::INT:
-                return "int";
+                return PrimitiveTypeNames::Int;
             case PrimitiveTypeReferenceKind::LONG:
-                return "long";
+                return PrimitiveTypeNames::Long;
             case PrimitiveTypeReferenceKind::FLOAT:
-                return "float";
+                return PrimitiveTypeNames::Float;
             case PrimitiveTypeReferenceKind::DOUBLE:
-                return "double";
+                return PrimitiveTypeNames::Double;
             case PrimitiveTypeReferenceKind::BOOLEAN:
-                return "bool";
+                return PrimitiveTypeNames::Boolean;
             case PrimitiveTypeReferenceKind::STRING:
-                return "string";
+                return PrimitiveTypeNames::String;
         }
         return {};
     }

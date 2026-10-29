@@ -1,5 +1,6 @@
 #include "PrimitiveType.hpp"
 #include "PrimitiveTypeKind.hpp"
+#include "PrimitiveTypeNames.hpp"
 #include <string_view>
 
 namespace vnlc {
@@ -12,21 +13,21 @@ namespace vnlc {
     std::string_view PrimitiveType::getFullTypeName() const noexcept {
         switch (primitiveKind) {
             case PrimitiveTypeKind::BYTE:
-                return "byte";
+                return PrimitiveTypeNames::Byte;
             case PrimitiveTypeKind::SHORT:
-                return "short";
+                return PrimitiveTypeNames::Short;
             case PrimitiveTypeKind::INT:
-                return "int";
+                return PrimitiveTypeNames::Int;
             case PrimitiveTypeKind::LONG:
-                return "long";
+                return PrimitiveTypeNames::Long;
             case PrimitiveTypeKind::FLOAT:
-                return "float";
+                return PrimitiveTypeNames::Float;
             case PrimitiveTypeKind::DOUBLE:
-                return "double";
+                return PrimitiveTypeNames::Double;
             case PrimitiveTypeKind::BOOLEAN:
-                return "bool";
+                return PrimitiveTypeNames::Boolean;
             case PrimitiveTypeKind::STRING:
-                return "string";
+                return PrimitiveTypeNames::String;
         }
 
         return "unknown"; // should never reach here

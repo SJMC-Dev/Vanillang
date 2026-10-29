@@ -64,9 +64,6 @@ namespace vnlc {
         std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> localInheritanceMap;
         std::unordered_map<const ImportedIdentifier*, InheritanceNode*> importedInheritanceMap;
 
-        std::size_t loopDepth = 0;
-        std::size_t switchDepth = 0;
-
     public:
         SemanticContext(const ModuleNode& module, const ImportedRootPackageMap& imports);
         SemanticContext(const SemanticContext&) = delete;
@@ -105,12 +102,14 @@ namespace vnlc {
         EnumInheritanceNode& getOrCreateImportedInheritanceNode(const ImportedEnum& importedNode);
         EnumMemberInheritanceNode& getOrCreateImportedInheritanceNode(const ImportedEnumMember& importedNode);
 
-        [[nodiscard]] const Type* getTypeByFullTypeName(std::string_view fullTypeName) const;
         [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(std::string_view fullTypeName) const;
+        [[nodiscard]] const Type* getTypeByFullTypeName(std::string_view fullTypeName) const;
         [[nodiscard]] const Type* getTypeByTypeReferenceNode(const TypeReferenceNode* typeNode) const;
+
         [[nodiscard]] const Scope* getScopeByAstNode(const AstNode* astNode) const;
         [[nodiscard]] const Scope* getScopeByImportedNode(const ImportedItem* importedNode) const;
         [[nodiscard]] const Scope* getScopeByRegularSymbol(const RegularSymbol& symbol) const;
+
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const;
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
 
@@ -131,9 +130,6 @@ namespace vnlc {
         [[nodiscard]] const std::vector<Diagnostic>& getErrors() const noexcept;
         [[nodiscard]] const std::vector<Diagnostic>& getWarnings() const noexcept;
         [[nodiscard]] const std::vector<Diagnostic>& getNotes() const noexcept;
-
-        [[nodiscard]] std::size_t getLoopDepth() const noexcept;
-        [[nodiscard]] std::size_t getSwitchDepth() const noexcept;
 
         [[nodiscard]] std::tuple<std::vector<Diagnostic>, std::vector<Diagnostic>, std::vector<Diagnostic>> takeDiagnostics();
         [[nodiscard]] std::unordered_map<const AstNode*, std::unique_ptr<Scope>> takeLocalScopeMap();
