@@ -410,6 +410,31 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, ComparisonOverloadingOperator) {
+        std::istringstream input("<=> <= <=>= <");
+        Lexer lexer(input);
+
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::LEFT_ANGLE_EQUAL);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::EQUAL);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::LEFT_ANGLE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
     TEST(LexerTest, Numbers) {
         std::istringstream input("123 0.456 7.89e10 0x1A 0b1010 0o77 .2f .1211 1e-5 1.2e+3 .3e-2 2.e4d 12b 345s 123456789L 2376. 0x1.2 0b10.01 0o7.5 1e+f 2e-3.5 4.5e6.7 8.9e+ 10.e-");
         Lexer lexer(input);

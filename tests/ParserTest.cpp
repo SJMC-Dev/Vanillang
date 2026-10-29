@@ -21,6 +21,8 @@
 #include <fstream>
 #include <gtest/gtest.h>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 namespace vnlc {
 
@@ -441,6 +443,77 @@ namespace vnlc {
         };
 
         EXPECT_THROW(static_cast<void>(parseModule(input, config)), SyntaxError);
+    }
+
+    TEST(ParserTest, ParsesComparisonOperatorDeclarations) {
+        std::stringstream input(
+            "class Vec3 {\n"
+            "    op <=>(other: Vec3) -> int {\n"
+            "        return 0\n"
+            "    }\n"
+            "    native op <=>(other: int) -> int\n"
+            "}\n"
+            "interface Comparable {\n"
+            "    op <=>(other: Comparable) -> int\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = std::nullopt,
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 2);
+
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[0].get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 2);
+
+        const auto& regularComparison = classDeclaration->getOperatorDeclarations()[0];
+        EXPECT_EQ(regularComparison->getKind(), OperatorDeclarationKind::Kind::COMPARISON);
+        EXPECT_EQ(regularComparison->getImplementation(), OperatorDeclarationKind::Implementation::REGULAR);
+        EXPECT_EQ(regularComparison->getOperatorName(), "comparison");
+        EXPECT_TRUE(regularComparison->getBody().has_value());
+
+        const auto& nativeComparison = classDeclaration->getOperatorDeclarations()[1];
+        EXPECT_EQ(nativeComparison->getKind(), OperatorDeclarationKind::Kind::COMPARISON);
+        EXPECT_EQ(nativeComparison->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
+        EXPECT_FALSE(nativeComparison->getBody().has_value());
+
+        const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
+        ASSERT_NE(interfaceDeclaration, nullptr);
+        ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
+        EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getKind(), OperatorDeclarationKind::Kind::COMPARISON);
+        EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getContext(), OperatorDeclarationKind::Context::INTERFACE);
+    }
+
+    TEST(ParserTest, RejectsOverloadingOfDerivedComparisonOperators) {
+        constexpr std::string_view operators[] = { "!=", "<", ">", "<=", ">=" };
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = std::nullopt,
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        for (const auto operatorSymbol : operators) {
+            std::stringstream input("class Vec3 {\n    op " + std::string(operatorSymbol) + "(other: Vec3) -> bool {\n        return true\n    }\n}\n");
+
+            EXPECT_THROW(static_cast<void>(parseModule(input, config)), SyntaxError) << "op " << operatorSymbol;
+        }
     }
 
     TEST(ParserTest, DistributesClassMembersIntoDeclarationKinds) {

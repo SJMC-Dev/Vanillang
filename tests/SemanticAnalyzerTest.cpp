@@ -804,6 +804,85 @@ class Vec3 {
         EXPECT_EQ(classDeclaration->getOperatorDeclarations()[2]->getInternalName(), "vnl-operator-subtraction(" + vec3TypeName + ")");
     }
 
+    TEST(SemanticAnalyzerTest, AcceptsEqualityAndComparisonOperatorsWithRequiredReturnTypes) {
+        constexpr std::string_view source = R"(
+class Vec3 {
+    op ==(other: Vec3) -> bool { return true }
+    op <=>(other: Vec3) -> int { return 0 }
+    native op ==(other: int) -> bool
+    native op <=>(other: int) -> int
+    op ==(other: string) { return true }
+    op <=>(other: string) { return 0 }
+}
+interface Comparable {
+    op ==(other: Comparable) -> bool
+    op <=>(other: Comparable) -> int
+}
+)";
+        const auto config = makeConfig("comparison_operators.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 6);
+
+        const std::string vec3TypeName = std::string(module->getFullName()) + ".Vec3";
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[1]->getInternalName(), "vnl-operator-comparison(" + vec3TypeName + ")");
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsEqualityOperatorsNotReturningBool) {
+        constexpr std::string_view source = R"(
+class Vec3 {
+    op ==(other: Vec3) -> int { return 0 }
+    op ==(other: int) -> string { return "" }
+    native op ==(other: string)
+}
+interface Equatable {
+    op ==(other: Equatable) -> Equatable
+}
+)";
+        const auto config = makeConfig("equality_operator_errors.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 4);
+        for (const auto& error : result.getErrors()) {
+            EXPECT_EQ(error.getMessage(), "Operator 'equality' must return 'bool'");
+        }
+    }
+
+    TEST(SemanticAnalyzerTest, RejectsComparisonOperatorsNotReturningInt) {
+        constexpr std::string_view source = R"(
+class Vec3 {
+    op <=>(other: Vec3) -> bool { return true }
+    native op <=>(other: int) -> long
+    native op <=>(other: string)
+}
+interface Comparable {
+    op <=>(other: Comparable)
+}
+)";
+        const auto config = makeConfig("comparison_operator_errors.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 4);
+        for (const auto& error : result.getErrors()) {
+            EXPECT_EQ(error.getMessage(), "Operator 'comparison' must return 'int'");
+        }
+    }
+
     TEST(SemanticAnalyzerTest, RejectsDuplicateSignaturesBetweenNativeAndRegularOperators) {
         constexpr std::string_view source = R"(
 class Addable {
