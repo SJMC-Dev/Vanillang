@@ -804,37 +804,6 @@ class Vec3 {
         EXPECT_EQ(classDeclaration->getOperatorDeclarations()[2]->getInternalName(), "vnl-operator-subtraction(" + vec3TypeName + ")");
     }
 
-    TEST(SemanticAnalyzerTest, AcceptsEqualityAndComparisonOperatorsWithRequiredReturnTypes) {
-        constexpr std::string_view source = R"(
-class Vec3 {
-    op ==(other: Vec3) -> bool { return true }
-    op <=>(other: Vec3) -> int { return 0 }
-    native op ==(other: int) -> bool
-    native op <=>(other: int) -> int
-    op ==(other: string) { return true }
-    op <=>(other: string) { return 0 }
-}
-interface Comparable {
-    op ==(other: Comparable) -> bool
-    op <=>(other: Comparable) -> int
-}
-)";
-        const auto config = makeConfig("comparison_operators.vnl");
-        auto module = parseModule(source, config);
-
-        const ImportedRootPackageMap imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_FALSE(result.hasErrors());
-        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
-        ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 6);
-
-        const std::string vec3TypeName = std::string(module->getFullName()) + ".Vec3";
-        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[1]->getInternalName(), "vnl-operator-comparison(" + vec3TypeName + ")");
-    }
-
     TEST(SemanticAnalyzerTest, RejectsEqualityOperatorsNotReturningBool) {
         constexpr std::string_view source = R"(
 class Vec3 {
@@ -856,30 +825,6 @@ interface Equatable {
         ASSERT_EQ(result.getErrors().size(), 4);
         for (const auto& error : result.getErrors()) {
             EXPECT_EQ(error.getMessage(), "Operator 'equality' must return 'bool'");
-        }
-    }
-
-    TEST(SemanticAnalyzerTest, RejectsComparisonOperatorsNotReturningInt) {
-        constexpr std::string_view source = R"(
-class Vec3 {
-    op <=>(other: Vec3) -> bool { return true }
-    native op <=>(other: int) -> long
-    native op <=>(other: string)
-}
-interface Comparable {
-    op <=>(other: Comparable)
-}
-)";
-        const auto config = makeConfig("comparison_operator_errors.vnl");
-        auto module = parseModule(source, config);
-
-        const ImportedRootPackageMap imports;
-        SemanticAnalyzer analyzer(*module, imports);
-        const auto result = analyzer.analyze(config);
-
-        ASSERT_EQ(result.getErrors().size(), 4);
-        for (const auto& error : result.getErrors()) {
-            EXPECT_EQ(error.getMessage(), "Operator 'comparison' must return 'int'");
         }
     }
 
@@ -1148,7 +1093,14 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             config.dependencyPackageRootPaths.emplace("pkg", testDirectory / "dependency_source");
             config.dependencyPackageRootPaths.emplace("extra", testDirectory / "another_source");
             config.dependencyPackageRootPaths.emplace("vanillang", testDirectory / "standard_library");
-            writeFile("standard_library/typesystem.vni", R"({"Optional":{"category":"enum","genericParameters":["T"],"members":{}}})");
+            writeFile("standard_library/typesystem.vni", R"({
+    "Optional": {"category": "enum", "genericParameters": ["T"], "members": {}},
+    "Ordering": {"category": "enum", "genericParameters": [],
+        "members": {
+            "Less": {"category": "enummember", "associatedValues": {}},
+            "Equal": {"category": "enummember", "associatedValues": {}},
+            "Greater": {"category": "enummember", "associatedValues": {}}}}
+})");
             writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"count":{"category":"let","type":"int"}})");
             writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","type":"bool"}})");
             writeFile("dependency_source/sub/second.vni", R"({"caption":{"category":"let","type":"string"}})");
@@ -1567,6 +1519,70 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             ASSERT_EQ(result.getErrors().size(), 1);
             EXPECT_EQ(result.getErrors().front().getMessage(), message);
         }
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, AcceptsEqualityAndComparisonOperatorsWithRequiredReturnTypes) {
+        const auto result = analyze(R"(
+import vanillang.typesystem.{Optional, Ordering}
+class Vec3 {
+    op ==(other: Vec3) -> bool { return true }
+    op <=>(other: Vec3) -> Ordering? { return none }
+    native op ==(other: int) -> bool
+    native op <=>(other: int) -> Optional<Ordering>
+    op ==(other: string) { return true }
+    op <=>(other: string) { return none }
+}
+interface Comparable {
+    op ==(other: Comparable) -> bool
+    op <=>(other: Comparable) -> Ordering?
+}
+)");
+
+        ASSERT_FALSE(result.hasErrors()) << result.getErrors().front().getMessage();
+        const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(classDeclaration, nullptr);
+        ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 6);
+
+        const std::string vec3TypeName = std::string(module->getFullName()) + ".Vec3";
+        EXPECT_EQ(classDeclaration->getOperatorDeclarations()[1]->getInternalName(), "vnl-operator-comparison(" + vec3TypeName + ")");
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, RejectsComparisonOperatorsNotReturningOptionalOrdering) {
+        const auto result = analyze(R"(
+import vanillang.typesystem.{Optional, Ordering}
+class Vec3 {
+    op <=>(other: Vec3) -> int { return 0 }
+    native op <=>(other: int) -> Ordering
+    native op <=>(other: string) -> bool?
+    native op <=>(other: bool)
+}
+interface Comparable {
+    op <=>(other: Comparable) -> Optional<int>
+    op <=>(other: int)
+}
+)");
+
+        ASSERT_EQ(result.getErrors().size(), 6);
+        for (const auto& error : result.getErrors()) {
+            EXPECT_EQ(error.getMessage(), "Operator 'comparison' must return 'vanillang.typesystem.Optional<vanillang.typesystem.Ordering>'");
+        }
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, RejectsComparisonOperatorsReturningLocalOrderingTypes) {
+        const auto result = analyze(R"(
+import vanillang.typesystem.Optional
+enum Ordering {
+    Less
+    Equal
+    Greater
+}
+class Vec3 {
+    native op <=>(other: Vec3) -> Ordering?
+}
+)");
+
+        ASSERT_EQ(result.getErrors().size(), 1);
+        EXPECT_EQ(result.getErrors().front().getMessage(), "Operator 'comparison' must return 'vanillang.typesystem.Optional<vanillang.typesystem.Ordering>'");
     }
 
     TEST_F(SemanticAnalyzerImportTest, BuildsImportedPackageModuleAndMemberScopes) {

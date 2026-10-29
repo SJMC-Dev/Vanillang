@@ -448,13 +448,13 @@ namespace vnlc {
     TEST(ParserTest, ParsesComparisonOperatorDeclarations) {
         std::stringstream input(
             "class Vec3 {\n"
-            "    op <=>(other: Vec3) -> int {\n"
-            "        return 0\n"
+            "    op <=>(other: Vec3) -> Ordering? {\n"
+            "        return none\n"
             "    }\n"
-            "    native op <=>(other: int) -> int\n"
+            "    native op <=>(other: int) -> Ordering?\n"
             "}\n"
             "interface Comparable {\n"
-            "    op <=>(other: Comparable) -> int\n"
+            "    op <=>(other: Comparable) -> Ordering?\n"
             "}\n"
         );
 
