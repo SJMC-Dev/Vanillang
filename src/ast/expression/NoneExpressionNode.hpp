@@ -5,10 +5,9 @@
 
 namespace vnlc {
     class NoneExpressionNode : public PrimaryExpressionNode {
-    private:
+    public:
         NoneExpressionNode() = delete;
 
-    public:
         NoneExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc

@@ -9,12 +9,12 @@
 namespace vnlc {
     class IdentifierLikeExpressionNode : public PrimaryExpressionNode {
     private:
-        IdentifierLikeExpressionNode() = delete;
-
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ExpressionNode>> genericArguments;
 
     public:
+        IdentifierLikeExpressionNode() = delete;
+
         IdentifierLikeExpressionNode(std::unique_ptr<IdentifierNode>&& name, const Token& firstToken, const Token& lastToken) noexcept;
         IdentifierLikeExpressionNode(
             std::unique_ptr<IdentifierNode>&& name,

@@ -8,12 +8,12 @@
 namespace vnlc {
     class WhileStatementNode : public LoopStatementNode {
     private:
-        WhileStatementNode() = delete;
-
         std::unique_ptr<ExpressionNode> condition;
         std::unique_ptr<StatementNode> body;
 
     public:
+        WhileStatementNode() = delete;
+
         WhileStatementNode(std::unique_ptr<ExpressionNode>&& condition, std::unique_ptr<StatementNode>&& body, const Token& firstToken, const Token& lastToken) noexcept;
 
         WhileStatementNode(

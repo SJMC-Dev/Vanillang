@@ -10,14 +10,14 @@
 namespace vnlc {
     class InterfaceDeclarationNode : public TypeDeclarationNode {
     private:
-        InterfaceDeclarationNode() = delete;
-
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
         std::vector<std::unique_ptr<OperatorDeclarationNode>> operatorDeclarations;
 
     public:
+        InterfaceDeclarationNode() = delete;
+
         InterfaceDeclarationNode(
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,

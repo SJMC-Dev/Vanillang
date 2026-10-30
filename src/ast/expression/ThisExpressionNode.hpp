@@ -5,10 +5,9 @@
 
 namespace vnlc {
     class ThisExpressionNode : public PrimaryExpressionNode {
-    private:
+    public:
         ThisExpressionNode() = delete;
 
-    public:
         ThisExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc

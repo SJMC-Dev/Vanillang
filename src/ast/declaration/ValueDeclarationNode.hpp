@@ -10,8 +10,6 @@
 namespace vnlc {
     class ValueDeclarationNode : public DeclarationNode {
     private:
-        ValueDeclarationNode() = delete;
-
         ValueDeclarationKind::Kind kind;
         ValueDeclarationKind::Context context;
         ValueDeclarationKind::AccessModifier accessModifier;
@@ -20,6 +18,8 @@ namespace vnlc {
         std::optional<std::unique_ptr<ExpressionNode>> initializer;
 
     public:
+        ValueDeclarationNode() = delete;
+
         ValueDeclarationNode(
             ValueDeclarationKind::Kind kind,
             ValueDeclarationKind::Context context,

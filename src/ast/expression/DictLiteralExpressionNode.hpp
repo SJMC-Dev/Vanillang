@@ -8,11 +8,11 @@
 namespace vnlc {
     class DictLiteralExpressionNode : public LiteralExpressionNode {
     private:
-        DictLiteralExpressionNode() = delete;
-
         std::unordered_map<std::string, std::unique_ptr<ExpressionNode>> entries;
 
     public:
+        DictLiteralExpressionNode() = delete;
+
         DictLiteralExpressionNode(std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>&& entries, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>& getEntries() const noexcept;

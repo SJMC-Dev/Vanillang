@@ -11,13 +11,13 @@
 namespace vnlc {
     class ModuleOutline : public DeclarationOutline {
     private:
-        ModuleOutline() = delete;
-
         std::string name;
         std::string fullName;
         std::vector<std::unique_ptr<TypeDeclarationOutline>> typeDeclarations;
 
     public:
+        ModuleOutline() = delete;
+
         ModuleOutline(
             std::string&& name,
             std::string&& fullName,

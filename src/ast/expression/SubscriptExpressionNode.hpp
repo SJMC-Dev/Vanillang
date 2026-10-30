@@ -7,12 +7,12 @@
 namespace vnlc {
     class SubscriptExpressionNode : public ExpressionNode {
     private:
-        SubscriptExpressionNode() = delete;
-
         std::unique_ptr<ExpressionNode> object;
         std::unique_ptr<ExpressionNode> index;
 
     public:
+        SubscriptExpressionNode() = delete;
+
         SubscriptExpressionNode(std::unique_ptr<ExpressionNode>&& object, std::unique_ptr<ExpressionNode>&& index, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const ExpressionNode& getObject() const noexcept;

@@ -8,12 +8,12 @@
 namespace vnlc {
     class RangeExpressionNode : public ExpressionNode {
     private:
-        RangeExpressionNode() = delete;
-
         std::optional<std::unique_ptr<ExpressionNode>> start;
         std::optional<std::unique_ptr<ExpressionNode>> end;
 
     public:
+        RangeExpressionNode() = delete;
+
         RangeExpressionNode(
             std::optional<std::unique_ptr<ExpressionNode>>&& start,
             std::optional<std::unique_ptr<ExpressionNode>>&& end,

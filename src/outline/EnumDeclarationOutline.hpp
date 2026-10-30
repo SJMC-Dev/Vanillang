@@ -11,12 +11,12 @@
 namespace vnlc {
     class EnumDeclarationOutline : public TypeDeclarationOutline {
     private:
-        EnumDeclarationOutline() = delete;
-
         std::string name;
         std::vector<std::unique_ptr<EnumMemberDeclarationOutline>> memberDeclarations;
 
     public:
+        EnumDeclarationOutline() = delete;
+
         EnumDeclarationOutline(std::string&& name, std::vector<std::unique_ptr<EnumMemberDeclarationOutline>>&& memberDeclarations, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] std::string_view getName() const noexcept;

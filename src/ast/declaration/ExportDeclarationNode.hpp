@@ -8,11 +8,11 @@
 namespace vnlc {
     class ExportDeclarationNode : public DeclarationNode {
     private:
-        ExportDeclarationNode() = delete;
-
         std::vector<ExportDeclarationItem> nameList;
 
     public:
+        ExportDeclarationNode() = delete;
+
         ExportDeclarationNode(std::vector<ExportDeclarationItem>&& nameList, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const std::vector<ExportDeclarationItem>& getNameList() const noexcept;

@@ -9,13 +9,13 @@
 namespace vnlc {
     class ForStatementNode : public LoopStatementNode {
     private:
-        ForStatementNode() = delete;
-
         std::unique_ptr<ValueDeclarationNode> loopVariable;
         std::unique_ptr<ExpressionNode> iterableExpression;
         std::unique_ptr<StatementNode> body;
 
     public:
+        ForStatementNode() = delete;
+
         ForStatementNode(
             std::unique_ptr<ValueDeclarationNode>&& loopVariable,
             std::unique_ptr<ExpressionNode>&& iterableExpression,

@@ -13,14 +13,14 @@
 namespace vnlc {
     class ConstructorDeclarationNode : public DeclarationNode {
     private:
-        ConstructorDeclarationNode() = delete;
-
         mutable std::string internalName;
         ConstructorDeclarationKind::AccessModifier accessModifier;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
         std::unique_ptr<BlockStatementNode> body;
 
     public:
+        ConstructorDeclarationNode() = delete;
+
         ConstructorDeclarationNode(
             ConstructorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,

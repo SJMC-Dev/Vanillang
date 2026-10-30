@@ -9,12 +9,12 @@
 namespace vnlc {
     class ListLikeLiteralExpressionNode : public LiteralExpressionNode {
     private:
-        ListLikeLiteralExpressionNode() = delete;
-
         ListLikeLiteralExpressionKind kind;
         std::vector<std::unique_ptr<ExpressionNode>> elements;
 
     public:
+        ListLikeLiteralExpressionNode() = delete;
+
         ListLikeLiteralExpressionNode(ListLikeLiteralExpressionKind kind, std::vector<std::unique_ptr<ExpressionNode>>&& elements, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const ListLikeLiteralExpressionKind getKind() const noexcept;

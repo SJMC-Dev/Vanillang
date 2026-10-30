@@ -8,11 +8,11 @@
 namespace vnlc {
     class ExpressionStatementNode : public StatementNode {
     private:
-        ExpressionStatementNode() = delete;
-
         std::unique_ptr<ExpressionNode> expression;
 
     public:
+        ExpressionStatementNode() = delete;
+
         ExpressionStatementNode(std::unique_ptr<ExpressionNode>&& expression, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const ExpressionNode& getExpression() const noexcept;

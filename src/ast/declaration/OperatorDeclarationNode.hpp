@@ -15,8 +15,6 @@
 namespace vnlc {
     class OperatorDeclarationNode : public DeclarationNode {
     private:
-        OperatorDeclarationNode() = delete;
-
         OperatorDeclarationKind::Kind kind;
         OperatorDeclarationKind::Implementation implementation;
         OperatorDeclarationKind::Context context;
@@ -27,6 +25,8 @@ namespace vnlc {
         mutable std::string internalName;
 
     public:
+        OperatorDeclarationNode() = delete;
+
         OperatorDeclarationNode(
             OperatorDeclarationKind::Kind kind,
             OperatorDeclarationKind::Implementation implementation,

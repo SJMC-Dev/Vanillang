@@ -11,8 +11,6 @@
 namespace vnlc {
     class ModuleNode : public AstNode {
     private:
-        ModuleNode() = delete;
-
         std::string name;
         std::string fullName;
 
@@ -21,6 +19,8 @@ namespace vnlc {
         std::vector<std::unique_ptr<ExportDeclarationNode>> exportDeclarations;
 
     public:
+        ModuleNode() = delete;
+
         ModuleNode(
             std::string&& name,
             std::string&& fullName,

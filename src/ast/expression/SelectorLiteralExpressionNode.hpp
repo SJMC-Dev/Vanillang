@@ -9,12 +9,12 @@
 namespace vnlc {
     class SelectorLiteralExpressionNode : public LiteralExpressionNode {
     private:
-        SelectorLiteralExpressionNode() = delete;
-
         SelectorLiteralExpressionKind kind;
         std::unordered_map<std::string, std::unique_ptr<ExpressionNode>> arguments;
 
     public:
+        SelectorLiteralExpressionNode() = delete;
+
         SelectorLiteralExpressionNode(
             SelectorLiteralExpressionKind kind,
             std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>&& arguments,

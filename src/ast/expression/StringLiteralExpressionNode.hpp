@@ -10,12 +10,12 @@
 namespace vnlc {
     class StringLiteralExpressionNode : public LiteralExpressionNode {
     private:
-        StringLiteralExpressionNode() = delete;
-
         StringLiteralExpressionKind kind;
         std::vector<std::variant<std::string, std::unique_ptr<ExpressionNode>>> parts;
 
     public:
+        StringLiteralExpressionNode() = delete;
+
         StringLiteralExpressionNode(
             StringLiteralExpressionKind kind,
             std::vector<std::variant<std::string, std::unique_ptr<ExpressionNode>>>&& parts,

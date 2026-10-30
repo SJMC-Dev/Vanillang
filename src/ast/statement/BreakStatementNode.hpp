@@ -9,11 +9,11 @@
 namespace vnlc {
     class BreakStatementNode : public ControlFlowStatementNode {
     private:
-        BreakStatementNode() = delete;
-
         std::optional<std::unique_ptr<IdentifierNode>> label; // nullopt if no label
 
     public:
+        BreakStatementNode() = delete;
+
         BreakStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
         BreakStatementNode(std::unique_ptr<IdentifierNode>&& label, const Token& firstToken, const Token& lastToken) noexcept;
 

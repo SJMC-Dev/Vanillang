@@ -8,12 +8,12 @@
 namespace vnlc {
     class UnaryExpressionNode : public ExpressionNode {
     private:
-        UnaryExpressionNode() = delete;
-
         UnaryExpressionKind kind;
         std::unique_ptr<ExpressionNode> operand;
 
     public:
+        UnaryExpressionNode() = delete;
+
         UnaryExpressionNode(UnaryExpressionKind kind, std::unique_ptr<ExpressionNode>&& operand, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const UnaryExpressionKind getKind() const noexcept;

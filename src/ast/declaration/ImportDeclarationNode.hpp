@@ -7,11 +7,11 @@
 namespace vnlc {
     class ImportDeclarationNode : public DeclarationNode {
     private:
-        ImportDeclarationNode() = delete;
-
         std::unique_ptr<ImportDeclarationItem> paths;
 
     public:
+        ImportDeclarationNode() = delete;
+
         ImportDeclarationNode(std::unique_ptr<ImportDeclarationItem>&& paths, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const ImportDeclarationItem& getNamePartsListWithAliases() const noexcept;

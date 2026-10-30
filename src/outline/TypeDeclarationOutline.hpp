@@ -5,11 +5,11 @@
 
 namespace vnlc {
     class TypeDeclarationOutline : public DeclarationOutline {
-    private:
-        TypeDeclarationOutline() = delete;
-
     protected:
         TypeDeclarationOutline(const Token& firstToken, const Token& lastToken) noexcept;
+
+    public:
+        TypeDeclarationOutline() = delete;
     };
 } // namespace vnlc
 

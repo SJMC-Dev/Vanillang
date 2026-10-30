@@ -5,11 +5,11 @@
 
 namespace vnlc {
     class LiteralExpressionNode : public PrimaryExpressionNode {
-    private:
-        LiteralExpressionNode() = delete;
-
     protected:
         LiteralExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
+
+    public:
+        LiteralExpressionNode() = delete;
     };
 } // namespace vnlc
 

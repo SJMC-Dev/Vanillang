@@ -8,11 +8,11 @@
 namespace vnlc {
     class IdentifierNode : public AstNode {
     private:
-        IdentifierNode() = delete;
-
         std::string identifierString;
 
     public:
+        IdentifierNode() = delete;
+
         IdentifierNode(std::string_view identifierString, const Token& firstToken, const Token& lastToken);
 
         [[nodiscard]] std::string_view getIdentifierString() const;

@@ -8,11 +8,11 @@
 namespace vnlc {
     class InterfaceDeclarationOutline : public TypeDeclarationOutline {
     private:
-        InterfaceDeclarationOutline() = delete;
-
         std::string name;
 
     public:
+        InterfaceDeclarationOutline() = delete;
+
         InterfaceDeclarationOutline(std::string&& name, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] std::string_view getName() const noexcept;

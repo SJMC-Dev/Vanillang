@@ -9,13 +9,13 @@
 namespace vnlc {
     class FunctionCallExpressionNode : public ExpressionNode {
     private:
-        FunctionCallExpressionNode() = delete;
-
         std::unique_ptr<ExpressionNode> callee;
         std::vector<std::unique_ptr<ExpressionNode>> arguments;
         std::optional<std::unique_ptr<ExpressionNode>> context;
 
     public:
+        FunctionCallExpressionNode() = delete;
+
         FunctionCallExpressionNode(
             std::unique_ptr<ExpressionNode>&& callee,
             std::vector<std::unique_ptr<ExpressionNode>>&& arguments,

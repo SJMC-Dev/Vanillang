@@ -9,11 +9,11 @@
 namespace vnlc {
     class ReturnStatementNode : public ControlFlowStatementNode {
     private:
-        ReturnStatementNode() = delete;
-
         std::optional<std::unique_ptr<ExpressionNode>> returnValue;
 
     public:
+        ReturnStatementNode() = delete;
+
         ReturnStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
         ReturnStatementNode(std::unique_ptr<ExpressionNode>&& returnValue, const Token& firstToken, const Token& lastToken) noexcept;
 

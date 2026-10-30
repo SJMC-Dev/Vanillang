@@ -8,8 +8,6 @@
 namespace vnlc {
     class DeclarationNode : public AstNode {
     private:
-        DeclarationNode() = delete;
-
         bool includeMetadata;
         std::vector<DeclarationItem::MetadataTerm> metadataTerms;
 
@@ -18,6 +16,8 @@ namespace vnlc {
         DeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<DeclarationItem::MetadataTerm>&& metadataTerms) noexcept;
 
     public:
+        DeclarationNode() = delete;
+
         [[nodiscard]] const bool doesIncludeMetadata() const noexcept;
         [[nodiscard]] const std::vector<DeclarationItem::MetadataTerm>& getMetadataTerms() const noexcept;
     };

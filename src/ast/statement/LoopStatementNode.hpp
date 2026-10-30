@@ -9,14 +9,14 @@
 namespace vnlc {
     class LoopStatementNode : public ControlFlowStatementNode {
     private:
-        LoopStatementNode() = delete;
-
         std::optional<std::unique_ptr<IdentifierNode>> label; // nullopt if no label
 
     protected:
         LoopStatementNode(std::optional<std::unique_ptr<IdentifierNode>>&& label, const Token& firstToken, const Token& lastToken) noexcept;
 
     public:
+        LoopStatementNode() = delete;
+
         [[nodiscard]] const std::optional<std::unique_ptr<IdentifierNode>>& getLabel() const noexcept;
     };
 } // namespace vnlc

@@ -7,13 +7,13 @@
 namespace vnlc {
     class EnumDeclarationNode : public TypeDeclarationNode {
     private:
-        EnumDeclarationNode() = delete;
-
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<EnumMemberDeclarationNode>> memberDeclarations;
 
     public:
+        EnumDeclarationNode() = delete;
+
         EnumDeclarationNode(
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,

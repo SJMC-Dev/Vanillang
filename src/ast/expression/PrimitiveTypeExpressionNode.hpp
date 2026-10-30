@@ -7,11 +7,11 @@
 namespace vnlc {
     class PrimitiveTypeExpressionNode : public PrimaryExpressionNode {
     private:
-        PrimitiveTypeExpressionNode() = delete;
-
         PrimitiveTypeExpressionKind kind;
 
     public:
+        PrimitiveTypeExpressionNode() = delete;
+
         PrimitiveTypeExpressionNode(PrimitiveTypeExpressionKind kind, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const PrimitiveTypeExpressionKind getKind() const noexcept;

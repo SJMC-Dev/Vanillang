@@ -13,14 +13,15 @@ namespace vnlc {
         int argc;
         char** argv;
 
+    public:
+        App(int argc, char** argv);
+
         App() = delete;
         App(const App&) = delete;
         App(App&&) noexcept = delete;
 
         App& operator=(const App&) = delete;
-
-    public:
-        App(int argc, char** argv);
+        App& operator=(App&&) noexcept = delete;
 
         void run();
     };

@@ -7,12 +7,12 @@
 namespace vnlc {
     class SimpleLiteralExpressionNode : public LiteralExpressionNode {
     private:
-        SimpleLiteralExpressionNode() = delete;
-
         SimpleLiteralExpressionKind kind;
         std::string literal;
 
     public:
+        SimpleLiteralExpressionNode() = delete;
+
         SimpleLiteralExpressionNode(SimpleLiteralExpressionKind kind, std::string_view literal, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const SimpleLiteralExpressionKind getKind() const noexcept;

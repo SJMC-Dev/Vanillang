@@ -8,11 +8,11 @@
 namespace vnlc {
     class PrimitiveTypeReferenceNode : public TypeReferenceNode {
     private:
-        PrimitiveTypeReferenceNode() = delete;
-
         PrimitiveTypeReferenceKind kind;
 
     public:
+        PrimitiveTypeReferenceNode() = delete;
+
         PrimitiveTypeReferenceNode(PrimitiveTypeReferenceKind kind, bool questionMarkSuffix, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const PrimitiveTypeReferenceKind getKind() const noexcept;

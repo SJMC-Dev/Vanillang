@@ -10,8 +10,6 @@
 namespace vnlc {
     class SwitchStatementNode : public ControlFlowStatementNode {
     private:
-        SwitchStatementNode() = delete;
-
         std::unique_ptr<ExpressionNode> switchExpression;
         SwitchStatementKind switchKind;
         std::vector<SwitchStatementItem::LiteralMatchItem> literalMatchItems; // empty if switchKind is TYPE_MATCH
@@ -19,6 +17,8 @@ namespace vnlc {
         std::optional<std::unique_ptr<StatementNode>> defaultCaseBody;
 
     public:
+        SwitchStatementNode() = delete;
+
         SwitchStatementNode(
             std::unique_ptr<ExpressionNode>&& switchExpression,
             std::vector<SwitchStatementItem::LiteralMatchItem>&& literalMatchItems,

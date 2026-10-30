@@ -9,13 +9,13 @@
 namespace vnlc {
     class TypeAliasDeclarationNode : public TypeDeclarationNode {
     private:
-        TypeAliasDeclarationNode() = delete;
-
         std::unique_ptr<IdentifierNode> aliasName;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::unique_ptr<TypeReferenceNode> originalType;
 
     public:
+        TypeAliasDeclarationNode() = delete;
+
         TypeAliasDeclarationNode(
             std::unique_ptr<IdentifierNode>&& aliasName,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,

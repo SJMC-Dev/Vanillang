@@ -8,12 +8,12 @@
 namespace vnlc {
     class EnumMemberDeclarationNode : public TypeDeclarationNode {
     private:
-        EnumMemberDeclarationNode() = delete;
-
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> associatedValues;
 
     public:
+        EnumMemberDeclarationNode() = delete;
+
         EnumMemberDeclarationNode(
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,

@@ -8,13 +8,13 @@
 namespace vnlc {
     class BinaryExpressionNode : public ExpressionNode {
     private:
-        BinaryExpressionNode() = delete;
-
         BinaryExpressionKind kind;
         std::unique_ptr<ExpressionNode> left;
         std::unique_ptr<ExpressionNode> right;
 
     public:
+        BinaryExpressionNode() = delete;
+
         BinaryExpressionNode(
             BinaryExpressionKind kind,
             std::unique_ptr<ExpressionNode>&& left,

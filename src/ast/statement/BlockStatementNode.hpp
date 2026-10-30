@@ -8,11 +8,11 @@
 namespace vnlc {
     class BlockStatementNode : public StatementNode {
     private:
-        BlockStatementNode() = delete;
-
         std::vector<std::unique_ptr<StatementNode>> statements;
 
     public:
+        BlockStatementNode() = delete;
+
         BlockStatementNode(std::vector<std::unique_ptr<StatementNode>>&& statements, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const std::vector<std::unique_ptr<StatementNode>>& getStatements() const noexcept;

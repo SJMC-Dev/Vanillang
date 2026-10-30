@@ -9,13 +9,13 @@
 namespace vnlc {
     class IfStatementNode : public ControlFlowStatementNode {
     private:
-        IfStatementNode() = delete;
-
         std::unique_ptr<ExpressionNode> condition;
         std::unique_ptr<StatementNode> thenBranch;
         std::optional<std::unique_ptr<StatementNode>> elseBranch; // nullopt if no else branch
 
     public:
+        IfStatementNode() = delete;
+
         IfStatementNode(
             std::unique_ptr<ExpressionNode>&& condition,
             std::unique_ptr<StatementNode>&& thenBranch,

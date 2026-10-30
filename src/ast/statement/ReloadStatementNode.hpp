@@ -5,10 +5,9 @@
 
 namespace vnlc {
     class ReloadStatementNode : public ControlFlowStatementNode {
-    private:
+    public:
         ReloadStatementNode() = delete;
 
-    public:
         ReloadStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc

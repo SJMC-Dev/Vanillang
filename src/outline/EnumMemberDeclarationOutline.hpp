@@ -10,14 +10,14 @@ namespace vnlc {
 
     class EnumMemberDeclarationOutline : public TypeDeclarationOutline {
     private:
-        EnumMemberDeclarationOutline() = delete;
-
         std::string name;
         const EnumDeclarationOutline* enumDeclaration;
 
         friend class EnumDeclarationOutline;
 
     public:
+        EnumMemberDeclarationOutline() = delete;
+
         EnumMemberDeclarationOutline(std::string&& name, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] std::string_view getName() const noexcept;

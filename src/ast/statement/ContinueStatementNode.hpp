@@ -9,11 +9,11 @@
 namespace vnlc {
     class ContinueStatementNode : public ControlFlowStatementNode {
     private:
-        ContinueStatementNode() = delete;
-
         std::optional<std::unique_ptr<IdentifierNode>> label; // nullopt if no label
 
     public:
+        ContinueStatementNode() = delete;
+
         ContinueStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
         ContinueStatementNode(std::unique_ptr<IdentifierNode>&& label, const Token& firstToken, const Token& lastToken) noexcept;
 

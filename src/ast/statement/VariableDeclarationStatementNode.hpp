@@ -8,11 +8,11 @@
 namespace vnlc {
     class VariableDeclarationStatementNode : public StatementNode {
     private:
-        VariableDeclarationStatementNode() = delete;
-
         std::unique_ptr<ValueDeclarationNode> variableDeclaration;
 
     public:
+        VariableDeclarationStatementNode() = delete;
+
         VariableDeclarationStatementNode(std::unique_ptr<ValueDeclarationNode>&& variableDeclaration, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] const ValueDeclarationNode& getVariableDeclaration() const noexcept;

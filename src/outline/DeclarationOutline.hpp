@@ -8,8 +8,6 @@
 namespace vnlc {
     class DeclarationOutline {
     private:
-        DeclarationOutline() = delete;
-
         std::size_t offset;
         std::size_t length;
 
@@ -20,6 +18,8 @@ namespace vnlc {
         DeclarationOutline(const Token& firstToken, const Token& lastToken) noexcept;
 
     public:
+        DeclarationOutline() = delete;
+
         [[nodiscard]] std::pair<std::size_t, std::size_t> locate() const noexcept;
         [[nodiscard]] std::size_t getOffset() const noexcept;
         [[nodiscard]] std::size_t getLength() const noexcept;

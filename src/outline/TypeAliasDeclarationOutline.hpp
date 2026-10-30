@@ -8,11 +8,11 @@
 namespace vnlc {
     class TypeAliasDeclarationOutline : public TypeDeclarationOutline {
     private:
-        TypeAliasDeclarationOutline() = delete;
-
         std::string aliasName;
 
     public:
+        TypeAliasDeclarationOutline() = delete;
+
         TypeAliasDeclarationOutline(std::string&& aliasName, const Token& firstToken, const Token& lastToken) noexcept;
 
         [[nodiscard]] std::string_view getAliasName() const noexcept;

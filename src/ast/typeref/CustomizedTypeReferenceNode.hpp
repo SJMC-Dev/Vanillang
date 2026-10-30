@@ -9,12 +9,12 @@
 namespace vnlc {
     class CustomizedTypeReferenceNode : public TypeReferenceNode {
     private:
-        CustomizedTypeReferenceNode() = delete;
-
         std::vector<std::unique_ptr<IdentifierNode>> nameParts;
         std::vector<std::unique_ptr<TypeReferenceNode>> genericArguments;
 
     public:
+        CustomizedTypeReferenceNode() = delete;
+
         CustomizedTypeReferenceNode(
             bool questionMarkSuffix,
             std::vector<std::unique_ptr<IdentifierNode>>&& nameParts,

@@ -15,8 +15,6 @@
 namespace vnlc {
     class ClassDeclarationNode : public TypeDeclarationNode {
     private:
-        ClassDeclarationNode() = delete;
-
         bool final;
         std::unique_ptr<IdentifierNode> name;
         std::optional<std::unique_ptr<TypeReferenceNode>> baseClass;           // nullopt if no base class
@@ -28,6 +26,8 @@ namespace vnlc {
         std::vector<std::unique_ptr<OperatorDeclarationNode>> operatorDeclarations;
 
     public:
+        ClassDeclarationNode() = delete;
+
         ClassDeclarationNode(
             bool final,
             std::unique_ptr<IdentifierNode>&& name,

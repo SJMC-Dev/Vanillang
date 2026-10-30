@@ -7,13 +7,13 @@
 namespace vnlc {
     class ConditionalExpressionNode : public ExpressionNode {
     private:
-        ConditionalExpressionNode() = delete;
-
         std::unique_ptr<ExpressionNode> condition;
         std::unique_ptr<ExpressionNode> thenExpression;
         std::unique_ptr<ExpressionNode> elseExpression;
 
     public:
+        ConditionalExpressionNode() = delete;
+
         ConditionalExpressionNode(
             std::unique_ptr<ExpressionNode>&& condition,
             std::unique_ptr<ExpressionNode>&& thenExpression,

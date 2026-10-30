@@ -5,11 +5,11 @@
 
 namespace vnlc {
     class ControlFlowStatementNode : public StatementNode {
-    private:
-        ControlFlowStatementNode() = delete;
-
     protected:
         ControlFlowStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
+
+    public:
+        ControlFlowStatementNode() = delete;
     };
 } // namespace vnlc
 

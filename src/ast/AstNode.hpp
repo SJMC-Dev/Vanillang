@@ -7,7 +7,6 @@
 namespace vnlc {
     class AstNode {
     private:
-        AstNode() = delete;
         void resetPosition(const Token& firstToken, const Token& lastToken) noexcept;
 
     protected:
@@ -20,6 +19,8 @@ namespace vnlc {
         AstNode(const Token& firstToken, const Token& lastToken); // lastToken is the first token of the next node
 
     public:
+        AstNode() = delete;
+
         [[nodiscard]] std::pair<std::size_t, std::size_t> locate() const noexcept;
         [[nodiscard]] std::size_t getOffset() const noexcept;
         [[nodiscard]] std::size_t getLength() const noexcept;

@@ -7,14 +7,14 @@
 namespace vnlc {
     class TypeReferenceNode : public AstNode {
     private:
-        TypeReferenceNode() = delete;
-
         bool questionMarkSuffix;
 
     protected:
         TypeReferenceNode(bool questionMarkSuffix, const Token& firstToken, const Token& lastToken) noexcept;
 
     public:
+        TypeReferenceNode() = delete;
+
         [[nodiscard]] const bool hasQuestionMarkSuffix() const noexcept;
         [[nodiscard]] std::string generateInternalNamePart() const;
     };

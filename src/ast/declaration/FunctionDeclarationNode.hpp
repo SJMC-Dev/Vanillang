@@ -14,8 +14,6 @@
 namespace vnlc {
     class FunctionDeclarationNode : public DeclarationNode {
     private:
-        FunctionDeclarationNode() = delete;
-
         FunctionDeclarationKind::Implementation implementation;
         FunctionDeclarationKind::Context context;
         FunctionDeclarationKind::AccessModifier accessModifier;
@@ -28,6 +26,8 @@ namespace vnlc {
         mutable std::string internalName;
 
     public:
+        FunctionDeclarationNode() = delete;
+
         FunctionDeclarationNode(
             FunctionDeclarationKind::Implementation implementation,
             FunctionDeclarationKind::Context context,

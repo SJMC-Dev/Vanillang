@@ -5,10 +5,9 @@
 
 namespace vnlc {
     class SuperExpressionNode : public PrimaryExpressionNode {
-    private:
+    public:
         SuperExpressionNode() = delete;
 
-    public:
         SuperExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc
