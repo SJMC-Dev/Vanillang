@@ -2,29 +2,6 @@
 
 namespace vnlc {
     Token::Token(TokenKind kind, std::string_view value, std::size_t line, std::size_t column, std::size_t offset) : kind(kind), value(value), offset(offset), line(line), column(column) {}
-    Token::Token(Token&& other) noexcept : kind(other.kind), value(std::move(other.value)), offset(other.offset), line(other.line), column(other.column) {}
-    Token::Token(const Token& other) : kind(other.kind), value(other.value), offset(other.offset), line(other.line), column(other.column) {}
-
-    Token& Token::operator=(Token&& other) noexcept {
-        if (this != &other) {
-            kind = other.kind;
-            value = std::move(other.value);
-            offset = other.offset;
-            line = other.line;
-            column = other.column;
-        }
-        return *this;
-    }
-    Token& Token::operator=(const Token& other) {
-        if (this != &other) {
-            kind = other.kind;
-            value = other.value;
-            offset = other.offset;
-            line = other.line;
-            column = other.column;
-        }
-        return *this;
-    }
 
     TokenKind Token::getKind() const noexcept {
         return kind;

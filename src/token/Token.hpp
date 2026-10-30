@@ -17,11 +17,12 @@ namespace vnlc {
 
     public:
         Token(TokenKind kind, std::string_view value, std::size_t line, std::size_t column, std::size_t offset);
-        Token(Token&& other) noexcept;
-        Token(const Token& other);
 
-        Token& operator=(Token&& other) noexcept;
-        Token& operator=(const Token& other);
+        Token(const Token& other) = default;
+        Token(Token&& other) noexcept = default;
+
+        Token& operator=(const Token& other) = default;
+        Token& operator=(Token&& other) noexcept = default;
 
         [[nodiscard]] TokenKind getKind() const noexcept;
         [[nodiscard]] std::size_t getLine() const noexcept;
