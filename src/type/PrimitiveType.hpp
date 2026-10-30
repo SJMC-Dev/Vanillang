@@ -10,15 +10,6 @@ namespace vnlc {
     private:
         PrimitiveTypeKind primitiveKind;
 
-        static const PrimitiveType* BYTE_TYPE;
-        static const PrimitiveType* SHORT_TYPE;
-        static const PrimitiveType* INT_TYPE;
-        static const PrimitiveType* LONG_TYPE;
-        static const PrimitiveType* FLOAT_TYPE;
-        static const PrimitiveType* DOUBLE_TYPE;
-        static const PrimitiveType* BOOLEAN_TYPE;
-        static const PrimitiveType* STRING_TYPE;
-
         PrimitiveType(PrimitiveTypeKind primitiveKind);
 
     public:

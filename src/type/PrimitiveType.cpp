@@ -56,68 +56,43 @@ namespace vnlc {
         }
     }
 
-    const PrimitiveType* PrimitiveType::BYTE_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::SHORT_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::INT_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::LONG_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::FLOAT_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::DOUBLE_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::BOOLEAN_TYPE = nullptr;
-    const PrimitiveType* PrimitiveType::STRING_TYPE = nullptr;
-
     const PrimitiveType* PrimitiveType::byteType() {
-        if (BYTE_TYPE == nullptr) {
-            BYTE_TYPE = new PrimitiveType(PrimitiveTypeKind::BYTE);
-        }
-        return BYTE_TYPE;
+        static const PrimitiveType resolvedByteType{ PrimitiveTypeKind::BYTE };
+        return &resolvedByteType;
     }
 
     const PrimitiveType* PrimitiveType::shortType() {
-        if (SHORT_TYPE == nullptr) {
-            SHORT_TYPE = new PrimitiveType(PrimitiveTypeKind::SHORT);
-        }
-        return SHORT_TYPE;
+        static const PrimitiveType resolvedShortType{ PrimitiveTypeKind::SHORT };
+        return &resolvedShortType;
     }
 
     const PrimitiveType* PrimitiveType::intType() {
-        if (INT_TYPE == nullptr) {
-            INT_TYPE = new PrimitiveType(PrimitiveTypeKind::INT);
-        }
-        return INT_TYPE;
+        static const PrimitiveType resolvedIntType{ PrimitiveTypeKind::INT };
+        return &resolvedIntType;
     }
 
     const PrimitiveType* PrimitiveType::longType() {
-        if (LONG_TYPE == nullptr) {
-            LONG_TYPE = new PrimitiveType(PrimitiveTypeKind::LONG);
-        }
-        return LONG_TYPE;
+        static const PrimitiveType resolvedLongType{ PrimitiveTypeKind::LONG };
+        return &resolvedLongType;
     }
 
     const PrimitiveType* PrimitiveType::floatType() {
-        if (FLOAT_TYPE == nullptr) {
-            FLOAT_TYPE = new PrimitiveType(PrimitiveTypeKind::FLOAT);
-        }
-        return FLOAT_TYPE;
+        static const PrimitiveType resolvedFloatType{ PrimitiveTypeKind::FLOAT };
+        return &resolvedFloatType;
     }
 
     const PrimitiveType* PrimitiveType::doubleType() {
-        if (DOUBLE_TYPE == nullptr) {
-            DOUBLE_TYPE = new PrimitiveType(PrimitiveTypeKind::DOUBLE);
-        }
-        return DOUBLE_TYPE;
+        static const PrimitiveType resolvedDoubleType{ PrimitiveTypeKind::DOUBLE };
+        return &resolvedDoubleType;
     }
 
     const PrimitiveType* PrimitiveType::booleanType() {
-        if (BOOLEAN_TYPE == nullptr) {
-            BOOLEAN_TYPE = new PrimitiveType(PrimitiveTypeKind::BOOLEAN);
-        }
-        return BOOLEAN_TYPE;
+        static const PrimitiveType resolvedBooleanType{ PrimitiveTypeKind::BOOLEAN };
+        return &resolvedBooleanType;
     }
 
     const PrimitiveType* PrimitiveType::stringType() {
-        if (STRING_TYPE == nullptr) {
-            STRING_TYPE = new PrimitiveType(PrimitiveTypeKind::STRING);
-        }
-        return STRING_TYPE;
+        static const PrimitiveType resolvedStringType{ PrimitiveTypeKind::STRING };
+        return &resolvedStringType;
     }
 } // namespace vnlc
