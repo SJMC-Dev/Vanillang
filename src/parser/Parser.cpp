@@ -3160,13 +3160,11 @@ namespace vnlc {
                 .statement = std::move(result.statement),
             };
         } else if (match(TokenKind::LABEL)) {
-            std::unique_ptr<IdentifierNode> label;
-
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'label'", peek().getLine(), peek().getColumn());
-            } else {
-                label = constructCurrentIdentifierNode();
             }
+
+            std::unique_ptr<IdentifierNode> label = constructCurrentIdentifierNode();
 
             if (check(TokenKind::WHILE)) {
                 WhileStatementParsingContext context{
