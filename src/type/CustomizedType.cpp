@@ -44,7 +44,7 @@ namespace vnlc {
         return false;
     }
 
-    const std::vector<const Type*> CustomizedType::getGenericArguments() const noexcept {
+    std::vector<const Type*> CustomizedType::getGenericArguments() const noexcept {
         return genericArguments;
     }
 

@@ -36,7 +36,7 @@ namespace vnlc {
         ) noexcept;
 
         [[nodiscard]] const ExpressionNode& getSwitchExpression() const noexcept;
-        [[nodiscard]] const SwitchStatementKind getSwitchKind() const noexcept;
+        [[nodiscard]] SwitchStatementKind getSwitchKind() const noexcept;
         [[nodiscard]] const std::vector<SwitchStatementItem::LiteralMatchItem>& getLiteralMatchItems() const noexcept;
         [[nodiscard]] const std::vector<SwitchStatementItem::TypeMatchItem>& getTypeMatchItems() const noexcept;
         [[nodiscard]] const std::optional<std::unique_ptr<StatementNode>>& getDefaultCaseBody() const noexcept;

@@ -22,7 +22,7 @@ namespace vnlc {
             const Token& lastToken
         ) noexcept;
 
-        [[nodiscard]] const SelectorLiteralExpressionKind getKind() const noexcept;
+        [[nodiscard]] SelectorLiteralExpressionKind getKind() const noexcept;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>& getArguments() const noexcept;
     };
 } // namespace vnlc

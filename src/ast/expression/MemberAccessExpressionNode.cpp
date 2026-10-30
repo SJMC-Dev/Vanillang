@@ -13,7 +13,7 @@ namespace vnlc {
           object(std::move(object)),
           member(std::move(member)) {}
 
-    const MemberAccessExpressionKind MemberAccessExpressionNode::getKind() const noexcept {
+    MemberAccessExpressionKind MemberAccessExpressionNode::getKind() const noexcept {
         return kind;
     }
 

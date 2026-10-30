@@ -11,7 +11,7 @@ namespace vnlc {
           kind(kind),
           elements(std::move(elements)) {}
 
-    const ListLikeLiteralExpressionKind ListLikeLiteralExpressionNode::getKind() const noexcept {
+    ListLikeLiteralExpressionKind ListLikeLiteralExpressionNode::getKind() const noexcept {
         return kind;
     }
 

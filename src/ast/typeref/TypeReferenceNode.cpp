@@ -7,7 +7,7 @@ namespace vnlc {
         : AstNode(firstToken, lastToken),
           questionMarkSuffix(questionMarkSuffix) {}
 
-    const bool TypeReferenceNode::hasQuestionMarkSuffix() const noexcept {
+    bool TypeReferenceNode::hasQuestionMarkSuffix() const noexcept {
         return questionMarkSuffix;
     }
 

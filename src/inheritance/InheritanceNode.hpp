@@ -23,11 +23,11 @@ namespace vnlc {
 
         virtual ~InheritanceNode() = default;
 
-        [[nodiscard]] const InheritanceOrigin getOrigin() const noexcept;
+        [[nodiscard]] InheritanceOrigin getOrigin() const noexcept;
         [[nodiscard]] virtual const TypeDeclarationNode* getLocalNode() const noexcept;
         [[nodiscard]] virtual const ImportedIdentifier* getImportedNode() const noexcept;
         [[nodiscard]] virtual const InheritanceNode* findParent() const noexcept;
-        [[nodiscard]] virtual const bool hasCycle() const noexcept;
+        [[nodiscard]] virtual bool hasCycle() const noexcept;
     };
 } // namespace vnlc
 

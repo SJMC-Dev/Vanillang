@@ -6,7 +6,7 @@ namespace vnlc {
           kind(kind),
           literal(std::string(literal)) {}
 
-    const SimpleLiteralExpressionKind SimpleLiteralExpressionNode::getKind() const noexcept {
+    SimpleLiteralExpressionKind SimpleLiteralExpressionNode::getKind() const noexcept {
         return kind;
     }
 

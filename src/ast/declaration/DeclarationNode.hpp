@@ -18,7 +18,7 @@ namespace vnlc {
     public:
         DeclarationNode() = delete;
 
-        [[nodiscard]] const bool doesIncludeMetadata() const noexcept;
+        [[nodiscard]] bool doesIncludeMetadata() const noexcept;
         [[nodiscard]] const std::vector<DeclarationItem::MetadataTerm>& getMetadataTerms() const noexcept;
     };
 } // namespace vnlc

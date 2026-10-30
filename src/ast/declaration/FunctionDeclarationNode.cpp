@@ -48,19 +48,19 @@ namespace vnlc {
           body(std::move(body)),
           internalName("") {}
 
-    const FunctionDeclarationKind::Implementation FunctionDeclarationNode::getImplementation() const noexcept {
+    FunctionDeclarationKind::Implementation FunctionDeclarationNode::getImplementation() const noexcept {
         return implementation;
     }
 
-    const FunctionDeclarationKind::Context FunctionDeclarationNode::getContext() const noexcept {
+    FunctionDeclarationKind::Context FunctionDeclarationNode::getContext() const noexcept {
         return context;
     }
 
-    const FunctionDeclarationKind::AccessModifier FunctionDeclarationNode::getAccessModifier() const noexcept {
+    FunctionDeclarationKind::AccessModifier FunctionDeclarationNode::getAccessModifier() const noexcept {
         return accessModifier;
     }
 
-    const FunctionDeclarationKind::Binding FunctionDeclarationNode::getBinding() const noexcept {
+    FunctionDeclarationKind::Binding FunctionDeclarationNode::getBinding() const noexcept {
         return binding;
     }
 

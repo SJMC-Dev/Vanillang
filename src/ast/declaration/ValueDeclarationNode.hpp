@@ -43,9 +43,9 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] const ValueDeclarationKind::Kind getKind() const noexcept;
-        [[nodiscard]] const ValueDeclarationKind::Context getContext() const noexcept;
-        [[nodiscard]] const ValueDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] ValueDeclarationKind::Kind getKind() const noexcept;
+        [[nodiscard]] ValueDeclarationKind::Context getContext() const noexcept;
+        [[nodiscard]] ValueDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::optional<std::unique_ptr<TypeReferenceNode>>& getType() const noexcept;
         [[nodiscard]] const std::optional<std::unique_ptr<ExpressionNode>>& getInitializer() const noexcept;

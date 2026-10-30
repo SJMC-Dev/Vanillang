@@ -14,7 +14,7 @@ namespace vnlc {
           left(std::move(left)),
           right(std::move(right)) {}
 
-    const BinaryExpressionKind BinaryExpressionNode::getKind() const noexcept {
+    BinaryExpressionKind BinaryExpressionNode::getKind() const noexcept {
         return kind;
     }
 

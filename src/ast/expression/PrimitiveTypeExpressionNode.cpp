@@ -5,7 +5,7 @@ namespace vnlc {
         : PrimaryExpressionNode(firstToken, lastToken),
           kind(kind) {}
 
-    const PrimitiveTypeExpressionKind PrimitiveTypeExpressionNode::getKind() const noexcept {
+    PrimitiveTypeExpressionKind PrimitiveTypeExpressionNode::getKind() const noexcept {
         return kind;
     }
 } // namespace vnlc

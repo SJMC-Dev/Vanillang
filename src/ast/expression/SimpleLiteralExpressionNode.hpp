@@ -15,7 +15,7 @@ namespace vnlc {
 
         SimpleLiteralExpressionNode(SimpleLiteralExpressionKind kind, std::string_view literal, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const SimpleLiteralExpressionKind getKind() const noexcept;
+        [[nodiscard]] SimpleLiteralExpressionKind getKind() const noexcept;
         [[nodiscard]] std::string_view getLiteral() const noexcept;
     };
 } // namespace vnlc

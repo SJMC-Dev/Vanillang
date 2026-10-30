@@ -52,10 +52,10 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         );
 
-        [[nodiscard]] const OperatorDeclarationKind::Kind getKind() const noexcept;
-        [[nodiscard]] const OperatorDeclarationKind::Implementation getImplementation() const noexcept;
-        [[nodiscard]] const OperatorDeclarationKind::Context getContext() const noexcept;
-        [[nodiscard]] const OperatorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] OperatorDeclarationKind::Kind getKind() const noexcept;
+        [[nodiscard]] OperatorDeclarationKind::Implementation getImplementation() const noexcept;
+        [[nodiscard]] OperatorDeclarationKind::Context getContext() const noexcept;
+        [[nodiscard]] OperatorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] std::string_view getInternalName() const noexcept;
         [[nodiscard]] std::string_view getOperatorName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;

@@ -44,19 +44,19 @@ namespace vnlc {
           body(std::move(body)),
           internalName("") {}
 
-    const OperatorDeclarationKind::Kind OperatorDeclarationNode::getKind() const noexcept {
+    OperatorDeclarationKind::Kind OperatorDeclarationNode::getKind() const noexcept {
         return kind;
     }
 
-    const OperatorDeclarationKind::Implementation OperatorDeclarationNode::getImplementation() const noexcept {
+    OperatorDeclarationKind::Implementation OperatorDeclarationNode::getImplementation() const noexcept {
         return implementation;
     }
 
-    const OperatorDeclarationKind::Context OperatorDeclarationNode::getContext() const noexcept {
+    OperatorDeclarationKind::Context OperatorDeclarationNode::getContext() const noexcept {
         return context;
     }
 
-    const OperatorDeclarationKind::AccessModifier OperatorDeclarationNode::getAccessModifier() const noexcept {
+    OperatorDeclarationKind::AccessModifier OperatorDeclarationNode::getAccessModifier() const noexcept {
         return accessModifier;
     }
 

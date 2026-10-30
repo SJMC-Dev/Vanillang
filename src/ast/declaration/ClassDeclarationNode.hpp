@@ -57,7 +57,7 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] const bool isFinal() const noexcept;
+        [[nodiscard]] bool isFinal() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::optional<std::unique_ptr<TypeReferenceNode>>& getBaseClass() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<TypeReferenceNode>>& getImplementedInterfaces() const noexcept;

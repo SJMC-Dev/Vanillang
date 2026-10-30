@@ -15,7 +15,7 @@ namespace vnlc {
     public:
         TypeReferenceNode() = delete;
 
-        [[nodiscard]] const bool hasQuestionMarkSuffix() const noexcept;
+        [[nodiscard]] bool hasQuestionMarkSuffix() const noexcept;
         [[nodiscard]] std::string generateInternalNamePart() const;
     };
 } // namespace vnlc

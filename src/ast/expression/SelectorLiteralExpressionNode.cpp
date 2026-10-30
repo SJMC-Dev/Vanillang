@@ -11,7 +11,7 @@ namespace vnlc {
           kind(kind),
           arguments(std::move(arguments)) {}
 
-    const SelectorLiteralExpressionKind SelectorLiteralExpressionNode::getKind() const noexcept {
+    SelectorLiteralExpressionKind SelectorLiteralExpressionNode::getKind() const noexcept {
         return kind;
     }
 

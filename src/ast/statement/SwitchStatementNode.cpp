@@ -33,7 +33,7 @@ namespace vnlc {
         return *switchExpression;
     }
 
-    const SwitchStatementKind SwitchStatementNode::getSwitchKind() const noexcept {
+    SwitchStatementKind SwitchStatementNode::getSwitchKind() const noexcept {
         return switchKind;
     }
 

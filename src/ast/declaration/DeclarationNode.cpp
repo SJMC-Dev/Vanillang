@@ -8,7 +8,7 @@ namespace vnlc {
           includeMetadata(true),
           metadataTerms(std::move(metadataTerms)) {}
 
-    const bool DeclarationNode::doesIncludeMetadata() const noexcept {
+    bool DeclarationNode::doesIncludeMetadata() const noexcept {
         return includeMetadata;
     }
 

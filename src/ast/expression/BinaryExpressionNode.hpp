@@ -23,7 +23,7 @@ namespace vnlc {
             const Token& lastToken
         ) noexcept;
 
-        [[nodiscard]] const BinaryExpressionKind getKind() const noexcept;
+        [[nodiscard]] BinaryExpressionKind getKind() const noexcept;
         [[nodiscard]] const ExpressionNode& getLeft() const noexcept;
         [[nodiscard]] const ExpressionNode& getRight() const noexcept;
     };

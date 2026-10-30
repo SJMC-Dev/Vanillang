@@ -13,7 +13,7 @@ namespace vnlc {
         return static_cast<const ImportedClass*>(InheritanceNode::getImportedNode());
     }
 
-    const bool ClassInheritanceNode::hasCycle() const noexcept {
+    bool ClassInheritanceNode::hasCycle() const noexcept {
         const ClassInheritanceNode* slow = this;
         const ClassInheritanceNode* fast = this;
         while (fast != nullptr && fast->parent != nullptr) {

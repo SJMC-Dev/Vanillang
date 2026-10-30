@@ -24,7 +24,7 @@ namespace vnlc {
             const Token& lastToken
         ) noexcept;
 
-        [[nodiscard]] const MemberAccessExpressionKind getKind() const noexcept;
+        [[nodiscard]] MemberAccessExpressionKind getKind() const noexcept;
         [[nodiscard]] const ExpressionNode& getObject() const noexcept;
         [[nodiscard]] const IdentifierLikeExpressionNode& getMember() const noexcept;
     };

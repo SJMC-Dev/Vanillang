@@ -6,7 +6,7 @@ namespace vnlc {
         : TypeReferenceNode(questionMarkSuffix, firstToken, lastToken),
           kind(kind) {}
 
-    const PrimitiveTypeReferenceKind PrimitiveTypeReferenceNode::getKind() const noexcept {
+    PrimitiveTypeReferenceKind PrimitiveTypeReferenceNode::getKind() const noexcept {
         return kind;
     }
 

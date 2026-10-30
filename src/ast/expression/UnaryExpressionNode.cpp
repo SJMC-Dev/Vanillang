@@ -7,7 +7,7 @@ namespace vnlc {
           kind(kind),
           operand(std::move(operand)) {}
 
-    const UnaryExpressionKind UnaryExpressionNode::getKind() const noexcept {
+    UnaryExpressionKind UnaryExpressionNode::getKind() const noexcept {
         return kind;
     }
 

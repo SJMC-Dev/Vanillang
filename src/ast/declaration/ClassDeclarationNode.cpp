@@ -50,7 +50,7 @@ namespace vnlc {
           constructorDeclarations(std::move(constructorDeclarations)),
           operatorDeclarations(std::move(operatorDeclarations)) {}
 
-    const bool ClassDeclarationNode::isFinal() const noexcept {
+    bool ClassDeclarationNode::isFinal() const noexcept {
         return final;
     }
 

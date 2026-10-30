@@ -33,7 +33,7 @@ namespace vnlc {
         return internalName;
     }
 
-    const ConstructorDeclarationKind::AccessModifier ConstructorDeclarationNode::getAccessModifier() const noexcept {
+    ConstructorDeclarationKind::AccessModifier ConstructorDeclarationNode::getAccessModifier() const noexcept {
         return accessModifier;
     }
 

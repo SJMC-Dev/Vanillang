@@ -39,15 +39,15 @@ namespace vnlc {
           type(std::move(type)),
           initializer(std::move(initializer)) {}
 
-    const ValueDeclarationKind::Kind ValueDeclarationNode::getKind() const noexcept {
+    ValueDeclarationKind::Kind ValueDeclarationNode::getKind() const noexcept {
         return kind;
     }
 
-    const ValueDeclarationKind::Context ValueDeclarationNode::getContext() const noexcept {
+    ValueDeclarationKind::Context ValueDeclarationNode::getContext() const noexcept {
         return context;
     }
 
-    const ValueDeclarationKind::AccessModifier ValueDeclarationNode::getAccessModifier() const noexcept {
+    ValueDeclarationKind::AccessModifier ValueDeclarationNode::getAccessModifier() const noexcept {
         return accessModifier;
     }
 

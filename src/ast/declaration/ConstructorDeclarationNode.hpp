@@ -39,7 +39,7 @@ namespace vnlc {
         );
 
         [[nodiscard]] std::string_view getInternalName() const noexcept;
-        [[nodiscard]] const ConstructorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] ConstructorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
         [[nodiscard]] const BlockStatementNode& getBody() const noexcept;
 

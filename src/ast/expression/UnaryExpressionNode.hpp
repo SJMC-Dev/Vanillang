@@ -16,7 +16,7 @@ namespace vnlc {
 
         UnaryExpressionNode(UnaryExpressionKind kind, std::unique_ptr<ExpressionNode>&& operand, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const UnaryExpressionKind getKind() const noexcept;
+        [[nodiscard]] UnaryExpressionKind getKind() const noexcept;
         [[nodiscard]] const ExpressionNode& getOperand() const noexcept;
     };
 } // namespace vnlc

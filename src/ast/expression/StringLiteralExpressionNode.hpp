@@ -23,7 +23,7 @@ namespace vnlc {
             const Token& lastToken
         ) noexcept;
 
-        [[nodiscard]] const StringLiteralExpressionKind getKind() const noexcept;
+        [[nodiscard]] StringLiteralExpressionKind getKind() const noexcept;
         [[nodiscard]] const std::vector<std::variant<std::string, std::unique_ptr<ExpressionNode>>>& getParts() const noexcept;
     };
 } // namespace vnlc

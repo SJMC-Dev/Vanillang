@@ -5,7 +5,7 @@ namespace vnlc {
 
     InheritanceNode::InheritanceNode(const ImportedIdentifier* importedNode) : origin(InheritanceOrigin::IMPORTED), localNode(nullptr), importedNode(importedNode) {}
 
-    const InheritanceOrigin InheritanceNode::getOrigin() const noexcept {
+    InheritanceOrigin InheritanceNode::getOrigin() const noexcept {
         return origin;
     }
 
@@ -21,7 +21,7 @@ namespace vnlc {
         return nullptr;
     }
 
-    const bool InheritanceNode::hasCycle() const noexcept {
+    bool InheritanceNode::hasCycle() const noexcept {
         return false;
     }
 } // namespace vnlc

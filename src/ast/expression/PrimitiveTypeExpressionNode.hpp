@@ -14,7 +14,7 @@ namespace vnlc {
 
         PrimitiveTypeExpressionNode(PrimitiveTypeExpressionKind kind, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const PrimitiveTypeExpressionKind getKind() const noexcept;
+        [[nodiscard]] PrimitiveTypeExpressionKind getKind() const noexcept;
     };
 } // namespace vnlc
 

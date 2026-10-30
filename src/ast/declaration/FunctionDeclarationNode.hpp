@@ -55,10 +55,10 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] const FunctionDeclarationKind::Implementation getImplementation() const noexcept;
-        [[nodiscard]] const FunctionDeclarationKind::Context getContext() const noexcept;
-        [[nodiscard]] const FunctionDeclarationKind::AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const FunctionDeclarationKind::Binding getBinding() const noexcept;
+        [[nodiscard]] FunctionDeclarationKind::Implementation getImplementation() const noexcept;
+        [[nodiscard]] FunctionDeclarationKind::Context getContext() const noexcept;
+        [[nodiscard]] FunctionDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] FunctionDeclarationKind::Binding getBinding() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] std::string_view getInternalName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
