@@ -9,6 +9,7 @@
 #include "outline/InterfaceDeclarationOutline.hpp"
 #include "outline/TypeAliasDeclarationOutline.hpp"
 #include "token/Token.hpp"
+#include "token/TokenStream.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -18,20 +19,11 @@
 namespace vnlc {
     class Collector {
     private:
-        Lexer lexer;
+        TokenStream tokenStream;
 
-        std::vector<Token> tokenBuffer;
-        std::size_t currentTokenIndex;
-        std::size_t bufferSize;
-        bool endsWithNewlineOrEOF;
-
-        [[nodiscard]] bool hasNextToken() const;
         [[nodiscard]] const Token& peek() const;
 
-        void fillBuffer();
         void advance();
-        void advanceRaw();
-        void skipNewlines();
 
         [[nodiscard]] bool check(TokenKind expectedKind);
         [[nodiscard]] bool match(TokenKind expectedKind);

@@ -34,7 +34,6 @@
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
 #include "error/IllegalModuleOrPackageNameError.hpp"
-#include "error/OutOfRangeError.hpp"
 #include "error/SyntaxError.hpp"
 #include "outline/ClassDeclarationOutline.hpp"
 #include "outline/EnumDeclarationOutline.hpp"
@@ -59,97 +58,32 @@
 
 namespace vnlc {
     Parser::Parser(Lexer&& lexer, const CollectionResult& collectionResult, std::size_t maxBufferSize)
-        : lexer(std::move(lexer)),
+        : tokenStream(std::move(lexer), maxBufferSize),
           collectionResult(collectionResult),
-          importBindings(),
-          tokenBuffer(),
-          currentTokenIndex(0),
-          bufferSize(maxBufferSize) {
-        fillBuffer();
-    }
-
-    bool Parser::hasNextToken() const {
-        return lexer.hasNext() || currentTokenIndex < bufferSize;
-    }
-
-    const Token& Parser::peek(std::size_t offset) const {
-        if (currentTokenIndex + offset < bufferSize) {
-            return tokenBuffer[currentTokenIndex + offset];
-        } else {
-            throw OutOfRangeError("Peek offset exceeds buffer size");
-        }
-    }
+          importBindings() {}
 
     const Token& Parser::peek() const {
-        return peek(0);
-    }
-
-    void Parser::fillBuffer() {
-        bool blank = false;
-        tokenBuffer.clear();
-
-        for (std::size_t i = 0; i < bufferSize && lexer.hasNext(); i = blank ? i : i + 1) {
-            Token token = lexer.next();
-            if (token.getKind() == TokenKind::BLANK || token.getKind() == TokenKind::SINGLE_LINE_COMMENT || token.getKind() == TokenKind::MULTI_LINE_COMMENT) {
-                blank = true;
-            } else {
-                blank = false;
-                tokenBuffer.push_back(std::move(token));
-            }
-        }
-
-        bufferSize = tokenBuffer.size();
-    }
-
-    void Parser::advanceRaw() {
-        if (peek().getKind() == TokenKind::END_OF_FILE) {
-            currentTokenIndex = bufferSize;
-            return;
-        }
-
-        if (currentTokenIndex < bufferSize) {
-            currentTokenIndex++;
-            if (currentTokenIndex == bufferSize && lexer.hasNext()) {
-                fillBuffer();
-                currentTokenIndex = 0;
-            }
-        }
+        return tokenStream.peek();
     }
 
     void Parser::advance() {
-        advanceRaw();
-        skipNewlines();
-    }
-
-    void Parser::skipNewlines() {
-        bool skipped = false;
-
-        while (hasNextToken() && peek().getKind() == TokenKind::NEWLINE) {
-            advanceRaw();
-            skipped = true;
-        }
-
-        endsWithNewlineOrEOF = skipped || peek().getKind() == TokenKind::END_OF_FILE;
+        tokenStream.advance();
     }
 
     bool Parser::check(TokenKind expectedKind) {
-        return hasNextToken() && peek().getKind() == expectedKind;
+        return tokenStream.check(expectedKind);
     }
 
     bool Parser::checkGeneralizedIdentifier() {
-        return hasNextToken() && TokenKindUtil::isGeneralizedIdentifier(peek().getKind());
+        return tokenStream.hasNextToken() && TokenKindUtil::isGeneralizedIdentifier(peek().getKind());
     }
 
     bool Parser::checkAny(const std::unordered_set<TokenKind>& expectedKinds) {
-        return hasNextToken() && expectedKinds.contains(peek().getKind());
+        return tokenStream.hasNextToken() && expectedKinds.contains(peek().getKind());
     }
 
     bool Parser::match(TokenKind expectedKind) {
-        if (check(expectedKind)) {
-            advance();
-            return true;
-        }
-        return false;
+        return tokenStream.match(expectedKind);
     }
 
     bool Parser::matchAny(const std::unordered_set<TokenKind>& expectedKinds) {
@@ -166,12 +100,12 @@ namespace vnlc {
         }
 
         if (check(TokenKind::DOUBLE_RIGHT_ANGLE)) {
-            tokenBuffer[currentTokenIndex] = Token(TokenKind::RIGHT_ANGLE, ">", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1);
+            tokenStream.replaceCurrent(Token(TokenKind::RIGHT_ANGLE, ">", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1));
             return true;
         }
 
         if (check(TokenKind::TRIPLE_RIGHT_ANGLE)) {
-            tokenBuffer[currentTokenIndex] = Token(TokenKind::DOUBLE_RIGHT_ANGLE, ">>", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1);
+            tokenStream.replaceCurrent(Token(TokenKind::DOUBLE_RIGHT_ANGLE, ">>", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1));
             return true;
         }
 
@@ -287,7 +221,7 @@ namespace vnlc {
 
         Token firstToken = peek();
 
-        skipNewlines();
+        tokenStream.skipNewlines();
 
         while (check(TokenKind::IMPORT)) {
             auto result = parseImportDeclaration();
@@ -419,7 +353,7 @@ namespace vnlc {
             Token lastToken = peek();
             result.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after variable declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -445,7 +379,7 @@ namespace vnlc {
             Token lastToken = peek();
             result.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after function declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -462,7 +396,7 @@ namespace vnlc {
             Token lastToken = peek();
             result.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after type declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -487,7 +421,7 @@ namespace vnlc {
 
         std::unique_ptr<ImportDeclarationNode> node = std::make_unique<ImportDeclarationNode>(std::move(result.paths), firstToken, lastToken);
 
-        if (!endsWithNewlineOrEOF) {
+        if (!tokenStream.endsWithNewlineOrEOF()) {
             throw SyntaxError("Expected newline after import declaration", peek().getLine(), peek().getColumn());
         }
 
@@ -509,7 +443,7 @@ namespace vnlc {
 
         std::unique_ptr<ExportDeclarationNode> node = std::make_unique<ExportDeclarationNode>(std::move(result.items), firstToken, lastToken);
 
-        if (!endsWithNewlineOrEOF) {
+        if (!tokenStream.endsWithNewlineOrEOF()) {
             throw SyntaxError("Expected newline after export declaration", peek().getLine(), peek().getColumn());
         }
 
@@ -803,7 +737,7 @@ namespace vnlc {
         Token lastToken = peek();
         node->resetPosition(firstToken, lastToken);
 
-        if (!endsWithNewlineOrEOF) {
+        if (!tokenStream.endsWithNewlineOrEOF()) {
             throw SyntaxError("Expected newline after interface method declaration", peek().getLine(), peek().getColumn());
         }
 
@@ -1702,7 +1636,7 @@ namespace vnlc {
             Token lastToken = peek();
             constructorResult.constructor->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after constructor declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -1724,7 +1658,7 @@ namespace vnlc {
             Token lastToken = peek();
             operatorResult.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -1750,7 +1684,7 @@ namespace vnlc {
                 Token lastToken = peek();
                 functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
 
-                if (!endsWithNewlineOrEOF) {
+                if (!tokenStream.endsWithNewlineOrEOF()) {
                     throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
                 }
 
@@ -1770,7 +1704,7 @@ namespace vnlc {
                 Token lastToken = peek();
                 operatorResult.declaration->resetPosition(firstToken, lastToken);
 
-                if (!endsWithNewlineOrEOF) {
+                if (!tokenStream.endsWithNewlineOrEOF()) {
                     throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
                 }
 
@@ -1794,7 +1728,7 @@ namespace vnlc {
                 Token lastToken = peek();
                 operatorResult.declaration->resetPosition(firstToken, lastToken);
 
-                if (!endsWithNewlineOrEOF) {
+                if (!tokenStream.endsWithNewlineOrEOF()) {
                     throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
                 }
 
@@ -1815,7 +1749,7 @@ namespace vnlc {
                 Token lastToken = peek();
                 functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
 
-                if (!endsWithNewlineOrEOF) {
+                if (!tokenStream.endsWithNewlineOrEOF()) {
                     throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
                 }
 
@@ -1839,7 +1773,7 @@ namespace vnlc {
             Token lastToken = peek();
             functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -1858,7 +1792,7 @@ namespace vnlc {
             Token lastToken = peek();
             propertyDeclarationResult.declaration->resetPosition(firstToken, lastToken);
 
-            if (!endsWithNewlineOrEOF) {
+            if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after property declaration", peek().getLine(), peek().getColumn());
             }
 
@@ -1944,7 +1878,7 @@ namespace vnlc {
 
         Token lastToken = peek();
 
-        if (!endsWithNewlineOrEOF) {
+        if (!tokenStream.endsWithNewlineOrEOF()) {
             throw SyntaxError("Expected newline after enum member declaration", peek().getLine(), peek().getColumn());
         }
 
@@ -2543,7 +2477,7 @@ namespace vnlc {
                 identifierPrefix.reset();
 
                 currentNode = std::make_unique<MemberAccessExpressionNode>(MemberAccessExpressionKind::OPTIONAL_CHAINING, std::move(currentNode), std::move(nameNode), firstToken, lastToken);
-            } else if (endsWithNewlineOrEOF) {
+            } else if (tokenStream.endsWithNewlineOrEOF()) {
                 break;
             } else if (match(TokenKind::LEFT_PARENTHESIS)) {
                 std::vector<std::unique_ptr<ExpressionNode>> arguments;
@@ -3155,7 +3089,7 @@ namespace vnlc {
             throw SyntaxError("Expected statement", peek().getLine(), peek().getColumn());
         }
 
-        if (!(endsWithNewlineOrEOF || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             throw SyntaxError("Expected newline after statement", peek().getLine(), peek().getColumn());
         }
 
@@ -3521,7 +3455,7 @@ namespace vnlc {
 
         std::optional<std::unique_ptr<ExpressionNode>> returnValue = std::nullopt;
 
-        if (!(endsWithNewlineOrEOF || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             auto returnValueResult = parseExpression();
             returnValue = std::move(returnValueResult.expression);
         }
@@ -3548,7 +3482,7 @@ namespace vnlc {
 
         std::optional<std::unique_ptr<IdentifierNode>> label = std::nullopt;
 
-        if (!(endsWithNewlineOrEOF || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'break'", peek().getLine(), peek().getColumn());
             } else {
@@ -3578,7 +3512,7 @@ namespace vnlc {
 
         std::optional<std::unique_ptr<IdentifierNode>> label = std::nullopt;
 
-        if (!(endsWithNewlineOrEOF || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'continue'", peek().getLine(), peek().getColumn());
             } else {

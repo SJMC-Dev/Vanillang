@@ -10,6 +10,7 @@
 #include "parser/inherited/ParsingContexts.hpp"
 #include "parser/synthesized/ParsingResults.hpp"
 #include "token/Token.hpp"
+#include "token/TokenStream.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -20,23 +21,13 @@
 namespace vnlc {
     class Parser {
     private:
-        Lexer lexer;
+        TokenStream tokenStream;
         const CollectionResult& collectionResult;
         std::unordered_map<std::string, std::vector<std::string>> importBindings;
 
-        std::vector<Token> tokenBuffer;
-        std::size_t currentTokenIndex;
-        std::size_t bufferSize;
-        bool endsWithNewlineOrEOF;
-
-        [[nodiscard]] bool hasNextToken() const;
         [[nodiscard]] const Token& peek() const;
-        [[nodiscard]] const Token& peek(std::size_t offset) const;
 
-        void fillBuffer();
         void advance();
-        void advanceRaw();
-        void skipNewlines();
 
         [[nodiscard]] bool check(TokenKind expectedKind);
         [[nodiscard]] bool checkGeneralizedIdentifier();

@@ -28,76 +28,22 @@
 #include <utility>
 
 namespace vnlc {
-    Collector::Collector(Lexer&& lexer, std::size_t maxBufferSize) : lexer(std::move(lexer)), tokenBuffer(), currentTokenIndex(0), bufferSize(maxBufferSize), endsWithNewlineOrEOF(false) {
-        fillBuffer();
-    }
-
-    bool Collector::hasNextToken() const {
-        return lexer.hasNext() || currentTokenIndex < bufferSize;
-    }
+    Collector::Collector(Lexer&& lexer, std::size_t maxBufferSize) : tokenStream(std::move(lexer), maxBufferSize) {}
 
     const Token& Collector::peek() const {
-        return tokenBuffer[currentTokenIndex];
-    }
-
-    void Collector::fillBuffer() {
-        bool blank = false;
-        tokenBuffer.clear();
-
-        for (std::size_t index = 0; index < bufferSize && lexer.hasNext(); index = blank ? index : index + 1) {
-            Token token = lexer.next();
-            if (token.getKind() == TokenKind::BLANK || token.getKind() == TokenKind::SINGLE_LINE_COMMENT || token.getKind() == TokenKind::MULTI_LINE_COMMENT) {
-                blank = true;
-            } else {
-                blank = false;
-                tokenBuffer.push_back(std::move(token));
-            }
-        }
-
-        bufferSize = tokenBuffer.size();
-    }
-
-    void Collector::advanceRaw() {
-        if (peek().getKind() == TokenKind::END_OF_FILE) {
-            currentTokenIndex = bufferSize;
-            return;
-        }
-
-        if (currentTokenIndex < bufferSize) {
-            currentTokenIndex++;
-            if (currentTokenIndex == bufferSize && lexer.hasNext()) {
-                fillBuffer();
-                currentTokenIndex = 0;
-            }
-        }
+        return tokenStream.peek();
     }
 
     void Collector::advance() {
-        advanceRaw();
-        skipNewlines();
-    }
-
-    void Collector::skipNewlines() {
-        bool skipped = false;
-
-        while (hasNextToken() && peek().getKind() == TokenKind::NEWLINE) {
-            advanceRaw();
-            skipped = true;
-        }
-
-        endsWithNewlineOrEOF = skipped || peek().getKind() == TokenKind::END_OF_FILE;
+        tokenStream.advance();
     }
 
     bool Collector::check(TokenKind expectedKind) {
-        return hasNextToken() && peek().getKind() == expectedKind;
+        return tokenStream.check(expectedKind);
     }
 
     bool Collector::match(TokenKind expectedKind) {
-        if (check(expectedKind)) {
-            advance();
-            return true;
-        }
-        return false;
+        return tokenStream.match(expectedKind);
     }
 
     std::string Collector::consumeIdentifier() {
@@ -119,7 +65,7 @@ namespace vnlc {
         std::vector<std::vector<std::string>> paths;
         collectImportPath({}, false, paths);
 
-        if (!endsWithNewlineOrEOF) {
+        if (!tokenStream.endsWithNewlineOrEOF()) {
             throw SyntaxError("Expected newline after import declaration", peek().getLine(), peek().getColumn());
         }
 
@@ -167,7 +113,7 @@ namespace vnlc {
     void Collector::collectImportPath(std::vector<std::string> prefix, bool allowSelf, std::vector<std::vector<std::string>>& paths) {
         if (allowSelf && match(TokenKind::SELF)) {
             if (match(TokenKind::AS)) {
-                if (!endsWithNewlineOrEOF && check(TokenKind::IDENTIFIER)) {
+                if (!tokenStream.endsWithNewlineOrEOF() && check(TokenKind::IDENTIFIER)) {
                     advance();
                 }
             }
@@ -202,7 +148,7 @@ namespace vnlc {
         }
 
         if (match(TokenKind::AS)) {
-            if (!endsWithNewlineOrEOF && check(TokenKind::IDENTIFIER)) {
+            if (!tokenStream.endsWithNewlineOrEOF() && check(TokenKind::IDENTIFIER)) {
                 advance();
             }
         }
@@ -300,11 +246,11 @@ namespace vnlc {
         std::vector<std::unique_ptr<EnumMemberDeclarationOutline>> members;
 
         while (!check(TokenKind::RIGHT_BRACE)) {
-            skipNewlines();
+            tokenStream.skipNewlines();
 
             if (check(TokenKind::METADATA)) {
                 skipMetadata();
-                skipNewlines();
+                tokenStream.skipNewlines();
             }
 
             Token memberFirstToken = peek();
@@ -316,7 +262,7 @@ namespace vnlc {
 
             members.emplace_back(std::make_unique<EnumMemberDeclarationOutline>(std::move(memberName), memberFirstToken, peek()));
 
-            if (!(endsWithNewlineOrEOF || check(TokenKind::RIGHT_BRACE))) {
+            if (!(tokenStream.endsWithNewlineOrEOF() || check(TokenKind::RIGHT_BRACE))) {
                 throw SyntaxError("Expected newline after enum member declaration", peek().getLine(), peek().getColumn());
             }
         }
@@ -523,7 +469,7 @@ namespace vnlc {
 
         Token firstToken = peek();
 
-        skipNewlines();
+        tokenStream.skipNewlines();
 
         ImportedRootPackageMap imports;
         std::vector<Diagnostic> errors;

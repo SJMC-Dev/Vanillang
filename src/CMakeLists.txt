@@ -111,6 +111,7 @@ add_executable(
     vni/export/ModuleInterfaceFileGenerator.cpp
     utils/Utils.cpp
     vni/import/ImportedRootPackageMap.cpp
+    token/TokenStream.cpp
 )
 
 target_include_directories(
