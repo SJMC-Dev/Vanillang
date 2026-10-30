@@ -48,7 +48,7 @@ namespace vnlc {
         std::unique_ptr<ImportedParameter> parseImportedParameter(std::string_view key, const nlohmann::json& value);
 
     public:
-        ModuleInterfaceFileReader(std::filesystem::path filePath);
+        ModuleInterfaceFileReader(const std::filesystem::path& filePath);
 
         [[nodiscard]] std::unique_ptr<ImportedModule> read();
     };

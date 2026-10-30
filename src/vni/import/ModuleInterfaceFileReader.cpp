@@ -6,7 +6,7 @@
 #include <fstream>
 
 namespace vnlc {
-    ModuleInterfaceFileReader::ModuleInterfaceFileReader(std::filesystem::path filePath) : filePath(std::filesystem::canonical(filePath)), moduleName(filePath.stem().string()) {}
+    ModuleInterfaceFileReader::ModuleInterfaceFileReader(const std::filesystem::path& filePath) : filePath(std::filesystem::canonical(filePath)), moduleName(filePath.stem().string()) {}
 
     std::array<std::string, 3> ModuleInterfaceFileReader::validAccessModifiers = { "public", "protected", "private" };
 
@@ -536,8 +536,6 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("File {} is empty", filePath.string()));
         } else if (std::filesystem::is_directory(filePath)) {
             throw ModuleInterfaceFileReaderError(fmt::format("Path {} is a directory, not a file", filePath.string()));
-        } else if (!std::filesystem::is_regular_file(filePath)) {
-            throw ModuleInterfaceFileReaderError(fmt::format("Path {} is not a regular file", filePath.string()));
         } else if (!Utils::hasExtensionIgnoringCase(filePath, ".vni")) {
             throw ModuleInterfaceFileReaderError(fmt::format("File {} is not a module interface file", filePath.string()));
         }
