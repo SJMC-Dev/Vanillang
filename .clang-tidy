@@ -1,0 +1,8 @@
+Checks:
+    -*,
+    modernize-*,
+    performance-*,
+    bugprone-*,
+    -modernize-use-trailing-return-type
+
+HeaderFilterRegex: 'src/.*'
