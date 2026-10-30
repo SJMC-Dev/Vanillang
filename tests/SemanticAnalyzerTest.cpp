@@ -1176,7 +1176,8 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             return analyzer.analyze(config);
         }
 
-        template <typename Callback> void withAliasType(std::string_view source, Callback&& callback) {
+        template <typename Callback>
+        void withAliasType(std::string_view source, Callback&& callback) {
             prepareImports(source);
             module = parseModule(source, config);
             const auto& imports = collectionResult->getImports();

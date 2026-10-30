@@ -7,6 +7,7 @@ AccessModifierOffset: -4
 NamespaceIndentation: All
 BreakBeforeBinaryOperators: false
 BreakBeforeBraces: Attach
+BreakTemplateDeclarations: Yes
 ColumnLimit: 192
 SortIncludes: true
 PointerAlignment: Left
