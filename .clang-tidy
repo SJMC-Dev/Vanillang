@@ -3,6 +3,7 @@ Checks:
     modernize-*,
     performance-*,
     bugprone-*,
-    -modernize-use-trailing-return-type
+    -modernize-use-trailing-return-type,
+    -bugprone-easily-swappable-parameters
 
-HeaderFilterRegex: 'src/.*'
+HeaderFilterRegex: '[/\\]src[/\\]'
