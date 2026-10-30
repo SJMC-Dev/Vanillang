@@ -1,8 +1,10 @@
 #ifndef VNLC_RUNNING_MODE_HPP
 #define VNLC_RUNNING_MODE_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class RunningMode {
+    enum class RunningMode : std::uint8_t {
         COMPILE,
         CHECK,
         LINT,

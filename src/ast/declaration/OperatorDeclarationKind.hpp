@@ -1,9 +1,11 @@
 #ifndef VNLC_OPERATOR_DECLARATION_KIND_HPP
 #define VNLC_OPERATOR_DECLARATION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
     namespace OperatorDeclarationKind {
-        enum class Kind {
+        enum class Kind : std::uint8_t {
             ADDITION,
             SUBTRACTION,
             MULTIPLICATION,
@@ -25,17 +27,17 @@ namespace vnlc {
             RANGE,
         };
 
-        enum class Implementation {
+        enum class Implementation : std::uint8_t {
             REGULAR,
             NATIVE,
         };
 
-        enum class Context {
+        enum class Context : std::uint8_t {
             CLASS,
             INTERFACE,
         };
 
-        enum class AccessModifier {
+        enum class AccessModifier : std::uint8_t {
             PUBLIC,
             PROTECTED,
             PRIVATE,

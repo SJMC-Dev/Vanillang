@@ -1,8 +1,10 @@
 #ifndef VNLC_TOKEN_KIND_HPP
 #define VNLC_TOKEN_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class TokenKind {
+    enum class TokenKind : std::uint8_t {
         IDENTIFIER,
 
         NUMBER,

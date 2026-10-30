@@ -2,11 +2,12 @@
 #define VNLC_VARIABLE_DECLARATION_PARSING_CONTEXT_HPP
 
 #include "ast/declaration/DeclarationItem.hpp"
+#include <cstdint>
 #include <vector>
 
 namespace vnlc {
     struct VariableDeclarationParsingContext {
-        enum class Position {
+        enum class Position : std::uint8_t {
             TOP_LEVEL,
             STATEMENT,
         };

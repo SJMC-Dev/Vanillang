@@ -49,6 +49,7 @@
 #include "vni/import/ImportedEnum.hpp"
 #include "vni/import/ImportedInterface.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -1596,13 +1597,13 @@ namespace vnlc {
         bool hasMetadata = false;
         std::vector<DeclarationItem::MetadataTerm> metadataTerms;
 
-        enum class AccessModifier {
+        enum class AccessModifier : std::uint8_t {
             PUBLIC,
             PROTECTED,
             PRIVATE,
         };
 
-        enum class Binding {
+        enum class Binding : std::uint8_t {
             INSTANCE,
             STATIC,
         };

@@ -2,10 +2,11 @@
 #define VNLC_EXPRESSION_ANALYSIS_RESULT_HPP
 
 #include "type/Type.hpp"
+#include <cstdint>
 
 namespace vnlc {
     struct ExpressionAnalysisResult {
-        enum class ValueKind {
+        enum class ValueKind : std::uint8_t {
             PACKAGE,
             MODULE,
             TYPE,

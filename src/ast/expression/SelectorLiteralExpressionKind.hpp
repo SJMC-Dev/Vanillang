@@ -1,8 +1,10 @@
 #ifndef VNLC_SELECTOR_LITERAL_EXPRESSION_KIND_HPP
 #define VNLC_SELECTOR_LITERAL_EXPRESSION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class SelectorLiteralExpressionKind {
+    enum class SelectorLiteralExpressionKind : std::uint8_t {
         NEAREST_PLAYER,   // @p
         RANDOM_PLAYER,    // @r
         ALL_PLAYERS,      // @a

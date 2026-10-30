@@ -1,8 +1,10 @@
 #ifndef VNLC_BINARY_EXPRESSION_KIND_HPP
 #define VNLC_BINARY_EXPRESSION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class BinaryExpressionKind {
+    enum class BinaryExpressionKind : std::uint8_t {
         ASSIGNMENT,
         ADDITION_ASSIGNMENT,
         SUBTRACTION_ASSIGNMENT,

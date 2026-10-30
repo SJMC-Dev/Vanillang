@@ -1,9 +1,11 @@
 #ifndef VNLC_VALUE_DECLARATION_KIND_HPP
 #define VNLC_VALUE_DECLARATION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
     namespace ValueDeclarationKind {
-        enum class Kind {
+        enum class Kind : std::uint8_t {
             LET,
             LOOP_VARIABLE,
             PARAMETER,
@@ -12,7 +14,7 @@ namespace vnlc {
             ENUM_ASSOCIATED_VALUE,
         };
 
-        enum class Context {
+        enum class Context : std::uint8_t {
             TOP_LEVEL,
             FUNCTION,
             CLASS,
@@ -21,7 +23,7 @@ namespace vnlc {
             BLOCK,
         };
 
-        enum class AccessModifier {
+        enum class AccessModifier : std::uint8_t {
             PUBLIC,
             PROTECTED,
             PRIVATE,

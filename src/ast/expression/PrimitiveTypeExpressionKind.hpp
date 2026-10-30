@@ -1,8 +1,10 @@
 #ifndef VNLC_PRIMITIVE_TYPE_EXPRESSION_KIND_HPP
 #define VNLC_PRIMITIVE_TYPE_EXPRESSION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class PrimitiveTypeExpressionKind {
+    enum class PrimitiveTypeExpressionKind : std::uint8_t {
         BYTE,
         SHORT,
         INT,

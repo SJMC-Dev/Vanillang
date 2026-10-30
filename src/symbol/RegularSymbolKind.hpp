@@ -1,8 +1,10 @@
 #ifndef VNLC_REGULAR_SYMBOL_KIND_HPP
 #define VNLC_REGULAR_SYMBOL_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class RegularSymbolKind {
+    enum class RegularSymbolKind : std::uint8_t {
         PACKAGE,
         MODULE,
         VARIABLE,

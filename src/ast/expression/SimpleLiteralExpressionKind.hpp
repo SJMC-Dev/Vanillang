@@ -1,8 +1,10 @@
 #ifndef VNLC_SIMPLE_LITERAL_EXPRESSION_KIND_HPP
 #define VNLC_SIMPLE_LITERAL_EXPRESSION_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class SimpleLiteralExpressionKind {
+    enum class SimpleLiteralExpressionKind : std::uint8_t {
         DECIMAL_BYTE,
         DECIMAL_SHORT,
         DECIMAL_INTEGER,

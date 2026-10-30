@@ -1,8 +1,10 @@
 #ifndef VNLC_PRIMITIVE_TYPE_KIND_HPP
 #define VNLC_PRIMITIVE_TYPE_KIND_HPP
 
+#include <cstdint>
+
 namespace vnlc {
-    enum class PrimitiveTypeKind {
+    enum class PrimitiveTypeKind : std::uint8_t {
         BYTE,
         SHORT,
         INT,
