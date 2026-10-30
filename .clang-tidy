@@ -3,6 +3,7 @@ Checks:
     modernize-*,
     performance-*,
     bugprone-*,
+    readability-const-return-type,
     -modernize-use-trailing-return-type,
     -bugprone-easily-swappable-parameters
 
