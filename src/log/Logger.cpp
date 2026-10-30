@@ -13,7 +13,7 @@ namespace vnlc {
 
     void Logger::debug(std::string_view message) {
 #ifndef NDEBUG
-        std::clog << COLOR_DEBUG << "[DEBUG] " << message << COLOR_RESET << std::endl;
+        std::clog << COLOR_DEBUG << "[DEBUG] " << message << COLOR_RESET << '\n';
 #endif
     }
 
@@ -21,19 +21,19 @@ namespace vnlc {
         if (!verbose) {
             return;
         }
-        std::clog << COLOR_INFO << "[INFO] " << message << COLOR_RESET << std::endl;
+        std::clog << COLOR_INFO << "[INFO] " << message << COLOR_RESET << '\n';
     }
 
     void Logger::warn(std::string_view message) {
-        std::clog << COLOR_WARN << "[WARN] " << message << COLOR_RESET << std::endl;
+        std::clog << COLOR_WARN << "[WARN] " << message << COLOR_RESET << '\n';
     }
 
     void Logger::error(std::string_view message) {
-        std::cerr << COLOR_ERROR << "[ERROR] " << message << COLOR_RESET << std::endl;
+        std::cerr << COLOR_ERROR << "[ERROR] " << message << COLOR_RESET << '\n';
     }
 
     void Logger::fatal(std::string_view message) {
-        std::cerr << COLOR_FATAL << "[FATAL] " << message << COLOR_RESET << std::endl;
+        std::cerr << COLOR_FATAL << "[FATAL] " << message << COLOR_RESET << '\n';
         std::exit(EXIT_FAILURE);
     }
 } // namespace vnlc

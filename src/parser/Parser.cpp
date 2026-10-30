@@ -204,11 +204,9 @@ namespace vnlc {
 
             std::stringstream namePartStream(namePart);
             Lexer namePartLexer(namePartStream);
-            if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::IDENTIFIER)) {
-                throw IllegalModuleOrPackageNameError(namePart);
-            } else if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE)) {
-                throw IllegalModuleOrPackageNameError(namePart);
-            } else if (namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+            if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::IDENTIFIER) ||
+                !(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE) ||
+                namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
                 throw IllegalModuleOrPackageNameError(namePart);
             }
 
@@ -461,7 +459,7 @@ namespace vnlc {
         VariableDeclarationPrimaryParsingContext primaryContext{
             .kind = ValueDeclarationKind::Kind::LET,
         };
-        auto primaryResult = parseVariableDeclarationPrimary(std::move(primaryContext));
+        auto primaryResult = parseVariableDeclarationPrimary(primaryContext);
 
         if (!match(TokenKind::EQUAL)) {
             throw SyntaxError("Expected '=' after variable declaration", peek().getLine(), peek().getColumn());
@@ -3406,7 +3404,7 @@ namespace vnlc {
         VariableDeclarationPrimaryParsingContext variableContext{
             .kind = ValueDeclarationKind::Kind::LOOP_VARIABLE,
         };
-        auto variableDeclarationPrimaryResult = parseVariableDeclarationPrimary(std::move(variableContext));
+        auto variableDeclarationPrimaryResult = parseVariableDeclarationPrimary(variableContext);
         Token variableLastToken = peek();
         loopVariable = std::make_unique<ValueDeclarationNode>(
             variableDeclarationPrimaryResult.kind,

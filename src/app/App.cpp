@@ -101,6 +101,7 @@ namespace vnlc {
         std::filesystem::path packageRootPath = std::filesystem::canonical(packageRootPathString);
 
         std::vector<std::filesystem::path> dependencyPackageRootPaths;
+        dependencyPackageRootPaths.reserve(dependencyPackageRootPathStrings.size());
         for (auto& dependencyPackageRootPathString : dependencyPackageRootPathStrings) {
             dependencyPackageRootPaths.emplace_back(std::filesystem::canonical(dependencyPackageRootPathString));
         }

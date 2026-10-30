@@ -2,7 +2,6 @@
 #define VNLC_SEMANTIC_ANALYSIS_RESULT_HPP
 
 #include "ast/AstNode.hpp"
-#include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"

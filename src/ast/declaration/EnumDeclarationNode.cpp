@@ -11,8 +11,8 @@ namespace vnlc {
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken),
           name(std::move(name)),
-          memberDeclarations(std::move(memberDeclarations)),
-          genericParameterNames(std::move(genericParameterNames)) {}
+          genericParameterNames(std::move(genericParameterNames)),
+          memberDeclarations(std::move(memberDeclarations)) {}
 
     EnumDeclarationNode::EnumDeclarationNode(
         std::unique_ptr<IdentifierNode>&& name,
@@ -24,8 +24,8 @@ namespace vnlc {
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
           name(std::move(name)),
-          memberDeclarations(std::move(memberDeclarations)),
-          genericParameterNames(std::move(genericParameterNames)) {}
+          genericParameterNames(std::move(genericParameterNames)),
+          memberDeclarations(std::move(memberDeclarations)) {}
 
     const IdentifierNode& EnumDeclarationNode::getName() const noexcept {
         return *name;

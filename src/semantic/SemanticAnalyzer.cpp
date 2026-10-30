@@ -681,7 +681,7 @@ namespace vnlc {
             return result;
         };
 
-        const auto constructFullTypeName = [&](const CustomizedTypeReferenceNode& type, std::vector<const Type*> resolvedGenericArguments) -> std::string {
+        const auto constructFullTypeName = [&](const CustomizedTypeReferenceNode& type, const std::vector<const Type*>& resolvedGenericArguments) -> std::string {
             const auto& nameParts = type.getNameParts();
             std::stack<std::string> identifiers;
             std::string result;
@@ -780,7 +780,7 @@ namespace vnlc {
         };
 
         std::function<const Type*(const TypeReferenceNode&, const TypeSubstitutionMap&, VisitedSet)> checkType;
-        const auto checkUnwrappedType = [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, VisitedSet visited) -> const Type* {
+        const auto checkUnwrappedType = [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, const VisitedSet& visited) -> const Type* {
             if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&type)) {
                 return getPrimitiveType(primitiveTypeReferenceNode->getKind());
             }
@@ -957,7 +957,7 @@ namespace vnlc {
                 }
             }
 
-            const Type* resolvedType = checkUnwrappedType(type, substitutions, std::move(visited));
+            const Type* resolvedType = checkUnwrappedType(type, substitutions, visited);
             if (resolvedType == nullptr) {
                 return nullptr;
             }
@@ -2273,7 +2273,7 @@ namespace vnlc {
         auto inheritanceNodes = context.takeInheritanceNodes();
         auto localInheritances = context.takeLocalInheritanceMap();
         auto importedInheritances = context.takeImportedInheritanceMap();
-        return SemanticResult(
+        return {
             std::move(std::get<0>(diagnostics)),
             std::move(std::get<1>(diagnostics)),
             std::move(std::get<2>(diagnostics)),
@@ -2287,7 +2287,7 @@ namespace vnlc {
             std::move(expressionAnalysisResults),
             std::move(inheritanceNodes),
             std::move(localInheritances),
-            std::move(importedInheritances)
-        );
+            std::move(importedInheritances),
+        };
     }
 } // namespace vnlc
