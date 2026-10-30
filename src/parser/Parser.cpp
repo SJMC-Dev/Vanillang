@@ -3313,9 +3313,9 @@ namespace vnlc {
             auto caseBodyResult = parseStatement();
 
             if (caseResult.kind == SwitchStatementKind::LITERAL_MATCH) {
-                literalMatchItems.push_back({ std::move(caseResult.literal), std::move(caseBodyResult.statement) });
+                literalMatchItems.push_back({ .literal = std::move(caseResult.literal), .body = std::move(caseBodyResult.statement) });
             } else if (caseResult.kind == SwitchStatementKind::TYPE_MATCH) {
-                typeMatchItems.push_back({ std::move(caseResult.type), std::move(caseBodyResult.statement) });
+                typeMatchItems.push_back({ .type = std::move(caseResult.type), .body = std::move(caseBodyResult.statement), .guardExpression = std::move(caseResult.guardExpression) });
             }
         }
 
