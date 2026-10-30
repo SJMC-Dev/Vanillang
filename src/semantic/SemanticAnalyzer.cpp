@@ -1679,7 +1679,7 @@ namespace vnlc {
     void SemanticAnalyzer::checkExport(const ExportDeclarationNode& exportDecl) {
         for (auto& item : exportDecl.getNameList()) {
             if (context.currentScope().lookup(item.name->getIdentifierString()) == nullptr) {
-                context.reportError(exportDecl, fmt::format("Use of undeclared identifier {}", item.name->getIdentifierString()));
+                context.reportError(exportDecl, fmt::format("Use of undeclared identifier '{}'", item.name->getIdentifierString()));
             }
         }
     }
@@ -1719,7 +1719,7 @@ namespace vnlc {
                 const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType());
 
                 if (exprType && declType && !exprType->canConvertTo(*declType)) {
-                    context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
+                    context.reportError(varDecl, fmt::format("Cannot convert '{}' to '{}'", exprType->getFullTypeName(), declType->getFullTypeName()));
                 }
             }
         }
