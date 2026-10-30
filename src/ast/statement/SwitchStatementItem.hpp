@@ -5,7 +5,6 @@
 #include "ast/statement/StatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     namespace SwitchStatementItem {
@@ -17,7 +16,7 @@ namespace vnlc {
         struct TypeMatchItem {
             std::unique_ptr<TypeReferenceNode> type;
             std::unique_ptr<StatementNode> body;
-            std::optional<std::unique_ptr<ExpressionNode>> guardExpression;
+            std::unique_ptr<ExpressionNode> guardExpression; // nullptr if no guard expression
         };
     }; // namespace SwitchStatementItem
 } // namespace vnlc

@@ -8,8 +8,8 @@ namespace vnlc {
         FunctionDeclarationKind::Binding binding,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-        std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+        std::unique_ptr<TypeReferenceNode>&& returnType,
+        std::unique_ptr<BlockStatementNode>&& body,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -31,8 +31,8 @@ namespace vnlc {
         FunctionDeclarationKind::Binding binding,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-        std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+        std::unique_ptr<TypeReferenceNode>&& returnType,
+        std::unique_ptr<BlockStatementNode>&& body,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -76,12 +76,12 @@ namespace vnlc {
         return parameters;
     }
 
-    const std::optional<std::unique_ptr<TypeReferenceNode>>& FunctionDeclarationNode::getReturnType() const noexcept {
-        return returnType;
+    const TypeReferenceNode* FunctionDeclarationNode::getReturnType() const noexcept {
+        return returnType.get();
     }
 
-    const std::optional<std::unique_ptr<BlockStatementNode>>& FunctionDeclarationNode::getBody() const noexcept {
-        return body;
+    const BlockStatementNode* FunctionDeclarationNode::getBody() const noexcept {
+        return body.get();
     }
 
     void FunctionDeclarationNode::setInternalName(std::string_view internalName) const {

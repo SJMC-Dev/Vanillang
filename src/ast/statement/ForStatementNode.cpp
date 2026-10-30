@@ -8,7 +8,7 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : LoopStatementNode(std::nullopt, firstToken, lastToken),
+        : LoopStatementNode(nullptr, firstToken, lastToken),
           loopVariable(std::move(loopVariable)),
           iterableExpression(std::move(iterableExpression)),
           body(std::move(body)) {}
@@ -21,7 +21,7 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : LoopStatementNode(std::make_optional(std::move(label)), firstToken, lastToken),
+        : LoopStatementNode(std::move(label), firstToken, lastToken),
           loopVariable(std::move(loopVariable)),
           iterableExpression(std::move(iterableExpression)),
           body(std::move(body)) {}

@@ -45,9 +45,9 @@ namespace vnlc {
         nlohmann::json parameterObj = nlohmann::json::object();
         parameterObj.emplace("category", "parameter");
 
-        const auto& typeNode = parameter->getType();
-        if (typeNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode.value().get());
+        const auto* typeNode = parameter->getType();
+        if (typeNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
             if (type != nullptr) {
                 parameterObj.emplace("type", type->getFullTypeName());
             }
@@ -70,9 +70,9 @@ namespace vnlc {
             variableObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto& typeNode = variable->getType();
-        if (typeNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode.value().get());
+        const auto* typeNode = variable->getType();
+        if (typeNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
             if (type != nullptr) {
                 variableObj.emplace("type", type->getFullTypeName());
             }
@@ -97,9 +97,9 @@ namespace vnlc {
             functionObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto& returnTypeReferenceNode = function->getReturnType();
-        if (returnTypeReferenceNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode.value().get());
+        const auto* returnTypeReferenceNode = function->getReturnType();
+        if (returnTypeReferenceNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
             if (type != nullptr) {
                 functionObj.emplace("returnType", type->getFullTypeName());
             }
@@ -131,8 +131,8 @@ namespace vnlc {
         }
 
         std::optional<std::string> baseClassName;
-        if (classNode->getBaseClass().has_value()) {
-            const auto& baseClassTypeReferenceNode = classNode->getBaseClass().value().get();
+        if (classNode->getBaseClass() != nullptr) {
+            const auto* baseClassTypeReferenceNode = classNode->getBaseClass();
             const auto* type = semantic.getTypeByTypeReferenceNode(baseClassTypeReferenceNode);
             if (type != nullptr) {
                 baseClassName = type->getFullTypeName();
@@ -244,9 +244,9 @@ namespace vnlc {
         nlohmann::json enumValueObj = nlohmann::json::object();
         enumValueObj.emplace("category", "enumvalue");
 
-        const auto& typeNode = enumValue->getType();
-        if (typeNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode.value().get());
+        const auto* typeNode = enumValue->getType();
+        if (typeNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
             if (type != nullptr) {
                 enumValueObj.emplace("type", type->getFullTypeName());
             }
@@ -282,9 +282,9 @@ namespace vnlc {
             propertyObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto& typeNode = property->getType();
-        if (typeNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode.value().get());
+        const auto* typeNode = property->getType();
+        if (typeNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
             if (type != nullptr) {
                 propertyObj.emplace("type", type->getFullTypeName());
             }
@@ -325,9 +325,9 @@ namespace vnlc {
             methodObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto& returnTypeReferenceNode = method->getReturnType();
-        if (returnTypeReferenceNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode.value().get());
+        const auto* returnTypeReferenceNode = method->getReturnType();
+        if (returnTypeReferenceNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
             if (type != nullptr) {
                 methodObj.emplace("returnType", type->getFullTypeName());
             }
@@ -414,9 +414,9 @@ namespace vnlc {
             operatorObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto& returnTypeReferenceNode = operatorNode->getReturnType();
-        if (returnTypeReferenceNode.has_value()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode.value().get());
+        const auto* returnTypeReferenceNode = operatorNode->getReturnType();
+        if (returnTypeReferenceNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
             if (type != nullptr) {
                 operatorObj.emplace("returnType", type->getFullTypeName());
             }
@@ -447,7 +447,7 @@ namespace vnlc {
     }
 
     void ModuleInterfaceFileGenerator::generate() {
-        if (!config.moduleInterfaceOutputDirectory.has_value()) {
+        if (config.moduleInterfaceOutputDirectory.empty()) {
             return;
         }
 
@@ -476,7 +476,7 @@ namespace vnlc {
         }
 
         std::filesystem::path relativeInputPath = std::filesystem::relative(config.inputFilePath, config.packageRootPath);
-        std::filesystem::path outputPath = config.moduleInterfaceOutputDirectory.value() / config.packageRootPath.filename() / relativeInputPath;
+        std::filesystem::path outputPath = config.moduleInterfaceOutputDirectory / config.packageRootPath.filename() / relativeInputPath;
         outputPath.replace_extension(".vni");
 
         std::filesystem::create_directories(outputPath.parent_path());

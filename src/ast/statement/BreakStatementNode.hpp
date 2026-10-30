@@ -4,12 +4,11 @@
 #include "ast/identifier/IdentifierNode.hpp"
 #include "ast/statement/ControlFlowStatementNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     class BreakStatementNode : public ControlFlowStatementNode {
     private:
-        std::optional<std::unique_ptr<IdentifierNode>> label; // nullopt if no label
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
 
     public:
         BreakStatementNode() = delete;
@@ -17,7 +16,7 @@ namespace vnlc {
         BreakStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
         BreakStatementNode(std::unique_ptr<IdentifierNode>&& label, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const std::optional<std::unique_ptr<IdentifierNode>>& getLabel() const noexcept;
+        [[nodiscard]] const IdentifierNode* getLabel() const noexcept;
     };
 } // namespace vnlc
 

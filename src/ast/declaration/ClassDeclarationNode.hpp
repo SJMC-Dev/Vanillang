@@ -9,7 +9,6 @@
 #include "ast/identifier/IdentifierNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include <memory>
-#include <optional>
 #include <vector>
 
 namespace vnlc {
@@ -17,7 +16,7 @@ namespace vnlc {
     private:
         bool final;
         std::unique_ptr<IdentifierNode> name;
-        std::optional<std::unique_ptr<TypeReferenceNode>> baseClass;           // nullopt if no base class
+        std::unique_ptr<TypeReferenceNode> baseClass;                          // nullptr if no base class
         std::vector<std::unique_ptr<TypeReferenceNode>> implementedInterfaces; // empty if no implemented interfaces
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<ValueDeclarationNode>> propertyDeclarations; // instance or static properties only
@@ -31,7 +30,7 @@ namespace vnlc {
         ClassDeclarationNode(
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& baseClass,
+            std::unique_ptr<TypeReferenceNode>&& baseClass,
             std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
@@ -45,7 +44,7 @@ namespace vnlc {
         ClassDeclarationNode(
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& baseClass,
+            std::unique_ptr<TypeReferenceNode>&& baseClass,
             std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
@@ -59,7 +58,7 @@ namespace vnlc {
 
         [[nodiscard]] bool isFinal() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<TypeReferenceNode>>& getBaseClass() const noexcept;
+        [[nodiscard]] const TypeReferenceNode* getBaseClass() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<TypeReferenceNode>>& getImplementedInterfaces() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getPropertyDeclarations() const noexcept;

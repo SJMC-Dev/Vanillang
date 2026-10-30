@@ -3,14 +3,13 @@
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
-#include <optional>
 #include <vector>
 
 namespace vnlc {
     struct ImportDeclarationItem {
         std::vector<std::unique_ptr<IdentifierNode>> namePrefix;
         std::vector<std::unique_ptr<ImportDeclarationItem>> nameSuffixes;
-        std::optional<std::unique_ptr<IdentifierNode>> alias;
+        std::unique_ptr<IdentifierNode> alias; // nullptr if no alias
         bool self = false;
         bool wildcard = false;
     };

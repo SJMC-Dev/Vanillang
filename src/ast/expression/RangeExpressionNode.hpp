@@ -3,26 +3,20 @@
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     class RangeExpressionNode : public ExpressionNode {
     private:
-        std::optional<std::unique_ptr<ExpressionNode>> start;
-        std::optional<std::unique_ptr<ExpressionNode>> end;
+        std::unique_ptr<ExpressionNode> start; // nullptr if no start bound
+        std::unique_ptr<ExpressionNode> end;   // nullptr if no end bound
 
     public:
         RangeExpressionNode() = delete;
 
-        RangeExpressionNode(
-            std::optional<std::unique_ptr<ExpressionNode>>&& start,
-            std::optional<std::unique_ptr<ExpressionNode>>&& end,
-            const Token& firstToken,
-            const Token& lastToken
-        ) noexcept;
+        RangeExpressionNode(std::unique_ptr<ExpressionNode>&& start, std::unique_ptr<ExpressionNode>&& end, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const std::optional<std::unique_ptr<ExpressionNode>>& getStart() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<ExpressionNode>>& getEnd() const noexcept;
+        [[nodiscard]] const ExpressionNode* getStart() const noexcept;
+        [[nodiscard]] const ExpressionNode* getEnd() const noexcept;
     };
 } // namespace vnlc
 

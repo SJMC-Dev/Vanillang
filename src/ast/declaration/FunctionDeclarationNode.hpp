@@ -7,7 +7,6 @@
 #include "ast/statement/BlockStatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -21,8 +20,8 @@ namespace vnlc {
 
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::optional<std::unique_ptr<TypeReferenceNode>> returnType;
-        std::optional<std::unique_ptr<BlockStatementNode>> body;
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
+        std::unique_ptr<BlockStatementNode> body;      // nullptr if native or declared in an interface
         mutable std::string internalName;
 
     public:
@@ -35,8 +34,8 @@ namespace vnlc {
             FunctionDeclarationKind::Binding binding,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
@@ -48,8 +47,8 @@ namespace vnlc {
             FunctionDeclarationKind::Binding binding,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken,
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -62,8 +61,8 @@ namespace vnlc {
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] std::string_view getInternalName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<TypeReferenceNode>>& getReturnType() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<BlockStatementNode>>& getBody() const noexcept;
+        [[nodiscard]] const TypeReferenceNode* getReturnType() const noexcept;
+        [[nodiscard]] const BlockStatementNode* getBody() const noexcept;
 
         void setInternalName(std::string_view internalName) const;
     };

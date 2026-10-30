@@ -4,7 +4,7 @@ namespace vnlc {
     IfStatementNode::IfStatementNode(
         std::unique_ptr<ExpressionNode>&& condition,
         std::unique_ptr<StatementNode>&& thenBranch,
-        std::optional<std::unique_ptr<StatementNode>>&& elseBranch,
+        std::unique_ptr<StatementNode>&& elseBranch,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -21,7 +21,7 @@ namespace vnlc {
         return *thenBranch;
     }
 
-    const std::optional<std::unique_ptr<StatementNode>>& IfStatementNode::getElseBranch() const noexcept {
-        return elseBranch;
+    const StatementNode* IfStatementNode::getElseBranch() const noexcept {
+        return elseBranch.get();
     }
 } // namespace vnlc

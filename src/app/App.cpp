@@ -124,9 +124,8 @@ namespace vnlc {
             .minecraftVersion{ std::move(minecraftVersion) },
             .packageRootPath{ std::move(packageRootPath) },
             .inputFilePath{ std::move(inputFilePath) },
-            .outputDirectory{ outputDirectory.empty() ? std::nullopt : std::make_optional(std::move(outputDirectory)) },
-            .moduleInterfaceOutputDirectory{ moduleInterfaceOutputDirectoryString.empty() ? std::nullopt
-                                                                                          : std::make_optional(std::filesystem::canonical(moduleInterfaceOutputDirectoryString)) },
+            .outputDirectory{ std::move(outputDirectory) },
+            .moduleInterfaceOutputDirectory{ moduleInterfaceOutputDirectoryString.empty() ? std::filesystem::path() : std::filesystem::canonical(moduleInterfaceOutputDirectoryString) },
             .dependencyPackageRootPaths{},
             .optimizationLevel = (mode == "compile") ? std::make_optional(optimizationLevel) : std::nullopt,
         };

@@ -4,7 +4,7 @@ namespace vnlc {
     SwitchStatementNode::SwitchStatementNode(
         std::unique_ptr<ExpressionNode>&& switchExpression,
         std::vector<SwitchStatementItem::LiteralMatchItem>&& literalMatchItems,
-        std::optional<std::unique_ptr<StatementNode>>&& defaultCaseBody,
+        std::unique_ptr<StatementNode>&& defaultCaseBody,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -18,7 +18,7 @@ namespace vnlc {
     SwitchStatementNode::SwitchStatementNode(
         std::unique_ptr<ExpressionNode>&& switchExpression,
         std::vector<SwitchStatementItem::TypeMatchItem>&& typeMatchItems,
-        std::optional<std::unique_ptr<StatementNode>>&& defaultCaseBody,
+        std::unique_ptr<StatementNode>&& defaultCaseBody,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -45,7 +45,7 @@ namespace vnlc {
         return typeMatchItems;
     }
 
-    const std::optional<std::unique_ptr<StatementNode>>& SwitchStatementNode::getDefaultCaseBody() const noexcept {
-        return defaultCaseBody;
+    const StatementNode* SwitchStatementNode::getDefaultCaseBody() const noexcept {
+        return defaultCaseBody.get();
     }
 } // namespace vnlc

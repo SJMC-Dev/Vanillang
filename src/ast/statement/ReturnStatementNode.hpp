@@ -4,12 +4,11 @@
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/statement/ControlFlowStatementNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     class ReturnStatementNode : public ControlFlowStatementNode {
     private:
-        std::optional<std::unique_ptr<ExpressionNode>> returnValue;
+        std::unique_ptr<ExpressionNode> returnValue; // nullptr if no return value
 
     public:
         ReturnStatementNode() = delete;
@@ -17,7 +16,7 @@ namespace vnlc {
         ReturnStatementNode(const Token& firstToken, const Token& lastToken) noexcept;
         ReturnStatementNode(std::unique_ptr<ExpressionNode>&& returnValue, const Token& firstToken, const Token& lastToken) noexcept;
 
-        [[nodiscard]] const std::optional<std::unique_ptr<ExpressionNode>>& getReturnValue() const noexcept;
+        [[nodiscard]] const ExpressionNode* getReturnValue() const noexcept;
     };
 } // namespace vnlc
 

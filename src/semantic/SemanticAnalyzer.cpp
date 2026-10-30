@@ -1020,8 +1020,8 @@ namespace vnlc {
             const DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (const auto* varDecl = dynamic_cast<const ValueDeclarationNode*>(declNode)) {
-                if (varDecl->getType().has_value()) {
-                    resolveTypeReference(*varDecl->getType().value());
+                if (varDecl->getType() != nullptr) {
+                    resolveTypeReference(*varDecl->getType());
                 }
             } else if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
                 resolveTypeReferencesInFunction(*funcDecl);
@@ -1043,13 +1043,13 @@ namespace vnlc {
         }
 
         for (const auto& parameter : functionNode.getParameters()) {
-            if (parameter->getType().has_value()) {
-                resolveTypeReference(*parameter->getType().value());
+            if (parameter->getType() != nullptr) {
+                resolveTypeReference(*parameter->getType());
             }
         }
 
-        if (functionNode.getReturnType().has_value()) {
-            resolveTypeReference(*functionNode.getReturnType().value());
+        if (functionNode.getReturnType() != nullptr) {
+            resolveTypeReference(*functionNode.getReturnType());
         }
 
         context.popScope();
@@ -1061,8 +1061,8 @@ namespace vnlc {
         }
 
         for (const auto& parameter : constructorNode.getParameters()) {
-            if (parameter->getType().has_value()) {
-                resolveTypeReference(*parameter->getType().value());
+            if (parameter->getType() != nullptr) {
+                resolveTypeReference(*parameter->getType());
             }
         }
 
@@ -1075,13 +1075,13 @@ namespace vnlc {
         }
 
         for (const auto& parameter : operatorNode.getParameters()) {
-            if (parameter->getType().has_value()) {
-                resolveTypeReference(*parameter->getType().value());
+            if (parameter->getType() != nullptr) {
+                resolveTypeReference(*parameter->getType());
             }
         }
 
-        if (operatorNode.getReturnType().has_value()) {
-            resolveTypeReference(*operatorNode.getReturnType().value());
+        if (operatorNode.getReturnType() != nullptr) {
+            resolveTypeReference(*operatorNode.getReturnType());
         }
 
         context.popScope();
@@ -1092,8 +1092,8 @@ namespace vnlc {
             return;
         }
 
-        if (classNode.getBaseClass().has_value()) {
-            resolveTypeReference(*classNode.getBaseClass().value());
+        if (classNode.getBaseClass() != nullptr) {
+            resolveTypeReference(*classNode.getBaseClass());
         }
 
         for (const auto& interfaceRefNode : classNode.getImplementedInterfaces()) {
@@ -1101,8 +1101,8 @@ namespace vnlc {
         }
 
         for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
-            if (propertyDecl->getType().has_value()) {
-                resolveTypeReference(*propertyDecl->getType().value());
+            if (propertyDecl->getType() != nullptr) {
+                resolveTypeReference(*propertyDecl->getType());
             }
         }
 
@@ -1155,8 +1155,8 @@ namespace vnlc {
         }
 
         for (const auto& associatedValue : enumMemberNode.getAssociatedValues()) {
-            if (associatedValue->getType().has_value()) {
-                resolveTypeReference(*associatedValue->getType().value());
+            if (associatedValue->getType() != nullptr) {
+                resolveTypeReference(*associatedValue->getType());
             }
         }
 
@@ -1181,7 +1181,7 @@ namespace vnlc {
             name.append((functionNode->getName().getIdentifierString()));
             name.append("(");
             for (const auto& param : functionNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType()->get());
+                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1195,7 +1195,7 @@ namespace vnlc {
             name.append("vnl-constructor");
             name.append("(");
             for (const auto& param : constructorNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType()->get());
+                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1210,7 +1210,7 @@ namespace vnlc {
             name.append((operatorNode->getOperatorName()));
             name.append("(");
             for (const auto& param : operatorNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType()->get());
+                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1342,8 +1342,8 @@ namespace vnlc {
 
             ClassInheritanceNode& classNode = context.getOrCreateLocalInheritanceNode(*classDecl);
 
-            if (classDecl->getBaseClass().has_value()) {
-                const auto* baseClassType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(classDecl->getBaseClass().value().get()));
+            if (classDecl->getBaseClass() != nullptr) {
+                const auto* baseClassType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(classDecl->getBaseClass()));
                 if (baseClassType && baseClassType->getCustomizedKind() == CustomizedTypeKind::CLASS) {
                     if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
                         classNode.setParent(&context.getOrCreateLocalInheritanceNode(*localNode));
@@ -1563,7 +1563,7 @@ namespace vnlc {
                     if (target == nullptr) {
                         const auto* importedModule = dynamic_cast<const ImportedModule*>(parentItem);
                         if (importedModule != nullptr && &part == &item.namePrefix.back() && item.nameSuffixes.empty()) {
-                            const IdentifierNode* alias = item.alias.has_value() ? item.alias.value().get() : nullptr;
+                            const IdentifierNode* alias = item.alias.get();
                             bool matched = false;
                             for (const auto& [internalName, identifier] : importedModule->getIdentifiers()) {
                                 const auto* function = dynamic_cast<const ImportedFunc*>(identifier.get());
@@ -1603,8 +1603,8 @@ namespace vnlc {
                     context.reportError(location, "Wildcard imports can only be used for modules");
                     return;
                 }
-                if (item.alias.has_value()) {
-                    context.reportError(*item.alias.value(), "Wildcard imports cannot have aliases");
+                if (item.alias != nullptr) {
+                    context.reportError(*item.alias, "Wildcard imports cannot have aliases");
                     return;
                 }
                 std::vector<std::string> identifierNames;
@@ -1622,7 +1622,7 @@ namespace vnlc {
                     checkItem(*suffix, target, path);
                 }
             } else {
-                const auto* alias = item.alias.has_value() ? item.alias.value().get() : nullptr;
+                const auto* alias = item.alias.get();
                 bind(target, path, alias, alias ? *alias : location);
             }
         };
@@ -1691,8 +1691,8 @@ namespace vnlc {
             }
         }
 
-        const bool hasTypeReference = varDecl.getType().has_value();
-        const bool hasInitializer = varDecl.getInitializer().has_value();
+        const bool hasTypeReference = varDecl.getType() != nullptr;
+        const bool hasInitializer = varDecl.getInitializer() != nullptr;
         const bool requiresInitializer = kind == ValueDeclarationKind::Kind::LET || kind == ValueDeclarationKind::Kind::STATIC_PROPERTY;
 
         if (requiresInitializer && !hasInitializer) {
@@ -1705,16 +1705,16 @@ namespace vnlc {
         }
 
         if (hasInitializer) {
-            checkExpression(*varDecl.getInitializer().value());
-            const ExpressionAnalysisResult* exprResult = context.getExpressionAnalysisResult(varDecl.getInitializer()->get());
+            checkExpression(*varDecl.getInitializer());
+            const ExpressionAnalysisResult* exprResult = context.getExpressionAnalysisResult(varDecl.getInitializer());
 
             if (exprResult && exprResult->valueType == nullptr) {
-                context.reportError(*varDecl.getInitializer().value(), "Initializer expression does not have a value");
+                context.reportError(*varDecl.getInitializer(), "Initializer expression does not have a value");
             }
 
             if (hasTypeReference) {
                 const Type* exprType = exprResult ? exprResult->valueType : nullptr;
-                const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType()->get());
+                const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType());
 
                 if (exprType && declType && !exprType->canConvertTo(*declType)) {
                     context.reportError(varDecl, fmt::format("Cannot convert {} to {}", exprType->getFullTypeName(), declType->getFullTypeName()));
@@ -1728,7 +1728,7 @@ namespace vnlc {
             return;
         }
 
-        const bool hasFunctionBody = funcDecl.getBody().has_value();
+        const bool hasFunctionBody = funcDecl.getBody() != nullptr;
 
         for (const auto& param : funcDecl.getParameters()) {
             checkValueDeclaration(*param);
@@ -1747,7 +1747,7 @@ namespace vnlc {
 
             if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::REGULAR) {
                 if (hasFunctionBody) {
-                    checkStatement(*funcDecl.getBody().value());
+                    checkStatement(*funcDecl.getBody());
                 } else {
                     context.reportError(funcDecl, "Regular functions must have a body");
                 }
@@ -1778,7 +1778,7 @@ namespace vnlc {
             return;
         }
 
-        const bool hasBody = operatorDecl.getBody().has_value();
+        const bool hasBody = operatorDecl.getBody() != nullptr;
 
         for (const auto& param : operatorDecl.getParameters()) {
             checkValueDeclaration(*param);
@@ -1797,7 +1797,7 @@ namespace vnlc {
 
             if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::REGULAR) {
                 if (hasBody) {
-                    checkStatement(*operatorDecl.getBody().value());
+                    checkStatement(*operatorDecl.getBody());
                 } else {
                     context.reportError(operatorDecl, "Regular operators must have a body");
                 }
@@ -1819,13 +1819,13 @@ namespace vnlc {
         }
 
         if (requiredReturnTypeName.has_value()) {
-            const auto& returnTypeRefNode = operatorDecl.getReturnType();
+            const auto* returnTypeRefNode = operatorDecl.getReturnType();
             const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnTypeName.value());
 
-            if (returnTypeRefNode.has_value()) {
-                const Type* returnType = context.getTypeByTypeReferenceNode(returnTypeRefNode.value().get());
+            if (returnTypeRefNode != nullptr) {
+                const Type* returnType = context.getTypeByTypeReferenceNode(returnTypeRefNode);
                 if (returnType != nullptr && returnType->getFullTypeName() != requiredReturnTypeName.value()) {
-                    context.reportError(*returnTypeRefNode.value(), message);
+                    context.reportError(*returnTypeRefNode, message);
                 }
             } else if (const Type* inferredReturnType = context.getInferredOperatorReturnType(operatorDecl)) {
                 if (inferredReturnType->getFullTypeName() != requiredReturnTypeName.value()) {
@@ -1844,8 +1844,8 @@ namespace vnlc {
             return;
         }
 
-        if (classDecl.getBaseClass().has_value()) {
-            const TypeReferenceNode* baseClassRefNode = classDecl.getBaseClass().value().get();
+        if (classDecl.getBaseClass() != nullptr) {
+            const TypeReferenceNode* baseClassRefNode = classDecl.getBaseClass();
             const Type* resolvedType = context.getTypeByTypeReferenceNode(baseClassRefNode);
 
             if (dynamic_cast<const PrimitiveType*>(resolvedType)) {
@@ -1984,13 +1984,13 @@ namespace vnlc {
             context.reportError(breakStmt, "Break statement not within a loop");
         }
 
-        const auto& label = breakStmt.getLabel();
-        if (label.has_value()) {
-            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
+        const auto* label = breakStmt.getLabel();
+        if (label != nullptr) {
+            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label->getIdentifierString()));
             if (labelSymbol == nullptr) {
-                context.reportError(breakStmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+                context.reportError(breakStmt, fmt::format("Label '{}' does not exist", label->getIdentifierString()));
             } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                context.reportError(breakStmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+                context.reportError(breakStmt, fmt::format("Identifier '{}' is not a loop label", label->getIdentifierString()));
             }
         }
     }
@@ -2000,13 +2000,13 @@ namespace vnlc {
             context.reportError(continueStmt, "Continue statement not within a loop");
         }
 
-        const auto& label = continueStmt.getLabel();
-        if (label.has_value()) {
-            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label.value()->getIdentifierString()));
+        const auto* label = continueStmt.getLabel();
+        if (label != nullptr) {
+            const auto* labelSymbol = dynamic_cast<const RegularSymbol*>(context.currentScope().lookup(label->getIdentifierString()));
             if (labelSymbol == nullptr) {
-                context.reportError(continueStmt, fmt::format("Label '{}' does not exist", label.value()->getIdentifierString()));
+                context.reportError(continueStmt, fmt::format("Label '{}' does not exist", label->getIdentifierString()));
             } else if (labelSymbol->getKind() != RegularSymbolKind::LOOP_LABEL) {
-                context.reportError(continueStmt, fmt::format("Identifier '{}' is not a loop label", label.value()->getIdentifierString()));
+                context.reportError(continueStmt, fmt::format("Identifier '{}' is not a loop label", label->getIdentifierString()));
             }
         }
     }
@@ -2018,11 +2018,11 @@ namespace vnlc {
     void SemanticAnalyzer::checkForStatement(const ForStatementNode& forStmt) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), &forStmt));
 
-        const auto& label = forStmt.getLabel();
-        if (label.has_value()) {
-            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), &forStmt);
+        const auto* label = forStmt.getLabel();
+        if (label != nullptr) {
+            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label->getIdentifierString(), &forStmt);
             if (!context.currentScope().declare(std::move(labelSymbol))) {
-                context.reportError(forStmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+                context.reportError(forStmt, fmt::format("Redeclaration of identifier '{}'", label->getIdentifierString()));
             }
         }
 
@@ -2037,8 +2037,8 @@ namespace vnlc {
             context.reportError(loopVariable, fmt::format("Redeclaration of symbol '{}'", loopVariable.getName().getIdentifierString()));
         }
 
-        if (loopVariable.getType().has_value()) {
-            resolveTypeReference(*loopVariable.getType().value());
+        if (loopVariable.getType() != nullptr) {
+            resolveTypeReference(*loopVariable.getType());
         }
         checkValueDeclaration(forStmt.getLoopVariable());
         checkExpression(forStmt.getIterableExpression());
@@ -2050,16 +2050,16 @@ namespace vnlc {
     void SemanticAnalyzer::checkIfStatement(const IfStatementNode& ifStmt) {
         checkExpression(ifStmt.getCondition());
         checkStatement(ifStmt.getThenBranch());
-        if (ifStmt.getElseBranch().has_value()) {
-            checkStatement(*ifStmt.getElseBranch().value());
+        if (ifStmt.getElseBranch() != nullptr) {
+            checkStatement(*ifStmt.getElseBranch());
         }
     }
 
     void SemanticAnalyzer::checkReloadStatement(const ReloadStatementNode& reloadStmt) {}
 
     void SemanticAnalyzer::checkReturnStatement(const ReturnStatementNode& returnStmt) {
-        if (returnStmt.getReturnValue().has_value()) {
-            checkExpression(*returnStmt.getReturnValue().value());
+        if (returnStmt.getReturnValue() != nullptr) {
+            checkExpression(*returnStmt.getReturnValue());
         }
     }
 
@@ -2079,8 +2079,8 @@ namespace vnlc {
             }
         }
 
-        if (switchStmt.getDefaultCaseBody().has_value()) {
-            checkStatement(*switchStmt.getDefaultCaseBody().value());
+        if (switchStmt.getDefaultCaseBody() != nullptr) {
+            checkStatement(*switchStmt.getDefaultCaseBody());
         }
 
         context.popScope();
@@ -2092,8 +2092,8 @@ namespace vnlc {
         if (!context.currentScope().declare(std::move(variableSymbol))) {
             context.reportError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString()));
         }
-        if (varDecl.getType().has_value()) {
-            resolveTypeReference(*varDecl.getType().value());
+        if (varDecl.getType() != nullptr) {
+            resolveTypeReference(*varDecl.getType());
         }
         checkValueDeclaration(varDecl);
     }
@@ -2101,11 +2101,11 @@ namespace vnlc {
     void SemanticAnalyzer::checkWhileStatement(const WhileStatementNode& whileStmt) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::LOOP, &context.currentScope(), &whileStmt));
 
-        const auto& label = whileStmt.getLabel();
-        if (label.has_value()) {
-            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label.value()->getIdentifierString(), &whileStmt);
+        const auto* label = whileStmt.getLabel();
+        if (label != nullptr) {
+            RegularSymbol labelSymbol(RegularSymbolKind::LOOP_LABEL, RegularSymbolAccessModifier::PUBLIC, label->getIdentifierString(), &whileStmt);
             if (!context.currentScope().declare(std::move(labelSymbol))) {
-                context.reportError(whileStmt, fmt::format("Redeclaration of identifier '{}'", label.value()->getIdentifierString()));
+                context.reportError(whileStmt, fmt::format("Redeclaration of identifier '{}'", label->getIdentifierString()));
             }
         }
 
@@ -2181,8 +2181,8 @@ namespace vnlc {
         for (const auto& argument : funcCallExpr.getArguments()) {
             checkExpression(*argument);
         }
-        if (funcCallExpr.getContext().has_value()) {
-            checkExpression(*funcCallExpr.getContext().value());
+        if (funcCallExpr.getContext() != nullptr) {
+            checkExpression(*funcCallExpr.getContext());
         }
     }
 
@@ -2207,11 +2207,11 @@ namespace vnlc {
 
     void SemanticAnalyzer::checkRangeExpression(const RangeExpressionNode& rangeExpr) {
         // TODO: Implement range expression checking
-        if (rangeExpr.getStart().has_value()) {
-            checkExpression(*rangeExpr.getStart().value());
+        if (rangeExpr.getStart() != nullptr) {
+            checkExpression(*rangeExpr.getStart());
         }
-        if (rangeExpr.getEnd().has_value()) {
-            checkExpression(*rangeExpr.getEnd().value());
+        if (rangeExpr.getEnd() != nullptr) {
+            checkExpression(*rangeExpr.getEnd());
         }
     }
 

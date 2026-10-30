@@ -4,7 +4,7 @@ namespace vnlc {
     ClassDeclarationNode::ClassDeclarationNode(
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& baseClass,
+        std::unique_ptr<TypeReferenceNode>&& baseClass,
         std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
@@ -28,7 +28,7 @@ namespace vnlc {
     ClassDeclarationNode::ClassDeclarationNode(
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& baseClass,
+        std::unique_ptr<TypeReferenceNode>&& baseClass,
         std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
@@ -58,8 +58,8 @@ namespace vnlc {
         return *name;
     }
 
-    const std::optional<std::unique_ptr<TypeReferenceNode>>& ClassDeclarationNode::getBaseClass() const noexcept {
-        return baseClass;
+    const TypeReferenceNode* ClassDeclarationNode::getBaseClass() const noexcept {
+        return baseClass.get();
     }
 
     const std::vector<std::unique_ptr<TypeReferenceNode>>& ClassDeclarationNode::getImplementedInterfaces() const noexcept {

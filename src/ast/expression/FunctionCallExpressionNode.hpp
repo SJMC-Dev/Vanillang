@@ -3,7 +3,6 @@
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
-#include <optional>
 #include <vector>
 
 namespace vnlc {
@@ -11,7 +10,7 @@ namespace vnlc {
     private:
         std::unique_ptr<ExpressionNode> callee;
         std::vector<std::unique_ptr<ExpressionNode>> arguments;
-        std::optional<std::unique_ptr<ExpressionNode>> context;
+        std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
 
     public:
         FunctionCallExpressionNode() = delete;
@@ -33,7 +32,7 @@ namespace vnlc {
 
         [[nodiscard]] const ExpressionNode& getCallee() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ExpressionNode>>& getArguments() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<ExpressionNode>>& getContext() const noexcept;
+        [[nodiscard]] const ExpressionNode* getContext() const noexcept;
     };
 } // namespace vnlc
 

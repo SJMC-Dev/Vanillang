@@ -298,7 +298,7 @@ namespace vnlc {
                 return;
             }
 
-            bindImport(target, std::move(path), item.alias.has_value() ? item.alias.value().get() : nullptr);
+            bindImport(target, std::move(path), item.alias.get());
         };
         for (const auto& importDeclaration : importDeclarations) {
             collectImportBinding(collectImportBinding, importDeclaration->getNamePartsListWithAliases(), nullptr, {});
@@ -505,7 +505,7 @@ namespace vnlc {
 
         auto signatureResult = parseFunctionSignature();
 
-        std::optional<std::unique_ptr<BlockStatementNode>> body = std::nullopt;
+        std::unique_ptr<BlockStatementNode> body; // nullptr if native or declared in an interface
         if (context.context != FunctionDeclarationKind::Context::INTERFACE && context.implementation == FunctionDeclarationKind::Implementation::REGULAR) {
             auto bodyResult = parseFunctionBody();
             body = std::move(bodyResult.body);
@@ -636,8 +636,8 @@ namespace vnlc {
                     ValueDeclarationKind::Context::CLASS,
                     context.accessModifier,
                     std::move(name),
-                    std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type)),
-                    std::make_optional<std::unique_ptr<ExpressionNode>>(std::move(initializerResult.expression)),
+                    std::move(typeResult.type),
+                    std::move(initializerResult.expression),
                     firstToken,
                     lastToken,
                     std::move(context.metadataTerms)
@@ -648,8 +648,8 @@ namespace vnlc {
                     ValueDeclarationKind::Context::CLASS,
                     context.accessModifier,
                     std::move(name),
-                    std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type)),
-                    std::make_optional<std::unique_ptr<ExpressionNode>>(std::move(initializerResult.expression)),
+                    std::move(typeResult.type),
+                    std::move(initializerResult.expression),
                     firstToken,
                     lastToken
                 );
@@ -669,8 +669,8 @@ namespace vnlc {
                     ValueDeclarationKind::Context::CLASS,
                     context.accessModifier,
                     std::move(name),
-                    std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type)),
-                    std::nullopt,
+                    std::move(typeResult.type),
+                    nullptr,
                     firstToken,
                     lastToken,
                     std::move(context.metadataTerms)
@@ -681,8 +681,8 @@ namespace vnlc {
                     ValueDeclarationKind::Context::CLASS,
                     context.accessModifier,
                     std::move(name),
-                    std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type)),
-                    std::nullopt,
+                    std::move(typeResult.type),
+                    nullptr,
                     firstToken,
                     lastToken
                 );
@@ -773,7 +773,7 @@ namespace vnlc {
 
     VariableDeclarationPrimaryParsingResult Parser::parseVariableDeclarationPrimary(VariableDeclarationPrimaryParsingContext context) {
         std::unique_ptr<IdentifierNode> name;
-        std::optional<std::unique_ptr<TypeReferenceNode>> type = std::nullopt;
+        std::unique_ptr<TypeReferenceNode> type; // nullptr if no type annotation
 
         if (!match(TokenKind::LET)) {
             throw SyntaxError("Expected 'var', 'let' or 'const' keyword", peek().getLine(), peek().getColumn());
@@ -787,7 +787,7 @@ namespace vnlc {
 
         if (match(TokenKind::COLON)) {
             auto typeResult = parseType();
-            type = std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type));
+            type = std::move(typeResult.type);
         }
 
         return VariableDeclarationPrimaryParsingResult{
@@ -859,15 +859,15 @@ namespace vnlc {
             throw SyntaxError("Expected ')' after parameter list", peek().getLine(), peek().getColumn());
         }
 
-        std::optional<std::unique_ptr<TypeReferenceNode>> returnType = std::nullopt;
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
         if (match(TokenKind::ARROW)) {
             if (!match(TokenKind::VOID_KEYWORD)) {
                 auto typeResult = parseType();
-                returnType = std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type));
+                returnType = std::move(typeResult.type);
             }
         }
 
-        std::optional<std::unique_ptr<BlockStatementNode>> body = std::nullopt;
+        std::unique_ptr<BlockStatementNode> body; // nullptr if native or declared in an interface
         if (context.context == OperatorDeclarationKind::Context::CLASS && context.implementation == OperatorDeclarationKind::Implementation::REGULAR) {
             auto bodyResult = parseFunctionBody();
             body = std::move(bodyResult.body);
@@ -923,7 +923,7 @@ namespace vnlc {
     ClassDeclarationParsingResult Parser::parseClassDeclaration(ClassDeclarationParsingContext context) {
         bool final = false;
         std::unique_ptr<IdentifierNode> name;
-        std::optional<std::unique_ptr<TypeReferenceNode>> baseClass = std::nullopt;
+        std::unique_ptr<TypeReferenceNode> baseClass; // nullptr if no base class
         std::vector<std::unique_ptr<TypeReferenceNode>> implementedInterfaces;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<ValueDeclarationNode>> propertyDeclarations;
@@ -960,7 +960,7 @@ namespace vnlc {
         if (match(TokenKind::EXTENDS)) {
 
             auto typeResult = parseType();
-            baseClass = std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type));
+            baseClass = std::move(typeResult.type);
         }
 
         if (match(TokenKind::IMPLEMENTS)) {
@@ -1174,7 +1174,7 @@ namespace vnlc {
 
         do {
             std::unique_ptr<IdentifierNode> name;
-            std::optional<std::unique_ptr<IdentifierNode>> alias = std::nullopt;
+            std::unique_ptr<IdentifierNode> alias; // nullptr if no alias
 
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier in export list", peek().getLine(), peek().getColumn());
@@ -1223,7 +1223,7 @@ namespace vnlc {
     FunctionSignatureParsingResult Parser::parseFunctionSignature() {
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::optional<std::unique_ptr<TypeReferenceNode>> returnType;
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
 
         if (!match(TokenKind::FUNC)) {
             throw SyntaxError("Expected 'func' keyword", peek().getLine(), peek().getColumn());
@@ -1254,7 +1254,7 @@ namespace vnlc {
         if (match(TokenKind::ARROW)) {
             if (!match(TokenKind::VOID_KEYWORD)) {
                 auto typeResult = parseType();
-                returnType = std::make_optional<std::unique_ptr<TypeReferenceNode>>(std::move(typeResult.type));
+                returnType = std::move(typeResult.type);
             }
         }
 
@@ -1285,7 +1285,7 @@ namespace vnlc {
                     paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
                         .namePrefix = std::move(namePrefix),
                         .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
-                        .alias = std::nullopt,
+                        .alias = nullptr,
                         .self = false,
                         .wildcard = true,
                     });
@@ -1314,7 +1314,7 @@ namespace vnlc {
                 paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
                     .namePrefix = std::move(namePrefix),
                     .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
-                    .alias = std::make_optional<std::unique_ptr<IdentifierNode>>(std::move(alias)),
+                    .alias = std::move(alias),
                     .self = false,
                     .wildcard = false,
                 });
@@ -1326,7 +1326,7 @@ namespace vnlc {
             paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
                 .namePrefix = std::move(namePrefix),
                 .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>(std::move(listResult.paths)),
-                .alias = std::nullopt,
+                .alias = nullptr,
                 .self = false,
                 .wildcard = false,
             });
@@ -1338,7 +1338,7 @@ namespace vnlc {
             paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
                 .namePrefix = std::move(namePrefix),
                 .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
-                .alias = std::nullopt,
+                .alias = nullptr,
                 .self = false,
                 .wildcard = false,
             });
@@ -1424,7 +1424,7 @@ namespace vnlc {
                 ValueDeclarationKind::AccessModifier::PUBLIC,
                 std::move(name),
                 std::move(type),
-                std::nullopt,
+                nullptr,
                 firstToken,
                 lastToken
             ),
@@ -1546,7 +1546,7 @@ namespace vnlc {
 
     ImportPathItemParsingResult Parser::parseImportPathItem() {
         std::vector<std::unique_ptr<IdentifierNode>> namePrefix;
-        std::optional<std::unique_ptr<IdentifierNode>> alias = std::nullopt;
+        std::unique_ptr<IdentifierNode> alias; // nullptr if no alias
 
         if (check(TokenKind::SELF)) {
             namePrefix.emplace_back(constructCurrentIdentifierNode());
@@ -1555,7 +1555,7 @@ namespace vnlc {
                 if (!check(TokenKind::IDENTIFIER)) {
                     throw SyntaxError("Expected identifier after 'as' keyword in import path", peek().getLine(), peek().getColumn());
                 } else {
-                    alias = std::make_optional<std::unique_ptr<IdentifierNode>>(constructCurrentIdentifierNode());
+                    alias = constructCurrentIdentifierNode();
                 }
             }
 
@@ -1575,7 +1575,7 @@ namespace vnlc {
                 .paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
                     .namePrefix = std::move(namePrefix),
                     .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
-                    .alias = std::nullopt,
+                    .alias = nullptr,
                     .self = false,
                     .wildcard = true,
                 }),
@@ -1933,7 +1933,7 @@ namespace vnlc {
                 ValueDeclarationKind::AccessModifier::PUBLIC,
                 std::move(name),
                 std::move(type),
-                std::nullopt,
+                nullptr,
                 firstToken,
                 lastToken
             ),
@@ -2168,7 +2168,7 @@ namespace vnlc {
             Token lastToken = peek();
 
             return RangeExpressionParsingResult{
-                .expression = std::make_unique<RangeExpressionNode>(std::nullopt, std::make_optional(std::move(endResult.expression)), firstToken, lastToken),
+                .expression = std::make_unique<RangeExpressionNode>(nullptr, std::move(endResult.expression), firstToken, lastToken),
             };
         } else {
             auto startResult = parseBitwiseOrExpression();
@@ -2185,18 +2185,13 @@ namespace vnlc {
                     Token lastToken = peek();
 
                     return RangeExpressionParsingResult{
-                        .expression = std::make_unique<RangeExpressionNode>(
-                            std::make_optional(std::move(startResult.expression)),
-                            std::make_optional(std::move(endResult.expression)),
-                            firstToken,
-                            lastToken
-                        ),
+                        .expression = std::make_unique<RangeExpressionNode>(std::move(startResult.expression), std::move(endResult.expression), firstToken, lastToken),
                     };
                 } else {
                     Token lastToken = peek();
 
                     return RangeExpressionParsingResult{
-                        .expression = std::make_unique<RangeExpressionNode>(std::make_optional(std::move(startResult.expression)), std::nullopt, firstToken, lastToken),
+                        .expression = std::make_unique<RangeExpressionNode>(std::move(startResult.expression), nullptr, firstToken, lastToken),
                     };
                 }
             } else {
@@ -2425,10 +2420,9 @@ namespace vnlc {
 
         auto primaryResult = parsePrimaryExpression();
         std::unique_ptr<ExpressionNode> currentNode = std::move(primaryResult.expression);
-        std::optional<std::vector<std::string>> identifierPrefix;
+        std::vector<std::string> identifierPrefix; // empty if currentNode is not an identifier path
         if (const auto* identifierLike = dynamic_cast<const IdentifierLikeExpressionNode*>(currentNode.get())) {
-            identifierPrefix.emplace();
-            identifierPrefix->emplace_back(identifierLike->getName().getIdentifierString());
+            identifierPrefix.emplace_back(identifierLike->getName().getIdentifierString());
         }
 
         static const std::unordered_set<TokenKind> postfixOperators = {
@@ -2445,16 +2439,16 @@ namespace vnlc {
                 std::unique_ptr<IdentifierLikeExpressionNode> nameNode;
                 if (!checkGeneralizedIdentifier()) {
                     throw SyntaxError("Expected generalized identifier after '.'", peek().getLine(), peek().getColumn());
-                } else if (identifierPrefix.has_value() && check(TokenKind::IDENTIFIER)) {
+                } else if (!identifierPrefix.empty() && check(TokenKind::IDENTIFIER)) {
                     IdentifierLikeParsingContext context{
-                        .prefix = *identifierPrefix,
+                        .prefix = identifierPrefix,
                     };
                     auto identifierLikeResult = parseIdentifierLike(std::move(context));
                     nameNode = std::move(identifierLikeResult.expression);
-                    identifierPrefix->emplace_back(nameNode->getName().getIdentifierString());
+                    identifierPrefix.emplace_back(nameNode->getName().getIdentifierString());
                 } else {
                     nameNode = std::make_unique<IdentifierLikeExpressionNode>(constructCurrentIdentifierNode(), identifierFirstToken, peek());
-                    identifierPrefix.reset();
+                    identifierPrefix.clear();
                 }
 
                 Token lastToken = peek();
@@ -2473,14 +2467,14 @@ namespace vnlc {
                 Token lastToken = peek();
 
                 std::unique_ptr<IdentifierLikeExpressionNode> nameNode = std::make_unique<IdentifierLikeExpressionNode>(std::move(name), identifierFirstToken, lastToken);
-                identifierPrefix.reset();
+                identifierPrefix.clear();
 
                 currentNode = std::make_unique<MemberAccessExpressionNode>(MemberAccessExpressionKind::OPTIONAL_CHAINING, std::move(currentNode), std::move(nameNode), firstToken, lastToken);
             } else if (tokenStream.endsWithNewlineOrEOF()) {
                 break;
             } else if (match(TokenKind::LEFT_PARENTHESIS)) {
                 std::vector<std::unique_ptr<ExpressionNode>> arguments;
-                std::optional<std::unique_ptr<ExpressionNode>> context = std::nullopt;
+                std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
 
                 if (!check(TokenKind::RIGHT_PARENTHESIS)) {
                     auto argumentListResult = parseArgumentList();
@@ -2494,12 +2488,12 @@ namespace vnlc {
 
                 Token lastToken = peek();
 
-                if (context.has_value()) {
-                    currentNode = std::make_unique<FunctionCallExpressionNode>(std::move(currentNode), std::move(arguments), std::move(context.value()), firstToken, lastToken);
+                if (context != nullptr) {
+                    currentNode = std::make_unique<FunctionCallExpressionNode>(std::move(currentNode), std::move(arguments), std::move(context), firstToken, lastToken);
                 } else {
                     currentNode = std::make_unique<FunctionCallExpressionNode>(std::move(currentNode), std::move(arguments), firstToken, lastToken);
                 }
-                identifierPrefix.reset();
+                identifierPrefix.clear();
             } else if (match(TokenKind::LEFT_BRACKET)) {
                 auto indexResult = parseExpression();
 
@@ -2510,7 +2504,7 @@ namespace vnlc {
                 Token lastToken = peek();
 
                 currentNode = std::make_unique<SubscriptExpressionNode>(std::move(currentNode), std::move(indexResult.expression), firstToken, lastToken);
-                identifierPrefix.reset();
+                identifierPrefix.clear();
             }
         }
 
@@ -2942,7 +2936,7 @@ namespace vnlc {
 
     ArgumentListParsingResult Parser::parseArgumentList() {
         std::vector<std::unique_ptr<ExpressionNode>> arguments;
-        std::optional<std::unique_ptr<ExpressionNode>> context = std::nullopt;
+        std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
 
         do {
             if (match(TokenKind::CONTEXT)) {
@@ -2951,7 +2945,7 @@ namespace vnlc {
                 }
 
                 auto contextResult = parseExpression();
-                context = std::make_optional(std::move(contextResult.expression));
+                context = std::move(contextResult.expression);
 
                 return ArgumentListParsingResult{
                     .arguments = std::move(arguments),
@@ -3166,12 +3160,12 @@ namespace vnlc {
                 .statement = std::move(result.statement),
             };
         } else if (match(TokenKind::LABEL)) {
-            std::optional<std::unique_ptr<IdentifierNode>> label;
+            std::unique_ptr<IdentifierNode> label;
 
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'label'", peek().getLine(), peek().getColumn());
             } else {
-                label = std::make_optional(constructCurrentIdentifierNode());
+                label = constructCurrentIdentifierNode();
             }
 
             if (check(TokenKind::WHILE)) {
@@ -3198,13 +3192,13 @@ namespace vnlc {
                 throw SyntaxError("Expected 'while' or 'for' after label declaration", peek().getLine(), peek().getColumn());
             }
         } else if (check(TokenKind::WHILE)) {
-            auto result = parseWhileStatement({ std::nullopt });
+            auto result = parseWhileStatement({ nullptr });
 
             return ControlFlowStatementParsingResult{
                 .statement = std::move(result.statement),
             };
         } else if (check(TokenKind::FOR)) {
-            auto result = parseForStatement({ std::nullopt });
+            auto result = parseForStatement({ nullptr });
 
             return ControlFlowStatementParsingResult{
                 .statement = std::move(result.statement),
@@ -3257,7 +3251,7 @@ namespace vnlc {
 
         auto thenBranchResult = parseStatement();
 
-        std::optional<std::unique_ptr<StatementNode>> elseBranch = std::nullopt;
+        std::unique_ptr<StatementNode> elseBranch; // nullptr if no else branch
 
         if (match(TokenKind::ELSE)) {
             auto elseBranchResult = parseStatement();
@@ -3278,7 +3272,7 @@ namespace vnlc {
         SwitchStatementKind switchKind = SwitchStatementKind::LITERAL_MATCH;
         std::vector<SwitchStatementItem::LiteralMatchItem> literalMatchItems;
         std::vector<SwitchStatementItem::TypeMatchItem> typeMatchItems;
-        std::optional<std::unique_ptr<StatementNode>> defaultCase = std::nullopt;
+        std::unique_ptr<StatementNode> defaultCase; // nullptr if no default case
 
         if (!match(TokenKind::SWITCH)) {
             throw SyntaxError("Expected 'switch' to start switch statement", peek().getLine(), peek().getColumn());
@@ -3319,9 +3313,9 @@ namespace vnlc {
             auto caseBodyResult = parseStatement();
 
             if (caseResult.kind == SwitchStatementKind::LITERAL_MATCH) {
-                literalMatchItems.push_back({ std::move(caseResult.literal.value()), std::move(caseBodyResult.statement) });
+                literalMatchItems.push_back({ std::move(caseResult.literal), std::move(caseBodyResult.statement) });
             } else if (caseResult.kind == SwitchStatementKind::TYPE_MATCH) {
-                typeMatchItems.push_back({ std::move(caseResult.type.value()), std::move(caseBodyResult.statement) });
+                typeMatchItems.push_back({ std::move(caseResult.type), std::move(caseBodyResult.statement) });
             }
         }
 
@@ -3332,7 +3326,7 @@ namespace vnlc {
 
             auto defaultBodyResult = parseStatement();
 
-            defaultCase = std::make_optional<std::unique_ptr<StatementNode>>(std::move(defaultBodyResult.statement));
+            defaultCase = std::move(defaultBodyResult.statement);
         }
 
         if (!match(TokenKind::RIGHT_BRACE)) {
@@ -3373,10 +3367,9 @@ namespace vnlc {
 
         Token lastToken = peek();
 
-        if (context.label.has_value()) {
+        if (context.label != nullptr) {
             return WhileStatementParsingResult{
-                .statement =
-                    std::make_unique<WhileStatementNode>(std::move(context.label.value()), std::move(conditionResult.expression), std::move(bodyResult.statement), firstToken, lastToken),
+                .statement = std::make_unique<WhileStatementNode>(std::move(context.label), std::move(conditionResult.expression), std::move(bodyResult.statement), firstToken, lastToken),
             };
         } else {
             return WhileStatementParsingResult{
@@ -3412,7 +3405,7 @@ namespace vnlc {
             ValueDeclarationKind::AccessModifier::PUBLIC,
             std::move(variableDeclarationPrimaryResult.name),
             std::move(variableDeclarationPrimaryResult.type),
-            std::nullopt,
+            nullptr,
             variableFirstToken,
             variableLastToken
         );
@@ -3433,10 +3426,9 @@ namespace vnlc {
 
         Token lastToken = peek();
 
-        if (context.label.has_value()) {
+        if (context.label != nullptr) {
             return ForStatementParsingResult{
-                .statement =
-                    std::make_unique<ForStatementNode>(std::move(context.label.value()), std::move(loopVariable), std::move(iterableExpression), std::move(body), firstToken, lastToken),
+                .statement = std::make_unique<ForStatementNode>(std::move(context.label), std::move(loopVariable), std::move(iterableExpression), std::move(body), firstToken, lastToken),
             };
         } else {
             return ForStatementParsingResult{
@@ -3452,7 +3444,7 @@ namespace vnlc {
             throw SyntaxError("Expected 'return' to start return statement", peek().getLine(), peek().getColumn());
         }
 
-        std::optional<std::unique_ptr<ExpressionNode>> returnValue = std::nullopt;
+        std::unique_ptr<ExpressionNode> returnValue; // nullptr if no return value
 
         if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             auto returnValueResult = parseExpression();
@@ -3461,9 +3453,9 @@ namespace vnlc {
 
         Token lastToken = peek();
 
-        if (returnValue.has_value()) {
+        if (returnValue != nullptr) {
             return ReturnStatementParsingResult{
-                .statement = std::make_unique<ReturnStatementNode>(std::move(returnValue.value()), firstToken, lastToken),
+                .statement = std::make_unique<ReturnStatementNode>(std::move(returnValue), firstToken, lastToken),
             };
         } else {
             return ReturnStatementParsingResult{
@@ -3479,21 +3471,21 @@ namespace vnlc {
             throw SyntaxError("Expected 'break' to start break statement", peek().getLine(), peek().getColumn());
         }
 
-        std::optional<std::unique_ptr<IdentifierNode>> label = std::nullopt;
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
 
         if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'break'", peek().getLine(), peek().getColumn());
             } else {
-                label = std::make_optional(constructCurrentIdentifierNode());
+                label = constructCurrentIdentifierNode();
             }
         }
 
         Token lastToken = peek();
 
-        if (label.has_value()) {
+        if (label != nullptr) {
             return BreakStatementParsingResult{
-                .statement = std::make_unique<BreakStatementNode>(std::move(label.value()), firstToken, lastToken),
+                .statement = std::make_unique<BreakStatementNode>(std::move(label), firstToken, lastToken),
             };
         } else {
             return BreakStatementParsingResult{
@@ -3509,21 +3501,21 @@ namespace vnlc {
             throw SyntaxError("Expected 'continue' to start continue statement", peek().getLine(), peek().getColumn());
         }
 
-        std::optional<std::unique_ptr<IdentifierNode>> label = std::nullopt;
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
 
         if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
             if (!check(TokenKind::IDENTIFIER)) {
                 throw SyntaxError("Expected identifier after 'continue'", peek().getLine(), peek().getColumn());
             } else {
-                label = std::make_optional(constructCurrentIdentifierNode());
+                label = constructCurrentIdentifierNode();
             }
         }
 
         Token lastToken = peek();
 
-        if (label.has_value()) {
+        if (label != nullptr) {
             return ContinueStatementParsingResult{
-                .statement = std::make_unique<ContinueStatementNode>(std::move(label.value()), firstToken, lastToken),
+                .statement = std::make_unique<ContinueStatementNode>(std::move(label), firstToken, lastToken),
             };
         } else {
             return ContinueStatementParsingResult{
@@ -3566,7 +3558,7 @@ namespace vnlc {
         } else if (check(TokenKind::IDENTIFIER)) {
             auto typeResult = parseType();
 
-            std::optional<std::unique_ptr<ExpressionNode>> guardExpression = std::nullopt;
+            std::unique_ptr<ExpressionNode> guardExpression; // nullptr if no guard expression
             if (match(TokenKind::WHEN)) {
                 auto guardResult = parseExpression();
                 guardExpression = std::move(guardResult.expression);

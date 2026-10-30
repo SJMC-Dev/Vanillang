@@ -7,7 +7,6 @@
 #include "ast/statement/BlockStatementNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,8 +19,8 @@ namespace vnlc {
         OperatorDeclarationKind::Context context;
         OperatorDeclarationKind::AccessModifier accessModifier;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::optional<std::unique_ptr<TypeReferenceNode>> returnType;
-        std::optional<std::unique_ptr<BlockStatementNode>> body;
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
+        std::unique_ptr<BlockStatementNode> body;      // nullptr if native or declared in an interface
         mutable std::string internalName;
 
     public:
@@ -33,8 +32,8 @@ namespace vnlc {
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken
         );
@@ -45,8 +44,8 @@ namespace vnlc {
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& returnType,
-            std::optional<std::unique_ptr<BlockStatementNode>>&& body,
+            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken,
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -59,8 +58,8 @@ namespace vnlc {
         [[nodiscard]] std::string_view getInternalName() const noexcept;
         [[nodiscard]] std::string_view getOperatorName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<TypeReferenceNode>>& getReturnType() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<BlockStatementNode>>& getBody() const noexcept;
+        [[nodiscard]] const TypeReferenceNode* getReturnType() const noexcept;
+        [[nodiscard]] const BlockStatementNode* getBody() const noexcept;
 
         void setInternalName(std::string_view internalName) const;
     };

@@ -4,14 +4,13 @@
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/statement/ControlFlowStatementNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     class IfStatementNode : public ControlFlowStatementNode {
     private:
         std::unique_ptr<ExpressionNode> condition;
         std::unique_ptr<StatementNode> thenBranch;
-        std::optional<std::unique_ptr<StatementNode>> elseBranch; // nullopt if no else branch
+        std::unique_ptr<StatementNode> elseBranch; // nullptr if no else branch
 
     public:
         IfStatementNode() = delete;
@@ -19,14 +18,14 @@ namespace vnlc {
         IfStatementNode(
             std::unique_ptr<ExpressionNode>&& condition,
             std::unique_ptr<StatementNode>&& thenBranch,
-            std::optional<std::unique_ptr<StatementNode>>&& elseBranch,
+            std::unique_ptr<StatementNode>&& elseBranch,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
 
         [[nodiscard]] const ExpressionNode& getCondition() const noexcept;
         [[nodiscard]] const StatementNode& getThenBranch() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<StatementNode>>& getElseBranch() const noexcept;
+        [[nodiscard]] const StatementNode* getElseBranch() const noexcept;
     };
 } // namespace vnlc
 

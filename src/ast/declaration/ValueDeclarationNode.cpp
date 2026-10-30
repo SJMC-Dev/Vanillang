@@ -7,8 +7,8 @@ namespace vnlc {
         ValueDeclarationKind::Context context,
         ValueDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& type,
-        std::optional<std::unique_ptr<ExpressionNode>>&& initializer,
+        std::unique_ptr<TypeReferenceNode>&& type,
+        std::unique_ptr<ExpressionNode>&& initializer,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -25,8 +25,8 @@ namespace vnlc {
         ValueDeclarationKind::Context context,
         ValueDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
-        std::optional<std::unique_ptr<TypeReferenceNode>>&& type,
-        std::optional<std::unique_ptr<ExpressionNode>>&& initializer,
+        std::unique_ptr<TypeReferenceNode>&& type,
+        std::unique_ptr<ExpressionNode>&& initializer,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -55,11 +55,11 @@ namespace vnlc {
         return *name;
     }
 
-    const std::optional<std::unique_ptr<TypeReferenceNode>>& ValueDeclarationNode::getType() const noexcept {
-        return type;
+    const TypeReferenceNode* ValueDeclarationNode::getType() const noexcept {
+        return type.get();
     }
 
-    const std::optional<std::unique_ptr<ExpressionNode>>& ValueDeclarationNode::getInitializer() const noexcept {
-        return initializer;
+    const ExpressionNode* ValueDeclarationNode::getInitializer() const noexcept {
+        return initializer.get();
     }
 } // namespace vnlc

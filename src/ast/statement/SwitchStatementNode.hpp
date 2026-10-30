@@ -14,7 +14,7 @@ namespace vnlc {
         SwitchStatementKind switchKind;
         std::vector<SwitchStatementItem::LiteralMatchItem> literalMatchItems; // empty if switchKind is TYPE_MATCH
         std::vector<SwitchStatementItem::TypeMatchItem> typeMatchItems;       // empty if switchKind is LITERAL_MATCH
-        std::optional<std::unique_ptr<StatementNode>> defaultCaseBody;
+        std::unique_ptr<StatementNode> defaultCaseBody;                       // nullptr if no default case
 
     public:
         SwitchStatementNode() = delete;
@@ -22,7 +22,7 @@ namespace vnlc {
         SwitchStatementNode(
             std::unique_ptr<ExpressionNode>&& switchExpression,
             std::vector<SwitchStatementItem::LiteralMatchItem>&& literalMatchItems,
-            std::optional<std::unique_ptr<StatementNode>>&& defaultCaseBody,
+            std::unique_ptr<StatementNode>&& defaultCaseBody,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
@@ -30,7 +30,7 @@ namespace vnlc {
         SwitchStatementNode(
             std::unique_ptr<ExpressionNode>&& switchExpression,
             std::vector<SwitchStatementItem::TypeMatchItem>&& typeMatchItems,
-            std::optional<std::unique_ptr<StatementNode>>&& defaultCaseBody,
+            std::unique_ptr<StatementNode>&& defaultCaseBody,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
@@ -39,7 +39,7 @@ namespace vnlc {
         [[nodiscard]] SwitchStatementKind getSwitchKind() const noexcept;
         [[nodiscard]] const std::vector<SwitchStatementItem::LiteralMatchItem>& getLiteralMatchItems() const noexcept;
         [[nodiscard]] const std::vector<SwitchStatementItem::TypeMatchItem>& getTypeMatchItems() const noexcept;
-        [[nodiscard]] const std::optional<std::unique_ptr<StatementNode>>& getDefaultCaseBody() const noexcept;
+        [[nodiscard]] const StatementNode* getDefaultCaseBody() const noexcept;
     };
 } // namespace vnlc
 

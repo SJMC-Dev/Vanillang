@@ -10,7 +10,7 @@ namespace vnlc {
         : ExpressionNode(firstToken, lastToken),
           callee(std::move(callee)),
           arguments(std::move(arguments)),
-          context(std::nullopt) {}
+          context(nullptr) {}
 
     FunctionCallExpressionNode::FunctionCallExpressionNode(
         std::unique_ptr<ExpressionNode>&& callee,
@@ -32,7 +32,7 @@ namespace vnlc {
         return arguments;
     }
 
-    const std::optional<std::unique_ptr<ExpressionNode>>& FunctionCallExpressionNode::getContext() const noexcept {
-        return context;
+    const ExpressionNode* FunctionCallExpressionNode::getContext() const noexcept {
+        return context.get();
     }
 } // namespace vnlc

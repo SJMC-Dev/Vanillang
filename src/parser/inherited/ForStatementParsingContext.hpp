@@ -3,11 +3,10 @@
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     struct ForStatementParsingContext {
-        std::optional<std::unique_ptr<IdentifierNode>> label;
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
     };
 } // namespace vnlc
 

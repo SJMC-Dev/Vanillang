@@ -4,13 +4,12 @@
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
 #include <memory>
-#include <optional>
 
 namespace vnlc {
     struct VariableDeclarationPrimaryParsingResult {
         ValueDeclarationKind::Kind kind;
         std::unique_ptr<IdentifierNode> name;
-        std::optional<std::unique_ptr<TypeReferenceNode>> type;
+        std::unique_ptr<TypeReferenceNode> type; // nullptr if no type annotation
     };
 } // namespace vnlc
 

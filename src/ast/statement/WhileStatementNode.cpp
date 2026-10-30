@@ -2,7 +2,7 @@
 
 namespace vnlc {
     WhileStatementNode::WhileStatementNode(std::unique_ptr<ExpressionNode>&& condition, std::unique_ptr<StatementNode>&& body, const Token& firstToken, const Token& lastToken) noexcept
-        : LoopStatementNode(std::nullopt, firstToken, lastToken),
+        : LoopStatementNode(nullptr, firstToken, lastToken),
           condition(std::move(condition)),
           body(std::move(body)) {}
 
@@ -13,7 +13,7 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : LoopStatementNode(std::make_optional(std::move(label)), firstToken, lastToken),
+        : LoopStatementNode(std::move(label), firstToken, lastToken),
           condition(std::move(condition)),
           body(std::move(body)) {}
 

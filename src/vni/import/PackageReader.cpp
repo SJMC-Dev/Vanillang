@@ -3,7 +3,6 @@
 #include "utils/Utils.hpp"
 #include "vni/import/ModuleInterfaceFileReader.hpp"
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -49,7 +48,7 @@ namespace vnlc {
 
         for (std::size_t index = 1; index < names.size(); ++index) {
             const std::string& name = names[index];
-            std::optional<std::filesystem::path> packagePath;
+            std::filesystem::path packagePath; // empty if no package directory matches name
             std::vector<std::filesystem::path> modulePaths;
             for (const auto& entry : std::filesystem::directory_iterator(currentPath)) {
                 if (entry.is_directory() && entry.path().filename().string() == name) {
@@ -61,7 +60,7 @@ namespace vnlc {
                 }
             }
 
-            if (!packagePath.has_value()) {
+            if (packagePath.empty()) {
                 if (currentPackage->getModules().contains(name)) return;
 
                 if (modulePaths.empty()) {
@@ -78,7 +77,7 @@ namespace vnlc {
                 currentPackage->addSubPackage(std::make_unique<ImportedPackage>(name, ImportedRootPackageMap(), std::unordered_map<std::string, std::unique_ptr<ImportedModule>>()));
             }
             currentPackage = currentPackage->getSubPackages().at(name).get();
-            currentPath = std::move(packagePath.value());
+            currentPath = std::move(packagePath);
         }
 
         std::unordered_set<std::filesystem::path> activePackagePaths;
