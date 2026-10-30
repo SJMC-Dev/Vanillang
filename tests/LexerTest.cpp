@@ -610,7 +610,7 @@ namespace vnlc {
     }
 
     TEST(LexerTest, Characters) {
-        std::istringstream input("'a' '\\n' '\\t' '\\'' '\\\\' 'ab' ''");
+        std::istringstream input(R"('a' '\n' '\t' '\'' '\\' 'ab' '')");
         Lexer lexer(input);
 
         ASSERT_TRUE(lexer.hasNext());
