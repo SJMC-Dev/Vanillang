@@ -220,7 +220,7 @@ func test() {
     TEST(SemanticAnalyzerTest, RejectsDuplicateOperatorParameterDeclarations) {
         constexpr std::string_view source = R"(
 class Vec3 {
-    op +(value: int, value: int) -> Vec3 {
+    op ()(value: int, value: int) -> Vec3 {
         return this
     }
 }
@@ -441,9 +441,9 @@ func afterInterface(input: T) {}
             "func broken(first: int, second: Missing) {}",
             "class Box {\n    func broken(first: int, second: Missing) {}\n}",
             "class Box {\n    init(first: int, second: Missing) {}\n}",
-            "class Box {\n    op +(first: int, second: Missing) -> int { return 0 }\n}",
+            "class Box {\n    op ()(first: int, second: Missing) -> int { return 0 }\n}",
             "interface Readable {\n    func broken(first: int, second: Missing)\n}",
-            "interface Readable {\n    op +(first: int, second: Missing) -> int\n}",
+            "interface Readable {\n    op ()(first: int, second: Missing) -> int\n}",
         };
         for (const auto source : sources) {
             SCOPED_TRACE(source);
@@ -1583,6 +1583,107 @@ class Vec3 {
 
         ASSERT_EQ(result.getErrors().size(), 1);
         EXPECT_EQ(result.getErrors().front().getMessage(), "Operator 'comparison' must return 'vanillang.typesystem.Optional<vanillang.typesystem.Ordering>'");
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, AcceptsOperatorsWithAllowedParameterCounts) {
+        const auto result = analyze(R"(
+import vanillang.typesystem.{Optional, Ordering}
+class Vec3 {
+    op +() -> Vec3 { return this }
+    op -() -> Vec3 { return this }
+    native op ~() -> Vec3
+    op +(other: Vec3) -> Vec3 { return this }
+    native op -(other: Vec3) -> Vec3
+}
+interface Operable {
+    op +() -> Operable
+    op +(other: Operable) -> Operable
+    op -() -> Operable
+    op -(other: Operable) -> Operable
+    op *(other: Operable) -> Operable
+    op /(other: Operable) -> Operable
+    op //(other: Operable) -> Operable
+    op %(other: Operable) -> Operable
+    op **(other: Operable) -> Operable
+    op ==(other: Operable) -> bool
+    op <=>(other: Operable) -> Ordering?
+    op &(other: Operable) -> Operable
+    op |(other: Operable) -> Operable
+    op ^(other: Operable) -> Operable
+    op ~() -> Operable
+    op <<(other: Operable) -> Operable
+    op >>(other: Operable) -> Operable
+    op >>>(other: Operable) -> Operable
+    op [](index: int) -> Operable
+    op ..(other: Operable) -> Operable
+    op ()() -> Operable
+    op ()(first: int) -> Operable
+    op ()(first: int, second: int) -> Operable
+    op ()(first: int, second: int, third: int) -> Operable
+}
+)");
+
+        ASSERT_FALSE(result.hasErrors()) << result.getErrors().front().getMessage();
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, RejectsOperatorsWithDisallowedParameterCounts) {
+        const auto result = analyze(R"(
+import vanillang.typesystem.{Optional, Ordering}
+class Vec3 {
+    op +(first: Vec3, second: Vec3) -> Vec3 { return this }
+    native op ~(other: Vec3) -> Vec3
+}
+interface Operable {
+    op -(first: Operable, second: Operable) -> Operable
+    op *() -> Operable
+    op /() -> Operable
+    op //() -> Operable
+    op %() -> Operable
+    op **() -> Operable
+    op ==() -> bool
+    op <=>() -> Ordering?
+    op &() -> Operable
+    op |() -> Operable
+    op ^() -> Operable
+    op ~(other: Operable) -> Operable
+    op <<() -> Operable
+    op >>() -> Operable
+    op >>>() -> Operable
+    op []() -> Operable
+    op [](row: int, column: int) -> Operable
+    op ..() -> Operable
+    op ..(first: Operable, second: Operable) -> Operable
+}
+)");
+
+        const std::vector<std::string_view> expectedMessages = {
+            "Operator 'addition' does not allow 2 parameter(s)",
+            "Operator 'bitwiseNot' does not allow 1 parameter(s)",
+            "Operator 'subtraction' does not allow 2 parameter(s)",
+            "Operator 'multiplication' does not allow 0 parameter(s)",
+            "Operator 'division' does not allow 0 parameter(s)",
+            "Operator 'integerDivision' does not allow 0 parameter(s)",
+            "Operator 'modulo' does not allow 0 parameter(s)",
+            "Operator 'exponent' does not allow 0 parameter(s)",
+            "Operator 'equality' does not allow 0 parameter(s)",
+            "Operator 'comparison' does not allow 0 parameter(s)",
+            "Operator 'bitwiseAnd' does not allow 0 parameter(s)",
+            "Operator 'bitwiseOr' does not allow 0 parameter(s)",
+            "Operator 'bitwiseXor' does not allow 0 parameter(s)",
+            "Operator 'bitwiseNot' does not allow 1 parameter(s)",
+            "Operator 'shiftLeft' does not allow 0 parameter(s)",
+            "Operator 'shiftRight' does not allow 0 parameter(s)",
+            "Operator 'unsignedShiftRight' does not allow 0 parameter(s)",
+            "Operator 'subscript' does not allow 0 parameter(s)",
+            "Operator 'subscript' does not allow 2 parameter(s)",
+            "Operator 'range' does not allow 0 parameter(s)",
+            "Operator 'range' does not allow 2 parameter(s)",
+        };
+        ASSERT_EQ(result.getErrors().size(), expectedMessages.size());
+        for (std::size_t index = 0; index < expectedMessages.size(); ++index) {
+            SCOPED_TRACE(index);
+            EXPECT_EQ(result.getErrors()[index].getMessage(), expectedMessages[index]);
+        }
     }
 
     TEST_F(SemanticAnalyzerImportTest, BuildsImportedPackageModuleAndMemberScopes) {
