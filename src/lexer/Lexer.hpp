@@ -9,24 +9,25 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace vnlc {
     class Lexer {
     private:
-        LexerMode mode;
-        std::stack<int> parenthesisCounterStack;
-        int parenthesisCounter;
+        LexerMode mode = LexerMode::DEFAULT;
+        std::stack<int, std::vector<int>> parenthesisCounterStack;
+        int parenthesisCounter = -1;
 
-        static const std::unordered_map<std::string_view, TokenKind> keywords;
+        [[nodiscard]] static const std::unordered_map<std::string_view, TokenKind>& getKeywords();
 
         std::istream& source;
         std::string currentLine;
 
-        std::size_t offset;
-        int line;
-        int column;
+        std::size_t offset = 0;
+        std::size_t line = 0;
+        std::size_t column = 1;
 
-        bool exhausted;
+        bool exhausted = false;
 
         void advance();
         bool readline();
@@ -40,18 +41,18 @@ namespace vnlc {
         [[nodiscard]] bool separator() const;
 
         [[nodiscard]] int peek() const;
-        [[nodiscard]] int peek(int offset) const;
+        [[nodiscard]] int peek(std::size_t offset) const;
 
-        [[nodiscard]] Token processStartsWithBlank(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithNumber(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithSpecial(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithNewline(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithEof(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithIdentifier(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token processStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
 
-        [[nodiscard]] Token scanStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token scanFormatStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token scanRawStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanFormatStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanRawStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
 
     public:
         explicit Lexer(std::istream& input);

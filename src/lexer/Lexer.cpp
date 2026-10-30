@@ -4,92 +4,86 @@
 #include <string_view>
 
 namespace vnlc {
-    const std::unordered_map<std::string_view, TokenKind> Lexer::keywords{
-        { "var", TokenKind::VAR },
-        { "let", TokenKind::LET },
-        { "const", TokenKind::CONST_KEYWORD },
-        { "byte", TokenKind::BYTE_TYPE },
-        { "short", TokenKind::SHORT_TYPE },
-        { "int", TokenKind::INT_TYPE },
-        { "long", TokenKind::LONG_TYPE },
-        { "float", TokenKind::FLOAT_TYPE },
-        { "double", TokenKind::DOUBLE_TYPE },
-        { "bool", TokenKind::BOOL_TYPE },
-        { "string", TokenKind::STRING_TYPE },
-        { "func", TokenKind::FUNC },
-        { "init", TokenKind::INIT },
-        { "op", TokenKind::OP },
-        { "return", TokenKind::RETURN },
-        { "if", TokenKind::IF },
-        { "else", TokenKind::ELSE },
-        { "for", TokenKind::FOR },
-        { "while", TokenKind::WHILE },
-        { "label", TokenKind::LABEL },
-        { "break", TokenKind::BREAK },
-        { "continue", TokenKind::CONTINUE },
-        { "switch", TokenKind::SWITCH },
-        { "case", TokenKind::CASE },
-        { "default", TokenKind::DEFAULT },
-        { "when", TokenKind::WHEN },
-        { "context", TokenKind::CONTEXT },
-        { "void", TokenKind::VOID_KEYWORD },
-        { "native", TokenKind::NATIVE },
-        { "callee", TokenKind::CALLEE },
-        { "in", TokenKind::IN_KEYWORD },
-        { "reload", TokenKind::RELOAD },
-        { "class", TokenKind::CLASS },
-        { "interface", TokenKind::INTERFACE },
-        { "abstract", TokenKind::ABSTRACT },
-        { "type", TokenKind::TYPE },
-        { "enum", TokenKind::ENUM },
-        { "record", TokenKind::RECORD },
-        { "extends", TokenKind::EXTENDS },
-        { "implements", TokenKind::IMPLEMENTS },
-        { "this", TokenKind::THIS },
-        { "super", TokenKind::SUPER },
-        { "private", TokenKind::PRIVATE },
-        { "protected", TokenKind::PROTECTED },
-        { "public", TokenKind::PUBLIC },
-        { "readonly", TokenKind::READONLY },
-        { "static", TokenKind::STATIC },
-        { "instanceof", TokenKind::INSTANCEOF },
-        { "final", TokenKind::FINAL },
-        { "override", TokenKind::OVERRIDE },
-        { "none", TokenKind::NONE },
-        { "true", TokenKind::TRUE_LITERAL },
-        { "false", TokenKind::FALSE_LITERAL },
-        { "import", TokenKind::IMPORT },
-        { "export", TokenKind::EXPORT },
-        { "as", TokenKind::AS },
-        { "self", TokenKind::SELF },
-        { "lambda", TokenKind::LAMBDA },
-        { "command", TokenKind::COMMAND },
-        { "async", TokenKind::ASYNC },
-        { "await", TokenKind::AWAIT },
-        { "generator", TokenKind::GENERATOR },
-        { "yield", TokenKind::YIELD },
-        { "from", TokenKind::FROM },
-        { "decorator", TokenKind::DECORATOR },
-        { "decorate", TokenKind::DECORATE },
-        { "panic", TokenKind::PANIC },
-        { "assert", TokenKind::ASSERT },
-        { "typeof", TokenKind::TYPEOF },
-        { "defer", TokenKind::DEFER },
-        { "asset", TokenKind::ASSET },
-        { "define", TokenKind::DEFINE },
-        { "metadata", TokenKind::METADATA },
-    };
+    const std::unordered_map<std::string_view, TokenKind>& Lexer::getKeywords() {
+        static const std::unordered_map<std::string_view, TokenKind> keywords{
+            { "var", TokenKind::VAR },
+            { "let", TokenKind::LET },
+            { "const", TokenKind::CONST_KEYWORD },
+            { "byte", TokenKind::BYTE_TYPE },
+            { "short", TokenKind::SHORT_TYPE },
+            { "int", TokenKind::INT_TYPE },
+            { "long", TokenKind::LONG_TYPE },
+            { "float", TokenKind::FLOAT_TYPE },
+            { "double", TokenKind::DOUBLE_TYPE },
+            { "bool", TokenKind::BOOL_TYPE },
+            { "string", TokenKind::STRING_TYPE },
+            { "func", TokenKind::FUNC },
+            { "init", TokenKind::INIT },
+            { "op", TokenKind::OP },
+            { "return", TokenKind::RETURN },
+            { "if", TokenKind::IF },
+            { "else", TokenKind::ELSE },
+            { "for", TokenKind::FOR },
+            { "while", TokenKind::WHILE },
+            { "label", TokenKind::LABEL },
+            { "break", TokenKind::BREAK },
+            { "continue", TokenKind::CONTINUE },
+            { "switch", TokenKind::SWITCH },
+            { "case", TokenKind::CASE },
+            { "default", TokenKind::DEFAULT },
+            { "when", TokenKind::WHEN },
+            { "context", TokenKind::CONTEXT },
+            { "void", TokenKind::VOID_KEYWORD },
+            { "native", TokenKind::NATIVE },
+            { "callee", TokenKind::CALLEE },
+            { "in", TokenKind::IN_KEYWORD },
+            { "reload", TokenKind::RELOAD },
+            { "class", TokenKind::CLASS },
+            { "interface", TokenKind::INTERFACE },
+            { "abstract", TokenKind::ABSTRACT },
+            { "type", TokenKind::TYPE },
+            { "enum", TokenKind::ENUM },
+            { "record", TokenKind::RECORD },
+            { "extends", TokenKind::EXTENDS },
+            { "implements", TokenKind::IMPLEMENTS },
+            { "this", TokenKind::THIS },
+            { "super", TokenKind::SUPER },
+            { "private", TokenKind::PRIVATE },
+            { "protected", TokenKind::PROTECTED },
+            { "public", TokenKind::PUBLIC },
+            { "readonly", TokenKind::READONLY },
+            { "static", TokenKind::STATIC },
+            { "instanceof", TokenKind::INSTANCEOF },
+            { "final", TokenKind::FINAL },
+            { "override", TokenKind::OVERRIDE },
+            { "none", TokenKind::NONE },
+            { "true", TokenKind::TRUE_LITERAL },
+            { "false", TokenKind::FALSE_LITERAL },
+            { "import", TokenKind::IMPORT },
+            { "export", TokenKind::EXPORT },
+            { "as", TokenKind::AS },
+            { "self", TokenKind::SELF },
+            { "lambda", TokenKind::LAMBDA },
+            { "command", TokenKind::COMMAND },
+            { "async", TokenKind::ASYNC },
+            { "await", TokenKind::AWAIT },
+            { "generator", TokenKind::GENERATOR },
+            { "yield", TokenKind::YIELD },
+            { "from", TokenKind::FROM },
+            { "decorator", TokenKind::DECORATOR },
+            { "decorate", TokenKind::DECORATE },
+            { "panic", TokenKind::PANIC },
+            { "assert", TokenKind::ASSERT },
+            { "typeof", TokenKind::TYPEOF },
+            { "defer", TokenKind::DEFER },
+            { "asset", TokenKind::ASSET },
+            { "define", TokenKind::DEFINE },
+            { "metadata", TokenKind::METADATA },
+        };
+        return keywords;
+    }
 
-    Lexer::Lexer(std::istream& input)
-        : mode(LexerMode::DEFAULT),
-          parenthesisCounterStack(),
-          parenthesisCounter(-1),
-          source(input),
-          currentLine(""),
-          offset(0),
-          line(-1),
-          column(0),
-          exhausted(false) {
+    Lexer::Lexer(std::istream& input) : source(input) {
         readline();
     }
 
@@ -97,10 +91,10 @@ namespace vnlc {
         return peek(0);
     }
 
-    int Lexer::peek(int offset) const {
-        int targetColumn = column + offset;
-        if (targetColumn < static_cast<int>(currentLine.length())) {
-            return static_cast<char>(currentLine[targetColumn]);
+    int Lexer::peek(std::size_t offset) const {
+        std::size_t targetColumn = column + offset;
+        if (targetColumn <= currentLine.length()) {
+            return static_cast<char>(currentLine[targetColumn - 1]);
         }
 
         return std::char_traits<char>::eof();
@@ -169,7 +163,7 @@ namespace vnlc {
             }
         }
 
-        column = 0;
+        column = 1;
         return true;
     }
 
@@ -185,9 +179,9 @@ namespace vnlc {
             return;
         }
 
-        int len = static_cast<int>(currentLine.length());
+        std::size_t len = currentLine.length();
 
-        if (column < len - 1) {
+        if (column < len) {
             column++;
             return;
         }
@@ -196,7 +190,7 @@ namespace vnlc {
             return;
         }
 
-        column = len;
+        column = len + 1;
     }
 
     void Lexer::collect(std::string& tokenValue) {
@@ -209,7 +203,7 @@ namespace vnlc {
         return !exhausted;
     }
 
-    Token Lexer::processStartsWithBlank(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         while (blank()) {
             if (peek() != '\r') {
                 collect(tokenValue);
@@ -218,10 +212,10 @@ namespace vnlc {
             }
         }
 
-        return Token(TokenKind::BLANK, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::BLANK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithNumber(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         constexpr unsigned char BIN = 0b001;
         constexpr unsigned char OCT = 0b010;
         constexpr unsigned char HEX = 0b100;
@@ -246,14 +240,14 @@ namespace vnlc {
                 break;
             }
 
-            if (peek() == '0' && nonDecimalFlags.find(peek(1)) != std::string_view::npos) {
+            if (peek() == '0' && nonDecimalFlags.find(static_cast<char>(peek(1))) != std::string_view::npos) {
                 nonDecimal = true;
                 collect(tokenValue);
                 baseFlags = peek() == 'b' ? BIN : peek() == 'o' ? OCT : peek() == 'x' ? HEX : 0;
                 collect(tokenValue);
 
                 if (separator() && peek() != '.') {
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
                 continue;
@@ -271,7 +265,7 @@ namespace vnlc {
                         collect(tokenValue);
                     }
 
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
                 existDot = true;
@@ -280,20 +274,20 @@ namespace vnlc {
 
             if (nonDecimal) {
                 bool error = false;
-                error |= baseFlags == BIN && binaryDigits.find(peek()) == std::string_view::npos;
-                error |= baseFlags == OCT && octalDigits.find(peek()) == std::string_view::npos;
-                error |= baseFlags == HEX && hexDigits.find(peek()) == std::string_view::npos;
+                error |= baseFlags == BIN && binaryDigits.find(static_cast<char>(peek())) == std::string_view::npos;
+                error |= baseFlags == OCT && octalDigits.find(static_cast<char>(peek())) == std::string_view::npos;
+                error |= baseFlags == HEX && hexDigits.find(static_cast<char>(peek())) == std::string_view::npos;
 
                 if (error) {
                     while (!separator()) {
                         collect(tokenValue);
                     }
 
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             };
 
-            if (!nonDecimal && exponentFlags.find(peek()) != std::string_view::npos) {
+            if (!nonDecimal && exponentFlags.find(static_cast<char>(peek())) != std::string_view::npos) {
                 collect(tokenValue);
 
                 if (existE) {
@@ -301,7 +295,7 @@ namespace vnlc {
                         collect(tokenValue);
                     }
 
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
                 if (peek() == '+' || peek() == '-') {
@@ -312,14 +306,14 @@ namespace vnlc {
                             collect(tokenValue);
                         }
 
-                        return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     }
                 } else if (!number()) {
                     while (!separator()) {
                         collect(tokenValue);
                     }
 
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
                 collect(tokenValue);
@@ -329,7 +323,7 @@ namespace vnlc {
 
             if (!nonDecimal && !number()) {
                 if (existDot || existE) {
-                    if (floatSuffixes.find(peek()) != std::string_view::npos) {
+                    if (floatSuffixes.find(static_cast<char>(peek())) != std::string_view::npos) {
                         collect(tokenValue);
                         break;
                     } else {
@@ -337,10 +331,10 @@ namespace vnlc {
                             collect(tokenValue);
                         }
 
-                        return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     }
                 } else {
-                    if (integerSuffixes.find(peek()) != std::string_view::npos) {
+                    if (integerSuffixes.find(static_cast<char>(peek())) != std::string_view::npos) {
                         collect(tokenValue);
                         break;
                     } else {
@@ -348,7 +342,7 @@ namespace vnlc {
                             collect(tokenValue);
                         }
 
-                        return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     }
                 }
             }
@@ -356,81 +350,81 @@ namespace vnlc {
             collect(tokenValue);
         }
 
-        return Token(TokenKind::NUMBER, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::NUMBER, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithSpecial(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         if (peek() == '+') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::PLUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PLUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '+') {
                 collect(tokenValue);
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::PLUS, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PLUS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '-') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::MINUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::MINUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '-') {
                 collect(tokenValue);
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '>') {
                 collect(tokenValue);
-                return Token(TokenKind::ARROW, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::ARROW, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::MINUS, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::MINUS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '*') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '*') {
                 collect(tokenValue);
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::DOUBLE_ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else {
-                return Token(TokenKind::ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '/') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '/') {
                 collect(tokenValue);
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::DOUBLE_SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else {
-                return Token(TokenKind::SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '%') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::PERCENT_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PERCENT_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::PERCENT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PERCENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '<') {
             collect(tokenValue);
@@ -440,48 +434,48 @@ namespace vnlc {
 
                 if (peek() == '>') {
                     collect(tokenValue);
-                    return Token(TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else if (peek() == '<') {
                 collect(tokenValue);
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::DOUBLE_LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else {
-                return Token(TokenKind::LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '>') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '>') {
                 collect(tokenValue);
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::DOUBLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else if (peek() == '>') {
                     collect(tokenValue);
 
                     if (peek() == '=') {
                         collect(tokenValue);
-                        return Token(TokenKind::TRIPLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::TRIPLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     } else {
-                        return Token(TokenKind::TRIPLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::TRIPLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     }
                 } else {
-                    return Token(TokenKind::DOUBLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else {
-                return Token(TokenKind::RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '=') {
             collect(tokenValue);
@@ -491,12 +485,12 @@ namespace vnlc {
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::TRIPLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::TRIPLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else {
-                return Token(TokenKind::EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '?') {
             collect(tokenValue);
@@ -506,15 +500,15 @@ namespace vnlc {
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::DOUBLE_QUESTION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_QUESTION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else if (peek() == '.') {
                 collect(tokenValue);
-                return Token(TokenKind::QUESTION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::QUESTION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '!') {
             collect(tokenValue);
@@ -524,52 +518,52 @@ namespace vnlc {
 
                 if (peek() == '=') {
                     collect(tokenValue);
-                    return Token(TokenKind::EXCLAMATION_DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::EXCLAMATION_DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::EXCLAMATION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::EXCLAMATION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else if (peek() == '.') {
                 collect(tokenValue);
-                return Token(TokenKind::EXCLAMATION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::EXCLAMATION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::EXCLAMATION, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::EXCLAMATION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '&') {
             collect(tokenValue);
 
             if (peek() == '&') {
                 collect(tokenValue);
-                return Token(TokenKind::DOUBLE_AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::DOUBLE_AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::AMPERSAND_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::AMPERSAND_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '|') {
             collect(tokenValue);
 
             if (peek() == '|') {
                 collect(tokenValue);
-                return Token(TokenKind::DOUBLE_PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::DOUBLE_PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::PIPE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PIPE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '^') {
             collect(tokenValue);
 
             if (peek() == '=') {
                 collect(tokenValue);
-                return Token(TokenKind::CARET_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::CARET_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::CARET, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::CARET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '~') {
             collect(tokenValue);
-            return Token(TokenKind::TILDE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::TILDE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '.') {
             collect(tokenValue);
 
@@ -578,30 +572,30 @@ namespace vnlc {
 
                 if (peek() == '.') {
                     collect(tokenValue);
-                    return Token(TokenKind::TRIPLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::TRIPLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 } else {
-                    return Token(TokenKind::DOUBLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::DOUBLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
             } else if (number()) {
                 mode = LexerMode::NUMBER_STARTS_WITH_DOT;
                 return processStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
             } else {
-                return Token(TokenKind::DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == ',') {
             collect(tokenValue);
-            return Token(TokenKind::COMMA, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::COMMA, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == ';') {
             collect(tokenValue);
-            return Token(TokenKind::SEMICOLON, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::SEMICOLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == ':') {
             collect(tokenValue);
 
             if (peek() == ':') {
                 collect(tokenValue);
-                return Token(TokenKind::DOUBLE_COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::DOUBLE_COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
-                return Token(TokenKind::COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '(') {
             collect(tokenValue);
@@ -610,7 +604,7 @@ namespace vnlc {
                 parenthesisCounter++;
             }
 
-            return Token(TokenKind::LEFT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEFT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == ')') {
             collect(tokenValue);
 
@@ -624,19 +618,19 @@ namespace vnlc {
                 }
             }
 
-            return Token(TokenKind::RIGHT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::RIGHT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '{') {
             collect(tokenValue);
-            return Token(TokenKind::LEFT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEFT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '}') {
             collect(tokenValue);
-            return Token(TokenKind::RIGHT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::RIGHT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '[') {
             collect(tokenValue);
-            return Token(TokenKind::LEFT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEFT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == ']') {
             collect(tokenValue);
-            return Token(TokenKind::RIGHT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::RIGHT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '#') {
             collect(tokenValue);
 
@@ -645,7 +639,7 @@ namespace vnlc {
 
                 while (true) {
                     if (eof()) {
-                        return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                     }
 
                     if (peek() == '*' && peek(1) == '#') {
@@ -657,20 +651,20 @@ namespace vnlc {
                     collect(tokenValue);
                 }
 
-                return Token(TokenKind::MULTI_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::MULTI_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
                 while (!eof() && !newline() && peek() != '\r') {
                     collect(tokenValue);
                 }
 
-                return Token(TokenKind::SINGLE_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::SINGLE_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '@') {
             collect(tokenValue);
 
             std::string_view selectorPrefixes = "praesn";
 
-            if (selectorPrefixes.find(peek()) != std::string_view::npos) {
+            if (selectorPrefixes.find(static_cast<char>(peek())) != std::string_view::npos) {
                 collect(tokenValue);
 
                 if (!separator()) {
@@ -678,16 +672,16 @@ namespace vnlc {
                         collect(tokenValue);
                     }
 
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
-                return Token(TokenKind::SELECTOR_PREFIX, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::SELECTOR_PREFIX, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
                 while (!separator()) {
                     collect(tokenValue);
                 }
 
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '$') {
             collect(tokenValue);
@@ -699,13 +693,13 @@ namespace vnlc {
                 parenthesisCounter = 1;
                 mode = LexerMode::DEFAULT;
 
-                return Token(TokenKind::INTERPOLATION_START, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::INTERPOLATION_START, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             } else {
                 while (!separator()) {
                     collect(tokenValue);
                 }
 
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
         } else if (peek() == '\'') {
             collect(tokenValue);
@@ -716,13 +710,13 @@ namespace vnlc {
 
             while (true) {
                 if (eof() || newline() || peek() == '\r') {
-                    return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
                 }
 
                 if (peek() == '\\') {
                     collect(tokenValue);
 
-                    if (escapeChars.find(peek()) == std::string_view::npos) {
+                    if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
                         error = true;
                     }
 
@@ -743,10 +737,10 @@ namespace vnlc {
             error |= (charCount != 1);
 
             if (error) {
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
 
-            return Token(TokenKind::CHAR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::CHAR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else if (peek() == '"') {
             collect(tokenValue);
             mode = LexerMode::STRING;
@@ -758,21 +752,21 @@ namespace vnlc {
                 collect(tokenValue);
             }
 
-            return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         }
     }
 
-    Token Lexer::processStartsWithNewline(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         collect(tokenValue);
-        return Token(TokenKind::NEWLINE, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::NEWLINE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithEof(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         advance();
-        return Token(TokenKind::END_OF_FILE, "", currentLine, currentColumn, currentOffset);
+        return { TokenKind::END_OF_FILE, "", currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithIdentifier(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::processStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         bool error = false;
 
         if ((peek() == 'f' || peek() == 'F') && peek(1) == '"') {
@@ -813,28 +807,28 @@ namespace vnlc {
                 collect(tokenValue);
             }
 
-            return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
-        } else if (keywords.find(tokenValue) != keywords.end()) {
-            return Token(keywords.at(tokenValue), std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (auto keyword = getKeywords().find(tokenValue); keyword != getKeywords().end()) {
+            return { keyword->second, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         } else {
-            return Token(TokenKind::IDENTIFIER, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::IDENTIFIER, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         }
     }
 
-    Token Lexer::scanStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         bool error = false;
         std::string_view escapeChars = "bfnrst\\\"'";
 
         while (true) {
             if (eof() || newline()) {
                 mode = LexerMode::DEFAULT;
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
 
             if (peek() == '\\') {
                 collect(tokenValue);
 
-                if (escapeChars.find(peek()) == std::string_view::npos) {
+                if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
                     error = true;
                 }
 
@@ -853,26 +847,26 @@ namespace vnlc {
         mode = LexerMode::DEFAULT;
 
         if (error) {
-            return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         }
 
-        return Token(TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::scanFormatStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanFormatStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         bool error = false;
         std::string_view escapeChars = "bfnrst\\\"'$";
 
         while (true) {
             if (eof() || newline()) {
                 mode = LexerMode::DEFAULT;
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
 
             if (peek() == '\\') {
                 collect(tokenValue);
 
-                if (escapeChars.find(peek()) == std::string_view::npos) {
+                if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
                     error = true;
                 }
 
@@ -895,17 +889,17 @@ namespace vnlc {
         }
 
         if (error) {
-            return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
         }
 
-        return Token(TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::scanRawStringLiteral(std::string& tokenValue, int currentLine, int currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanRawStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         while (true) {
             if (eof() || newline()) {
                 mode = LexerMode::DEFAULT;
-                return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
 
             if (peek() == '"') {
@@ -917,7 +911,7 @@ namespace vnlc {
         }
 
         mode = LexerMode::DEFAULT;
-        return Token(TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
     Token Lexer::next() {
@@ -926,9 +920,9 @@ namespace vnlc {
         }
 
         std::string tokenValue;
-        int currentOffset = offset;
-        int currentLine = line + 1;
-        int currentColumn = column + 1;
+        std::size_t currentOffset = offset;
+        std::size_t currentLine = line;
+        std::size_t currentColumn = column;
 
         if (mode == LexerMode::FORMAT_STRING) {
             return scanFormatStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
@@ -948,6 +942,6 @@ namespace vnlc {
             }
         }
 
-        return Token(TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset);
+        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 } // namespace vnlc

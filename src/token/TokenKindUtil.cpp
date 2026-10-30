@@ -307,7 +307,7 @@ namespace vnlc {
 
         bool isKeyword = false;
 
-        for (auto& [keyword, keywordKind] : Lexer::keywords) {
+        for (auto& [keyword, keywordKind] : Lexer::getKeywords()) {
             if (kind == keywordKind) {
                 isKeyword = true;
                 break;
