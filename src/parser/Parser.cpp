@@ -33,6 +33,7 @@
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
+#include "ast/typeref/VoidTypeReferenceNode.hpp"
 #include "error/IllegalModuleOrPackageNameError.hpp"
 #include "error/SyntaxError.hpp"
 #include "outline/ClassDeclarationOutline.hpp"
@@ -859,9 +860,13 @@ namespace vnlc {
             throw SyntaxError("Expected ')' after parameter list", peek().getLine(), peek().getColumn());
         }
 
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
         if (match(TokenKind::ARROW)) {
-            if (!match(TokenKind::VOID_KEYWORD)) {
+            if (check(TokenKind::VOID_KEYWORD)) {
+                Token voidToken = peek();
+                advance();
+                returnType = std::make_unique<VoidTypeReferenceNode>(voidToken, peek());
+            } else {
                 auto typeResult = parseType();
                 returnType = std::move(typeResult.type);
             }
@@ -1223,7 +1228,7 @@ namespace vnlc {
     FunctionSignatureParsingResult Parser::parseFunctionSignature() {
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
 
         if (!match(TokenKind::FUNC)) {
             throw SyntaxError("Expected 'func' keyword", peek().getLine(), peek().getColumn());
@@ -1252,7 +1257,11 @@ namespace vnlc {
         }
 
         if (match(TokenKind::ARROW)) {
-            if (!match(TokenKind::VOID_KEYWORD)) {
+            if (check(TokenKind::VOID_KEYWORD)) {
+                Token voidToken = peek();
+                advance();
+                returnType = std::make_unique<VoidTypeReferenceNode>(voidToken, peek());
+            } else {
                 auto typeResult = parseType();
                 returnType = std::move(typeResult.type);
             }

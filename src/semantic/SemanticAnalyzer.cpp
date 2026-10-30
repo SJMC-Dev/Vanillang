@@ -38,12 +38,14 @@
 #include "ast/statement/ReloadStatementNode.hpp"
 #include "ast/statement/ReturnStatementNode.hpp"
 #include "ast/statement/StatementNode.hpp"
+#include "ast/statement/SwitchStatementKind.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
 #include "ast/statement/WhileStatementNode.hpp"
 #include "ast/typeref/CustomizedTypeReferenceNode.hpp"
 #include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
 #include "ast/typeref/TypeReferenceNode.hpp"
+#include "ast/typeref/VoidTypeReferenceNode.hpp"
 #include "fmt/format.h"
 #include "inheritance/ClassInheritanceNode.hpp"
 #include "semantic/ExpressionAnalysisResult.hpp"
@@ -59,6 +61,7 @@
 #include "type/PrimitiveTypeNames.hpp"
 #include "type/StandardLibraryTypeNames.hpp"
 #include "type/Type.hpp"
+#include "type/VoidType.hpp"
 #include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
@@ -147,6 +150,66 @@ namespace vnlc {
     } // namespace
 
     SemanticAnalyzer::SemanticAnalyzer(const ModuleNode& module, const ImportedRootPackageMap& imports) : context(module, imports) {}
+
+    template <typename CallableDeclarationNode>
+    const Type* SemanticAnalyzer::inferReturnType(const CallableDeclarationNode& node) {
+        std::vector<std::reference_wrapper<const ReturnStatementNode>> retStmts;
+        const std::function<void(const StatementNode*)> collectReturnStatements = [&](const StatementNode* stmt) -> void {
+            if (const auto* retStmt = dynamic_cast<const ReturnStatementNode*>(stmt)) {
+                retStmts.emplace_back(std::ref(*retStmt));
+                return;
+            }
+
+            if (const auto* blockStmt = dynamic_cast<const BlockStatementNode*>(stmt)) {
+                const auto collectBlockStatementChildren = [&](const auto& item) { collectReturnStatements(item.get()); };
+                std::for_each(blockStmt->getStatements().begin(), blockStmt->getStatements().end(), collectBlockStatementChildren);
+            } else if (const auto* forStmt = dynamic_cast<const ForStatementNode*>(stmt)) {
+                collectReturnStatements(&forStmt->getBody());
+            } else if (const auto* whileStmt = dynamic_cast<const WhileStatementNode*>(stmt)) {
+                collectReturnStatements(&whileStmt->getBody());
+            } else if (const auto* ifStmt = dynamic_cast<const IfStatementNode*>(stmt)) {
+                collectReturnStatements(&ifStmt->getThenBranch());
+                if (ifStmt->getElseBranch() != nullptr) {
+                    collectReturnStatements(ifStmt->getElseBranch());
+                }
+            } else if (const auto* switchStmt = dynamic_cast<const SwitchStatementNode*>(stmt)) {
+                const auto collectSwitchStatementChildren = [&](const auto& item) { collectReturnStatements(item.body.get()); };
+                if (switchStmt->getSwitchKind() == SwitchStatementKind::LITERAL_MATCH) {
+                    std::for_each(switchStmt->getLiteralMatchItems().begin(), switchStmt->getLiteralMatchItems().end(), collectSwitchStatementChildren);
+                } else if (switchStmt->getSwitchKind() == SwitchStatementKind::TYPE_MATCH) {
+                    std::for_each(switchStmt->getTypeMatchItems().begin(), switchStmt->getTypeMatchItems().end(), collectSwitchStatementChildren);
+                }
+
+                if (switchStmt->getDefaultCaseBody() != nullptr) {
+                    collectReturnStatements(switchStmt->getDefaultCaseBody());
+                }
+            }
+        };
+        collectReturnStatements(node.getBody());
+
+        std::unordered_set<const Type*> resolvedTypes;
+        for (const ReturnStatementNode& stmt : retStmts) {
+            const ExpressionNode* retValue = stmt.getReturnValue();
+            if (!retValue) {
+                resolvedTypes.insert(VoidType::voidType());
+                continue;
+            }
+
+            const ExpressionAnalysisResult* exprAnalysis = context.getExpressionAnalysisResult(retValue);
+            if (!exprAnalysis || exprAnalysis->valueKind != ExpressionAnalysisResult::ValueKind::VALUE || exprAnalysis->valueType == nullptr) {
+                return nullptr;
+            }
+            resolvedTypes.insert(exprAnalysis->valueType);
+        }
+
+        if (resolvedTypes.empty()) {
+            return VoidType::voidType();
+        } else if (resolvedTypes.size() == 1) {
+            return *resolvedTypes.begin();
+        }
+
+        return nullptr;
+    }
 
     void SemanticAnalyzer::declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind) {
         const auto name = funcDecl.getName().getIdentifierString();
@@ -785,6 +848,10 @@ namespace vnlc {
         const auto checkUnwrappedType = [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, const VisitedSet& visited) -> const Type* {
             if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&type)) {
                 return getPrimitiveType(primitiveTypeReferenceNode->getKind());
+            }
+
+            if (dynamic_cast<const VoidTypeReferenceNode*>(&type) != nullptr) {
+                return VoidType::voidType();
             }
 
             const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&type);
@@ -1730,25 +1797,26 @@ namespace vnlc {
             return;
         }
 
-        const bool hasFunctionBody = funcDecl.getBody() != nullptr;
+        const StatementNode* body = funcDecl.getBody();
+        const TypeReferenceNode* typeRef = funcDecl.getReturnType();
 
         for (const auto& param : funcDecl.getParameters()) {
             checkValueDeclaration(*param);
         }
 
         if (funcDecl.getContext() == FunctionDeclarationKind::Context::INTERFACE) {
-            if (hasFunctionBody) {
+            if (body) {
                 context.reportError(funcDecl, "Interface methods cannot have a body");
             }
         } else {
             if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::NATIVE) {
-                if (hasFunctionBody) {
+                if (body) {
                     context.reportError(funcDecl, "Native functions cannot have a body");
                 }
             }
 
             if (funcDecl.getImplementation() == FunctionDeclarationKind::Implementation::REGULAR) {
-                if (hasFunctionBody) {
+                if (body) {
                     checkStatement(*funcDecl.getBody());
                 } else {
                     context.reportError(funcDecl, "Regular functions must have a body");
@@ -1756,7 +1824,13 @@ namespace vnlc {
             }
         }
 
-        // TODO: Implement return type inference
+        if (!typeRef) {
+            const Type* inferredType = inferReturnType(funcDecl);
+            if (!inferredType) {
+                context.reportError(funcDecl.getName(), "Failed to infer the return type");
+            }
+            context.mapInferredFunctionReturnType(&funcDecl, inferredType);
+        }
 
         context.popScope();
     }
@@ -1780,7 +1854,8 @@ namespace vnlc {
             return;
         }
 
-        bool hasBody = operatorDecl.getBody() != nullptr;
+        const StatementNode* body = operatorDecl.getBody();
+        const TypeReferenceNode* typeRef = operatorDecl.getReturnType();
         OperatorDeclarationKind::Kind kind = operatorDecl.getKind();
 
         static const std::unordered_map<OperatorDeclarationKind::Kind, std::vector<std::size_t>> allowedParameterCounts{
@@ -1806,18 +1881,18 @@ namespace vnlc {
         }
 
         if (operatorDecl.getContext() == OperatorDeclarationKind::Context::INTERFACE) {
-            if (hasBody) {
+            if (body) {
                 context.reportError(operatorDecl, "Interface operators cannot have a body");
             }
         } else {
             if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::NATIVE) {
-                if (hasBody) {
+                if (body) {
                     context.reportError(operatorDecl, "Native operators cannot have a body");
                 }
             }
 
             if (operatorDecl.getImplementation() == OperatorDeclarationKind::Implementation::REGULAR) {
-                if (hasBody) {
+                if (body) {
                     checkStatement(*operatorDecl.getBody());
                 } else {
                     context.reportError(operatorDecl, "Regular operators must have a body");
@@ -1825,7 +1900,13 @@ namespace vnlc {
             }
         }
 
-        // TODO: Implement return type inference
+        if (!typeRef) {
+            const Type* inferredType = inferReturnType(operatorDecl);
+            if (!inferredType) {
+                context.reportError(operatorDecl, "Failed to infer the return type");
+            }
+            context.mapInferredOperatorReturnType(&operatorDecl, inferredType);
+        }
 
         std::optional<std::string> requiredReturnTypeName;
         switch (operatorDecl.getKind()) {
@@ -1840,19 +1921,18 @@ namespace vnlc {
         }
 
         if (requiredReturnTypeName.has_value()) {
-            const auto* returnTypeRefNode = operatorDecl.getReturnType();
             const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnTypeName.value());
 
-            if (returnTypeRefNode != nullptr) {
-                const Type* returnType = context.getTypeByTypeReferenceNode(returnTypeRefNode);
+            if (typeRef != nullptr) {
+                const Type* returnType = context.getTypeByTypeReferenceNode(typeRef);
                 if (returnType != nullptr && returnType->getFullTypeName() != requiredReturnTypeName.value()) {
-                    context.reportError(*returnTypeRefNode, message);
+                    context.reportError(*typeRef, message);
                 }
             } else if (const Type* inferredReturnType = context.getInferredOperatorReturnType(operatorDecl)) {
                 if (inferredReturnType->getFullTypeName() != requiredReturnTypeName.value()) {
                     context.reportError(operatorDecl, message);
                 }
-            } else if (!hasBody) {
+            } else if (!body) {
                 context.reportError(operatorDecl, message);
             }
         }

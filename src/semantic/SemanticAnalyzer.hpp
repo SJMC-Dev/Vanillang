@@ -64,6 +64,9 @@ namespace vnlc {
     private:
         SemanticContext context;
 
+        template <typename CallableDeclarationNode>
+        const Type* inferReturnType(const CallableDeclarationNode& node);
+
         void declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind);
 
         void registerImportedTypeReference(std::string_view fullTypeName);

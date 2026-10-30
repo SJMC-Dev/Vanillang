@@ -420,6 +420,11 @@ namespace vnlc {
             if (type != nullptr) {
                 operatorObj.emplace("returnType", type->getFullTypeName());
             }
+        } else {
+            const auto* inferredReturnType = semantic.getInferredOperatorReturnType(operatorNode);
+            if (inferredReturnType != nullptr) {
+                operatorObj.emplace("returnType", inferredReturnType->getFullTypeName());
+            }
         }
 
         nlohmann::json parametersObj = nlohmann::json::object();

@@ -4,6 +4,7 @@
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "type/PrimitiveType.hpp"
 #include "type/PrimitiveTypeNames.hpp"
+#include "type/VoidType.hpp"
 #include "vni/import/ImportedPackage.hpp"
 #include <algorithm>
 #include <array>
@@ -197,7 +198,9 @@ namespace vnlc {
             return nullptr;
         };
 
-        if (std::find(primitiveTypes.begin(), primitiveTypes.end(), fullTypeName) != primitiveTypes.end()) {
+        if (fullTypeName == "void") {
+            return VoidType::voidType();
+        } else if (std::ranges::find(primitiveTypes, fullTypeName) != primitiveTypes.end()) {
             return getPrimitiveTypeByFullTypeName(fullTypeName);
         } else {
             return getCustomizedTypeByFullTypeName(fullTypeName);

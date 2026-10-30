@@ -20,7 +20,7 @@ namespace vnlc {
 
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted or void
+        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
         std::unique_ptr<BlockStatementNode> body;      // nullptr if native or declared in an interface
         mutable std::string internalName;
 

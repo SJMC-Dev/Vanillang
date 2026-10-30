@@ -112,6 +112,8 @@ add_executable(
     utils/Utils.cpp
     vni/import/ImportedRootPackageMap.cpp
     token/TokenStream.cpp
+    ast/typeref/VoidTypeReferenceNode.cpp
+    type/VoidType.cpp
 )
 
 target_include_directories(
