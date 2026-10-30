@@ -7,6 +7,7 @@
 #include "ast/declaration/FunctionDeclarationKind.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
+#include "ast/declaration/OperatorDeclarationKind.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
@@ -85,6 +86,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <vector>
 
 namespace vnlc {
     namespace {
@@ -1778,7 +1780,26 @@ namespace vnlc {
             return;
         }
 
-        const bool hasBody = operatorDecl.getBody() != nullptr;
+        bool hasBody = operatorDecl.getBody() != nullptr;
+        OperatorDeclarationKind::Kind kind = operatorDecl.getKind();
+
+        static const std::unordered_map<OperatorDeclarationKind::Kind, std::vector<std::size_t>> allowedParameterCounts{
+            { OperatorDeclarationKind::Kind::ADDITION, { 0, 1 } },      { OperatorDeclarationKind::Kind::SUBTRACTION, { 0, 1 } },
+            { OperatorDeclarationKind::Kind::MULTIPLICATION, { 1 } },   { OperatorDeclarationKind::Kind::DIVISION, { 1 } },
+            { OperatorDeclarationKind::Kind::INTEGER_DIVISION, { 1 } }, { OperatorDeclarationKind::Kind::MODULO, { 1 } },
+            { OperatorDeclarationKind::Kind::EXPONENT, { 1 } },         { OperatorDeclarationKind::Kind::EQUAL, { 1 } },
+            { OperatorDeclarationKind::Kind::COMPARISON, { 1 } },       { OperatorDeclarationKind::Kind::BITWISE_AND, { 1 } },
+            { OperatorDeclarationKind::Kind::BITWISE_OR, { 1 } },       { OperatorDeclarationKind::Kind::BITWISE_XOR, { 1 } },
+            { OperatorDeclarationKind::Kind::BITWISE_NOT, { 0 } },      { OperatorDeclarationKind::Kind::SHIFT_LEFT, { 1 } },
+            { OperatorDeclarationKind::Kind::SHIFT_RIGHT, { 1 } },      { OperatorDeclarationKind::Kind::SHIFT_RIGHT_UNSIGNED, { 1 } },
+            { OperatorDeclarationKind::Kind::SUBSCRIPT, { 1 } },        { OperatorDeclarationKind::Kind::RANGE, { 1 } },
+        };
+        if (allowedParameterCounts.contains(kind)) {
+            const auto& counts = allowedParameterCounts.at(kind);
+            if (std::ranges::find(counts, operatorDecl.getParameters().size()) == counts.end()) {
+                context.reportError(operatorDecl, fmt::format("Operator '{}' does not allow {} parameter(s)", operatorDecl.getOperatorName(), operatorDecl.getParameters().size()));
+            }
+        }
 
         for (const auto& param : operatorDecl.getParameters()) {
             checkValueDeclaration(*param);
