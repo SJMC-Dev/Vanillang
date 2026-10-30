@@ -8,7 +8,7 @@ namespace vnlc {
     namespace TokenKindUtil {
         [[nodiscard]] std::string_view toString(TokenKind kind);
         bool isGeneralizedIdentifier(TokenKind kind);
-    } // namespace TokenKindUtil
+    }; // namespace TokenKindUtil
 } // namespace vnlc
 
 #endif // VNLC_TOKEN_KIND_UTIL_HPP

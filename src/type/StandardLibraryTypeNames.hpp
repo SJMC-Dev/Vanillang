@@ -29,7 +29,7 @@ namespace vnlc {
         constexpr std::string_view Dict = "vanillang.typesystem.Dict";
         constexpr std::string_view Selector = "vanillang.typesystem.Selector";
         constexpr std::string_view Ordering = "vanillang.typesystem.Ordering";
-    } // namespace StandardLibraryTypeNames
+    }; // namespace StandardLibraryTypeNames
 } // namespace vnlc
 
 #endif // VNLC_STANDARD_LIBRARY_TYPE_NAMES_HPP

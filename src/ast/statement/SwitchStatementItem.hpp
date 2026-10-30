@@ -19,7 +19,7 @@ namespace vnlc {
             std::unique_ptr<StatementNode> body;
             std::optional<std::unique_ptr<ExpressionNode>> guardExpression;
         };
-    } // namespace SwitchStatementItem
+    }; // namespace SwitchStatementItem
 } // namespace vnlc
 
 #endif // VNLC_SWITCH_STATEMENT_ITEM_HPP

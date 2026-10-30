@@ -7,7 +7,7 @@
 namespace vnlc {
     namespace Utils {
         [[nodiscard]] bool hasExtensionIgnoringCase(const std::filesystem::path& path, std::string_view extension);
-    }
+    };
 } // namespace vnlc
 
 #endif // VNLC_UTILS_HPP

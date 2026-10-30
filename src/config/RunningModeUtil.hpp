@@ -7,7 +7,7 @@
 namespace vnlc {
     namespace RunningModeUtil {
         [[nodiscard]] RunningMode getRunningMode(std::string_view modeLiteral);
-    }
+    };
 } // namespace vnlc
 
 #endif // VNLC_RUNNING_MODE_UTIL_HPP
