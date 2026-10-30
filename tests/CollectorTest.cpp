@@ -36,8 +36,8 @@ namespace vnlc {
                 .minecraftVersion = "26.1.2",
                 .packageRootPath = packageRootPath,
                 .inputFilePath = packageRootPath / "models" / "imports.vnl",
-                .outputDirectory = std::nullopt,
-                .moduleInterfaceOutputDirectory = std::nullopt,
+                .outputDirectory = {},
+                .moduleInterfaceOutputDirectory = {},
                 .dependencyPackageRootPaths = {
                     { "pkg", testDirectory / "dependency_source" },
                     { "extra", testDirectory / "another_source" },

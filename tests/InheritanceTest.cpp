@@ -26,7 +26,7 @@ namespace vnlc {
 
     class ClassInheritanceNodeTest : public ::testing::Test {
     protected:
-        const ClassDeclarationNode localClass{ false, std::make_unique<IdentifierNode>("Local", testToken, testToken), std::nullopt, {}, {}, {}, {}, {}, {}, testToken, testToken };
+        const ClassDeclarationNode localClass{ false, std::make_unique<IdentifierNode>("Local", testToken, testToken), nullptr, {}, {}, {}, {}, {}, {}, testToken, testToken };
         const ImportedClass importedClass{ "Imported", std::nullopt, {}, false, {}, {}, {}, {} };
         const InterfaceDeclarationNode localInterface{ std::make_unique<IdentifierNode>("LocalInterface", testToken, testToken), {}, {}, testToken, testToken };
         const ImportedInterface importedInterface{ "ImportedInterface", {}, {}, {} };

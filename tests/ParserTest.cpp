@@ -62,7 +62,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = std::filesystem::canonical(inputDir),
             .inputFilePath = std::filesystem::canonical(inputDir / "main.vnl"),
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -81,7 +81,7 @@ namespace vnlc {
                 .minecraftVersion = "26.1.2",
                 .packageRootPath = testPackageRootPath(),
                 .inputFilePath = testPackageRootPath() / fileName,
-                .outputDirectory = std::nullopt,
+                .outputDirectory = {},
                 .dependencyPackageRootPaths = {},
                 .optimizationLevel = std::nullopt,
             };
@@ -101,7 +101,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -112,20 +112,20 @@ namespace vnlc {
 
         const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
         ASSERT_NE(function, nullptr);
-        ASSERT_TRUE(function->getBody().has_value());
+        ASSERT_NE(function->getBody(), nullptr);
 
-        const auto& statements = function->getBody().value()->getStatements();
+        const auto& statements = function->getBody()->getStatements();
         ASSERT_EQ(statements.size(), 2);
 
         const auto* variableStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(variableStatement, nullptr);
         EXPECT_EQ(variableStatement->getVariableDeclaration().getKind(), ValueDeclarationKind::Kind::LET);
-        EXPECT_TRUE(variableStatement->getVariableDeclaration().getInitializer().has_value());
+        EXPECT_NE(variableStatement->getVariableDeclaration().getInitializer(), nullptr);
 
         const auto* forStatement = dynamic_cast<const ForStatementNode*>(statements[1].get());
         ASSERT_NE(forStatement, nullptr);
         EXPECT_EQ(forStatement->getLoopVariable().getKind(), ValueDeclarationKind::Kind::LOOP_VARIABLE);
-        EXPECT_FALSE(forStatement->getLoopVariable().getInitializer().has_value());
+        EXPECT_EQ(forStatement->getLoopVariable().getInitializer(), nullptr);
     }
 
     TEST(ParserTest, PropertyDeclarationsUseValueDeclarationNode) {
@@ -137,7 +137,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -154,15 +154,15 @@ namespace vnlc {
         EXPECT_EQ(instanceProperty->getKind(), ValueDeclarationKind::Kind::INSTANCE_PROPERTY);
         EXPECT_EQ(instanceProperty->getContext(), ValueDeclarationKind::Context::CLASS);
         EXPECT_EQ(instanceProperty->getAccessModifier(), ValueDeclarationKind::AccessModifier::PRIVATE);
-        EXPECT_TRUE(instanceProperty->getType().has_value());
-        EXPECT_FALSE(instanceProperty->getInitializer().has_value());
+        EXPECT_NE(instanceProperty->getType(), nullptr);
+        EXPECT_EQ(instanceProperty->getInitializer(), nullptr);
 
         const auto* staticProperty = classDeclaration->getPropertyDeclarations()[1].get();
         EXPECT_EQ(staticProperty->getKind(), ValueDeclarationKind::Kind::STATIC_PROPERTY);
         EXPECT_EQ(staticProperty->getContext(), ValueDeclarationKind::Context::CLASS);
         EXPECT_EQ(staticProperty->getAccessModifier(), ValueDeclarationKind::AccessModifier::PUBLIC);
-        EXPECT_TRUE(staticProperty->getType().has_value());
-        EXPECT_TRUE(staticProperty->getInitializer().has_value());
+        EXPECT_NE(staticProperty->getType(), nullptr);
+        EXPECT_NE(staticProperty->getInitializer(), nullptr);
     }
 
     TEST(ParserTest, ConstructorDeclarationsUseConstructorDeclarationNode) {
@@ -174,7 +174,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -219,7 +219,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -239,8 +239,8 @@ namespace vnlc {
         EXPECT_EQ(addition->getOperatorName(), "addition");
         ASSERT_EQ(addition->getParameters().size(), 1);
         EXPECT_EQ(addition->getParameters().front()->getName().getIdentifierString(), "other");
-        EXPECT_TRUE(addition->getReturnType().has_value());
-        EXPECT_TRUE(addition->getBody().has_value());
+        EXPECT_NE(addition->getReturnType(), nullptr);
+        EXPECT_NE(addition->getBody(), nullptr);
 
         const auto* subscript = classDeclaration->getOperatorDeclarations()[1].get();
         EXPECT_EQ(subscript->getKind(), OperatorDeclarationKind::Kind::SUBSCRIPT);
@@ -258,7 +258,7 @@ namespace vnlc {
         EXPECT_EQ(interfaceAddition->getKind(), OperatorDeclarationKind::Kind::ADDITION);
         EXPECT_EQ(interfaceAddition->getContext(), OperatorDeclarationKind::Context::INTERFACE);
         EXPECT_TRUE(interfaceAddition->doesIncludeMetadata());
-        EXPECT_FALSE(interfaceAddition->getBody().has_value());
+        EXPECT_EQ(interfaceAddition->getBody(), nullptr);
 
         const auto& call = interfaceDeclaration->getOperatorDeclarations()[1];
         EXPECT_EQ(call->getKind(), OperatorDeclarationKind::Kind::CALL);
@@ -288,7 +288,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -301,7 +301,7 @@ namespace vnlc {
         ASSERT_NE(functionDeclaration, nullptr);
         EXPECT_EQ(functionDeclaration->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(functionDeclaration->getName().getIdentifierString(), "log");
-        EXPECT_FALSE(functionDeclaration->getBody().has_value());
+        EXPECT_EQ(functionDeclaration->getBody(), nullptr);
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(classDeclaration, nullptr);
@@ -315,40 +315,40 @@ namespace vnlc {
         EXPECT_EQ(addition->getAccessModifier(), OperatorDeclarationKind::AccessModifier::PUBLIC);
         ASSERT_EQ(addition->getParameters().size(), 1);
         EXPECT_EQ(addition->getParameters().front()->getName().getIdentifierString(), "other");
-        EXPECT_TRUE(addition->getReturnType().has_value());
-        EXPECT_FALSE(addition->getBody().has_value());
+        EXPECT_NE(addition->getReturnType(), nullptr);
+        EXPECT_EQ(addition->getBody(), nullptr);
 
         const auto& subscript = classDeclaration->getOperatorDeclarations()[1];
         EXPECT_EQ(subscript->getKind(), OperatorDeclarationKind::Kind::SUBSCRIPT);
         EXPECT_EQ(subscript->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(subscript->getAccessModifier(), OperatorDeclarationKind::AccessModifier::PRIVATE);
-        EXPECT_FALSE(subscript->getBody().has_value());
+        EXPECT_EQ(subscript->getBody(), nullptr);
 
         const auto& equality = classDeclaration->getOperatorDeclarations()[2];
         EXPECT_EQ(equality->getKind(), OperatorDeclarationKind::Kind::EQUAL);
         EXPECT_EQ(equality->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
-        EXPECT_FALSE(equality->getBody().has_value());
+        EXPECT_EQ(equality->getBody(), nullptr);
 
         const auto& subtraction = classDeclaration->getOperatorDeclarations()[3];
         EXPECT_EQ(subtraction->getKind(), OperatorDeclarationKind::Kind::SUBTRACTION);
         EXPECT_EQ(subtraction->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
         EXPECT_TRUE(subtraction->doesIncludeMetadata());
-        EXPECT_FALSE(subtraction->getBody().has_value());
+        EXPECT_EQ(subtraction->getBody(), nullptr);
 
         const auto& multiplication = classDeclaration->getOperatorDeclarations()[4];
         EXPECT_EQ(multiplication->getKind(), OperatorDeclarationKind::Kind::MULTIPLICATION);
         EXPECT_EQ(multiplication->getImplementation(), OperatorDeclarationKind::Implementation::REGULAR);
-        EXPECT_TRUE(multiplication->getBody().has_value());
+        EXPECT_NE(multiplication->getBody(), nullptr);
 
         const auto& length = classDeclaration->getMethodDeclarations()[0];
         EXPECT_EQ(length->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(length->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
-        EXPECT_FALSE(length->getBody().has_value());
+        EXPECT_EQ(length->getBody(), nullptr);
 
         const auto& zero = classDeclaration->getMethodDeclarations()[1];
         EXPECT_EQ(zero->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(zero->getBinding(), FunctionDeclarationKind::Binding::STATIC);
-        EXPECT_FALSE(zero->getBody().has_value());
+        EXPECT_EQ(zero->getBody(), nullptr);
     }
 
     TEST(ParserTest, KeepsImplementationAccessModifierAndBindingOfFunctionDeclarations) {
@@ -372,7 +372,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -386,7 +386,7 @@ namespace vnlc {
         EXPECT_EQ(run->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(run->getContext(), FunctionDeclarationKind::Context::TOP_LEVEL);
         EXPECT_EQ(run->getBinding(), FunctionDeclarationKind::Binding::STATIC);
-        EXPECT_TRUE(run->getBody().has_value());
+        EXPECT_NE(run->getBody(), nullptr);
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(classDeclaration, nullptr);
@@ -397,19 +397,19 @@ namespace vnlc {
         EXPECT_EQ(reset->getContext(), FunctionDeclarationKind::Context::CLASS);
         EXPECT_EQ(reset->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
         EXPECT_EQ(reset->getBinding(), FunctionDeclarationKind::Binding::STATIC);
-        EXPECT_TRUE(reset->getBody().has_value());
+        EXPECT_NE(reset->getBody(), nullptr);
 
         const auto& read = classDeclaration->getMethodDeclarations()[1];
         EXPECT_EQ(read->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(read->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PROTECTED);
         EXPECT_EQ(read->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
-        EXPECT_TRUE(read->getBody().has_value());
+        EXPECT_NE(read->getBody(), nullptr);
 
         const auto& create = classDeclaration->getMethodDeclarations()[2];
         EXPECT_EQ(create->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(create->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
         EXPECT_EQ(create->getBinding(), FunctionDeclarationKind::Binding::STATIC);
-        EXPECT_FALSE(create->getBody().has_value());
+        EXPECT_EQ(create->getBody(), nullptr);
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
@@ -421,7 +421,7 @@ namespace vnlc {
         EXPECT_EQ(interfaceRead->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PUBLIC);
         EXPECT_EQ(interfaceRead->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
         EXPECT_TRUE(interfaceRead->doesIncludeMetadata());
-        EXPECT_FALSE(interfaceRead->getBody().has_value());
+        EXPECT_EQ(interfaceRead->getBody(), nullptr);
     }
 
     TEST(ParserTest, RejectsStaticNativeOperatorDeclarations) {
@@ -437,7 +437,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -464,7 +464,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -481,12 +481,12 @@ namespace vnlc {
         EXPECT_EQ(regularComparison->getKind(), OperatorDeclarationKind::Kind::COMPARISON);
         EXPECT_EQ(regularComparison->getImplementation(), OperatorDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(regularComparison->getOperatorName(), "comparison");
-        EXPECT_TRUE(regularComparison->getBody().has_value());
+        EXPECT_NE(regularComparison->getBody(), nullptr);
 
         const auto& nativeComparison = classDeclaration->getOperatorDeclarations()[1];
         EXPECT_EQ(nativeComparison->getKind(), OperatorDeclarationKind::Kind::COMPARISON);
         EXPECT_EQ(nativeComparison->getImplementation(), OperatorDeclarationKind::Implementation::NATIVE);
-        EXPECT_FALSE(nativeComparison->getBody().has_value());
+        EXPECT_EQ(nativeComparison->getBody(), nullptr);
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
@@ -504,7 +504,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -535,7 +535,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -561,7 +561,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -572,24 +572,24 @@ namespace vnlc {
 
         const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
         ASSERT_NE(function, nullptr);
-        ASSERT_TRUE(function->getBody().has_value());
+        ASSERT_NE(function->getBody(), nullptr);
 
-        const auto& statements = function->getBody().value()->getStatements();
+        const auto& statements = function->getBody()->getStatements();
         ASSERT_EQ(statements.size(), 2);
 
         const auto* valueStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(valueStatement, nullptr);
-        ASSERT_TRUE(valueStatement->getVariableDeclaration().getInitializer().has_value());
-        EXPECT_NE(dynamic_cast<const NoneExpressionNode*>(valueStatement->getVariableDeclaration().getInitializer().value().get()), nullptr);
+        ASSERT_NE(valueStatement->getVariableDeclaration().getInitializer(), nullptr);
+        EXPECT_NE(dynamic_cast<const NoneExpressionNode*>(valueStatement->getVariableDeclaration().getInitializer()), nullptr);
 
         const auto* rangeStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
         ASSERT_NE(rangeStatement, nullptr);
-        ASSERT_TRUE(rangeStatement->getVariableDeclaration().getInitializer().has_value());
+        ASSERT_NE(rangeStatement->getVariableDeclaration().getInitializer(), nullptr);
 
-        const auto* rangeExpression = dynamic_cast<const RangeExpressionNode*>(rangeStatement->getVariableDeclaration().getInitializer().value().get());
+        const auto* rangeExpression = dynamic_cast<const RangeExpressionNode*>(rangeStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(rangeExpression, nullptr);
-        ASSERT_TRUE(rangeExpression->getEnd().has_value());
-        EXPECT_NE(dynamic_cast<const NoneExpressionNode*>(rangeExpression->getEnd().value().get()), nullptr);
+        ASSERT_NE(rangeExpression->getEnd(), nullptr);
+        EXPECT_NE(dynamic_cast<const NoneExpressionNode*>(rangeExpression->getEnd()), nullptr);
     }
 
     TEST(ParserTest, DistinguishesPrimitiveAndCustomizedTypeReferences) {
@@ -609,7 +609,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -620,27 +620,27 @@ namespace vnlc {
 
         const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(function, nullptr);
-        ASSERT_TRUE(function->getBody().has_value());
+        ASSERT_NE(function->getBody(), nullptr);
 
-        const auto& statements = function->getBody().value()->getStatements();
+        const auto& statements = function->getBody()->getStatements();
         ASSERT_EQ(statements.size(), 4);
 
         const auto* primitiveExpressionStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(primitiveExpressionStatement, nullptr);
-        ASSERT_TRUE(primitiveExpressionStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* primitiveExpression = dynamic_cast<const PrimitiveTypeExpressionNode*>(primitiveExpressionStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(primitiveExpressionStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* primitiveExpression = dynamic_cast<const PrimitiveTypeExpressionNode*>(primitiveExpressionStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(primitiveExpression, nullptr);
         EXPECT_EQ(primitiveExpression->getKind(), PrimitiveTypeExpressionKind::INT);
 
         const auto* identifierStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
         ASSERT_NE(identifierStatement, nullptr);
-        ASSERT_TRUE(identifierStatement->getVariableDeclaration().getInitializer().has_value());
-        EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(identifierStatement->getVariableDeclaration().getInitializer().value().get()), nullptr);
+        ASSERT_NE(identifierStatement->getVariableDeclaration().getInitializer(), nullptr);
+        EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(identifierStatement->getVariableDeclaration().getInitializer()), nullptr);
 
         const auto* primitiveValueStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
         ASSERT_NE(primitiveValueStatement, nullptr);
-        ASSERT_TRUE(primitiveValueStatement->getVariableDeclaration().getType().has_value());
-        const auto* primitiveReference = dynamic_cast<const PrimitiveTypeReferenceNode*>(primitiveValueStatement->getVariableDeclaration().getType().value().get());
+        ASSERT_NE(primitiveValueStatement->getVariableDeclaration().getType(), nullptr);
+        const auto* primitiveReference = dynamic_cast<const PrimitiveTypeReferenceNode*>(primitiveValueStatement->getVariableDeclaration().getType());
         ASSERT_NE(primitiveReference, nullptr);
         EXPECT_EQ(primitiveReference->getKind(), PrimitiveTypeReferenceKind::INT);
         EXPECT_EQ(primitiveReference->getPrimitiveTypeName(), "int");
@@ -648,8 +648,8 @@ namespace vnlc {
 
         const auto* customizedValueStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[3].get());
         ASSERT_NE(customizedValueStatement, nullptr);
-        ASSERT_TRUE(customizedValueStatement->getVariableDeclaration().getType().has_value());
-        const auto* customizedReference = dynamic_cast<const CustomizedTypeReferenceNode*>(customizedValueStatement->getVariableDeclaration().getType().value().get());
+        ASSERT_NE(customizedValueStatement->getVariableDeclaration().getType(), nullptr);
+        const auto* customizedReference = dynamic_cast<const CustomizedTypeReferenceNode*>(customizedValueStatement->getVariableDeclaration().getType());
         ASSERT_NE(customizedReference, nullptr);
         ASSERT_EQ(customizedReference->getNameParts().size(), 1);
         EXPECT_EQ(customizedReference->getNameParts().front()->getIdentifierString(), "Example");
@@ -675,7 +675,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testPackageRootPath(),
             .inputFilePath = testPackageRootPath() / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {},
             .optimizationLevel = std::nullopt,
         };
@@ -686,15 +686,15 @@ namespace vnlc {
 
         const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations()[3].get());
         ASSERT_NE(function, nullptr);
-        ASSERT_TRUE(function->getBody().has_value());
+        ASSERT_NE(function->getBody(), nullptr);
 
-        const auto& statements = function->getBody().value()->getStatements();
+        const auto& statements = function->getBody()->getStatements();
         ASSERT_EQ(statements.size(), 3);
 
         const auto* genericStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(genericStatement, nullptr);
-        ASSERT_TRUE(genericStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* genericExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(genericStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(genericStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* genericExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(genericStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(genericExpression, nullptr);
         EXPECT_EQ(genericExpression->getName().getIdentifierString(), "Box");
         ASSERT_EQ(genericExpression->getGenericArguments().size(), 1);
@@ -709,8 +709,8 @@ namespace vnlc {
 
         const auto* memberStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
         ASSERT_NE(memberStatement, nullptr);
-        ASSERT_TRUE(memberStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* memberExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(memberStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(memberStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* memberExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(memberStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(memberExpression, nullptr);
         ASSERT_EQ(memberExpression->getGenericArguments().size(), 1);
         const auto* memberArgument = dynamic_cast<const MemberAccessExpressionNode*>(memberExpression->getGenericArguments().front().get());
@@ -720,8 +720,8 @@ namespace vnlc {
 
         const auto* comparedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
         ASSERT_NE(comparedStatement, nullptr);
-        ASSERT_TRUE(comparedStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* comparedExpression = dynamic_cast<const BinaryExpressionNode*>(comparedStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(comparedStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* comparedExpression = dynamic_cast<const BinaryExpressionNode*>(comparedStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(comparedExpression, nullptr);
         EXPECT_EQ(comparedExpression->getKind(), BinaryExpressionKind::LESS_THAN);
         EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(&comparedExpression->getLeft()), nullptr);
@@ -761,7 +761,7 @@ namespace vnlc {
             .minecraftVersion = "26.1.2",
             .packageRootPath = testDirectory / "source_package",
             .inputFilePath = testDirectory / "source_package" / "test.vnl",
-            .outputDirectory = std::nullopt,
+            .outputDirectory = {},
             .dependencyPackageRootPaths = {
                 { "first", testDirectory / "first_source" },
                 { "second", testDirectory / "second_source" },
@@ -775,15 +775,15 @@ namespace vnlc {
 
         const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
         ASSERT_NE(function, nullptr);
-        ASSERT_TRUE(function->getBody().has_value());
+        ASSERT_NE(function->getBody(), nullptr);
 
-        const auto& statements = function->getBody().value()->getStatements();
+        const auto& statements = function->getBody()->getStatements();
         ASSERT_EQ(statements.size(), 3);
 
         const auto firstStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(firstStatement, nullptr);
-        ASSERT_TRUE(firstStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* firstExpression = dynamic_cast<const MemberAccessExpressionNode*>(firstStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(firstStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* firstExpression = dynamic_cast<const MemberAccessExpressionNode*>(firstStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(firstExpression, nullptr);
         EXPECT_EQ(firstExpression->getMember().getName().getIdentifierString(), "Box");
         ASSERT_EQ(firstExpression->getMember().getGenericArguments().size(), 1);
@@ -793,8 +793,8 @@ namespace vnlc {
 
         const auto secondStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
         ASSERT_NE(secondStatement, nullptr);
-        ASSERT_TRUE(secondStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* secondExpression = dynamic_cast<const MemberAccessExpressionNode*>(secondStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(secondStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* secondExpression = dynamic_cast<const MemberAccessExpressionNode*>(secondStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(secondExpression, nullptr);
         EXPECT_EQ(secondExpression->getMember().getName().getIdentifierString(), "Box");
         ASSERT_EQ(secondExpression->getMember().getGenericArguments().size(), 1);
@@ -804,8 +804,8 @@ namespace vnlc {
 
         const auto directStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
         ASSERT_NE(directStatement, nullptr);
-        ASSERT_TRUE(directStatement->getVariableDeclaration().getInitializer().has_value());
-        const auto* directExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(directStatement->getVariableDeclaration().getInitializer().value().get());
+        ASSERT_NE(directStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* directExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(directStatement->getVariableDeclaration().getInitializer());
         ASSERT_NE(directExpression, nullptr);
         EXPECT_EQ(directExpression->getName().getIdentifierString(), "DirectBox");
         ASSERT_EQ(directExpression->getGenericArguments().size(), 1);

@@ -82,9 +82,9 @@ namespace vnlc {
             ValueDeclarationKind::Context context,
             ValueDeclarationKind::AccessModifier accessModifier,
             std::string_view name,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& type = std::nullopt
+            std::unique_ptr<TypeReferenceNode>&& type = nullptr
         ) {
-            return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), std::nullopt, testToken, testToken);
+            return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), nullptr, testToken, testToken);
         }
 
         std::unique_ptr<ValueDeclarationNode> makeValueWithMetadata(
@@ -92,10 +92,10 @@ namespace vnlc {
             ValueDeclarationKind::Context context,
             ValueDeclarationKind::AccessModifier accessModifier,
             std::string_view name,
-            std::optional<std::unique_ptr<TypeReferenceNode>>&& type,
+            std::unique_ptr<TypeReferenceNode>&& type,
             std::vector<DeclarationItem::MetadataTerm>&& metadata
         ) {
-            return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), std::nullopt, testToken, testToken, std::move(metadata));
+            return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), nullptr, testToken, testToken, std::move(metadata));
         }
 
         std::unique_ptr<EnumDeclarationNode>
@@ -143,7 +143,7 @@ namespace vnlc {
                 .minecraftVersion = "26.1.2",
                 .packageRootPath = packageRoot,
                 .inputFilePath = inputFilePath,
-                .outputDirectory = std::nullopt,
+                .outputDirectory = {},
                 .moduleInterfaceOutputDirectory = testDirectory / "interfaces",
                 .dependencyPackageRootPaths = {},
                 .optimizationLevel = std::nullopt,
@@ -152,7 +152,7 @@ namespace vnlc {
 
         std::filesystem::path generatedOutputPath(const Config& config) {
             const auto relativeInputPath = std::filesystem::relative(config.inputFilePath, config.packageRootPath);
-            auto outputPath = config.moduleInterfaceOutputDirectory.value() / config.packageRootPath.filename() / relativeInputPath;
+            auto outputPath = config.moduleInterfaceOutputDirectory / config.packageRootPath.filename() / relativeInputPath;
             outputPath.replace_extension(".vni");
             return outputPath;
         }
@@ -895,7 +895,7 @@ namespace vnlc {
             ValueDeclarationKind::Context::TOP_LEVEL,
             ValueDeclarationKind::AccessModifier::PUBLIC,
             "count",
-            std::make_optional(std::move(type)),
+            std::move(type),
             makeMetadata()
         );
         const auto* declarationNode = declaration.get();
@@ -917,13 +917,9 @@ namespace vnlc {
         const auto* valueTypeReferenceNode = valueType.get();
 
         std::vector<std::unique_ptr<ValueDeclarationNode>> associatedValues;
-        associatedValues.push_back(makeValue(
-            ValueDeclarationKind::Kind::ENUM_ASSOCIATED_VALUE,
-            ValueDeclarationKind::Context::ENUM_MEMBER,
-            ValueDeclarationKind::AccessModifier::PUBLIC,
-            "code",
-            std::make_optional(std::move(valueType))
-        ));
+        associatedValues.push_back(
+            makeValue(ValueDeclarationKind::Kind::ENUM_ASSOCIATED_VALUE, ValueDeclarationKind::Context::ENUM_MEMBER, ValueDeclarationKind::AccessModifier::PUBLIC, "code", std::move(valueType))
+        );
 
         std::vector<std::unique_ptr<EnumMemberDeclarationNode>> members;
         members.push_back(std::make_unique<EnumMemberDeclarationNode>(makeIdentifier("Ready"), std::move(associatedValues), testToken, testToken));
@@ -991,7 +987,7 @@ namespace vnlc {
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorUsesInferredTypes) {
         const auto config = makeGeneratorConfig(testDirectory);
-        auto declaration = makeValue(ValueDeclarationKind::Kind::LET, ValueDeclarationKind::Context::TOP_LEVEL, ValueDeclarationKind::AccessModifier::PUBLIC, "count", std::nullopt);
+        auto declaration = makeValue(ValueDeclarationKind::Kind::LET, ValueDeclarationKind::Context::TOP_LEVEL, ValueDeclarationKind::AccessModifier::PUBLIC, "count", nullptr);
         const auto* declarationNode = declaration.get();
         const auto semantic = makeSemanticResult(
             {},
@@ -1018,8 +1014,8 @@ namespace vnlc {
                 OperatorDeclarationKind::Context::CLASS,
                 OperatorDeclarationKind::AccessModifier::PUBLIC,
                 std::vector<std::unique_ptr<ValueDeclarationNode>>{},
-                std::nullopt,
-                std::nullopt,
+                nullptr,
+                nullptr,
                 testToken,
                 testToken
             )
@@ -1031,8 +1027,8 @@ namespace vnlc {
                 OperatorDeclarationKind::Context::CLASS,
                 OperatorDeclarationKind::AccessModifier::PUBLIC,
                 std::vector<std::unique_ptr<ValueDeclarationNode>>{},
-                std::nullopt,
-                std::make_optional(std::make_unique<BlockStatementNode>(std::vector<std::unique_ptr<StatementNode>>{}, testToken, testToken)),
+                nullptr,
+                std::make_unique<BlockStatementNode>(std::vector<std::unique_ptr<StatementNode>>{}, testToken, testToken),
                 testToken,
                 testToken
             )
@@ -1043,7 +1039,7 @@ namespace vnlc {
         auto declaration = std::make_unique<ClassDeclarationNode>(
             false,
             makeIdentifier("Vec3"),
-            std::nullopt,
+            nullptr,
             std::vector<std::unique_ptr<TypeReferenceNode>>{},
             std::vector<std::unique_ptr<IdentifierNode>>{},
             std::vector<std::unique_ptr<ValueDeclarationNode>>{},
@@ -1066,7 +1062,7 @@ namespace vnlc {
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorDoesNotWriteWhenOutputDirectoryIsAbsent) {
         auto config = makeGeneratorConfig(testDirectory);
-        config.moduleInterfaceOutputDirectory = std::nullopt;
+        config.moduleInterfaceOutputDirectory.clear();
         const auto semantic = makeSemanticResult();
 
         ModuleInterfaceFileGenerator generator({}, {}, config, semantic);
