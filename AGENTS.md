@@ -19,7 +19,9 @@ Be sure that your working directory is the root directory of this project before
 - Use camelCase for customized variable and function names.
 - Follow `.clang-format` to format source code.
 - Format code after editing.
-- Do not add comments unless you are explicitly instructed, but comments after namespaces and header guards should be reserved.
+- Add comments after namespaces and header guards.
+- Add comments to all variable declarations that can represent a null or empty semantic value excluding `std::optional` and raw pointers.
+- Do not add other comments unless you are explicitly instructed.
 - Refer to existing code for other coding standards.
 
 ## Commits
