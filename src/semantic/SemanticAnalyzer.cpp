@@ -48,6 +48,8 @@
 #include "ast/typeref/VoidTypeReferenceNode.hpp"
 #include "fmt/format.h"
 #include "inheritance/ClassInheritanceNode.hpp"
+#include "inheritance/EnumInheritanceNode.hpp"
+#include "inheritance/EnumMemberInheritanceNode.hpp"
 #include "semantic/ExpressionAnalysisResult.hpp"
 #include "symbol/FunctionSymbol.hpp"
 #include "symbol/RegularSymbol.hpp"
@@ -204,8 +206,74 @@ namespace vnlc {
 
         if (resolvedTypes.empty()) {
             return VoidType::voidType();
-        } else if (resolvedTypes.size() == 1) {
+        }
+
+        if (resolvedTypes.size() == 1) {
             return *resolvedTypes.begin();
+        }
+
+        bool allClass = true;
+        bool allEnumOrEnumMemer = true;
+
+        for (const auto* resolvedType : resolvedTypes) {
+            if (const auto* customizedType = dynamic_cast<const CustomizedType*>(resolvedType)) {
+                switch (customizedType->getCustomizedKind()) {
+                    case CustomizedTypeKind::CLASS:
+                        allEnumOrEnumMemer = false;
+                        continue;
+                    case CustomizedTypeKind::ENUM:
+                        [[fallthrough]];
+                    case CustomizedTypeKind::ENUM_MEMBER:
+                        allClass = false;
+                        continue;
+                    default:
+                        allClass = false;
+                        allEnumOrEnumMemer = false;
+                        break;
+                }
+            } else {
+                allClass = false;
+                allEnumOrEnumMemer = false;
+            }
+
+            if (!allClass && !allEnumOrEnumMemer) {
+                break;
+            }
+        }
+
+        if (allClass) {
+            // TODO: Implement LCA algorithm to find the common base class as return type
+        }
+
+        if (allEnumOrEnumMemer) {
+            const EnumInheritanceNode* lastBaseEnum = nullptr;
+            for (const auto* item : resolvedTypes) {
+                const auto* currentType = dynamic_cast<const CustomizedType*>(item);
+                const EnumInheritanceNode* baseEnum = nullptr;
+                if (currentType->getCustomizedKind() == CustomizedTypeKind::ENUM) {
+                    if (currentType->getOrigin() == CustomizedTypeOrigin::LOCAL) {
+                        baseEnum = &context.getOrCreateLocalInheritanceNode(*dynamic_cast<const EnumDeclarationNode*>(currentType->getLocalNode()));
+                    } else {
+                        baseEnum = &context.getOrCreateImportedInheritanceNode(*dynamic_cast<const ImportedEnum*>(currentType->getImportedNode()));
+                    }
+                } else {
+                    const EnumMemberInheritanceNode* member = nullptr;
+                    if (currentType->getOrigin() == CustomizedTypeOrigin::LOCAL) {
+                        member = &context.getOrCreateLocalInheritanceNode(*dynamic_cast<const EnumMemberDeclarationNode*>(currentType->getLocalNode()));
+                    } else {
+                        member = &context.getOrCreateImportedInheritanceNode(*dynamic_cast<const ImportedEnumMember*>(currentType->getImportedNode()));
+                    }
+                    baseEnum = member->findParent(); // should not be nullptr
+                }
+
+                if (lastBaseEnum && baseEnum != lastBaseEnum) {
+                    return nullptr;
+                }
+
+                lastBaseEnum = baseEnum;
+            }
+
+            // TODO: Register the inferred base enum with generic arguments it not resolved before and return the resolved type
         }
 
         return nullptr;
@@ -1486,9 +1554,9 @@ namespace vnlc {
             }
         }
 
-        return MetadataInfo{
-            noWarnings,
-            deprecated,
+        return {
+            .noWarnings = noWarnings,
+            .deprecated = deprecated,
         };
     }
 
