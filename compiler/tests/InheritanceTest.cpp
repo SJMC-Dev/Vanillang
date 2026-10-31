@@ -2,6 +2,7 @@
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
 #include "inheritance/ClassInheritanceNode.hpp"
 #include "inheritance/EnumInheritanceNode.hpp"
@@ -26,10 +27,14 @@ namespace vnlc {
 
     class ClassInheritanceNodeTest : public ::testing::Test {
     protected:
-        const ClassDeclarationNode localClass{ false, std::make_unique<IdentifierNode>("Local", testToken, testToken), nullptr, {}, {}, {}, {}, {}, {}, testToken, testToken };
-        const ImportedClass importedClass{ "Imported", std::nullopt, {}, false, {}, {}, {}, {} };
-        const InterfaceDeclarationNode localInterface{ std::make_unique<IdentifierNode>("LocalInterface", testToken, testToken), {}, {}, testToken, testToken };
-        const ImportedInterface importedInterface{ "ImportedInterface", {}, {}, {} };
+        const ClassDeclarationNode localClass{
+            TypeDeclarationKind::AccessModifier::PUBLIC, false, std::make_unique<IdentifierNode>("Local", testToken, testToken), nullptr, {}, {}, {}, {}, {}, {}, testToken, testToken
+        };
+        const ImportedClass importedClass{ "Imported", std::nullopt, {}, false, {}, {}, {}, {}, "public" };
+        const InterfaceDeclarationNode localInterface{
+            TypeDeclarationKind::AccessModifier::PUBLIC, std::make_unique<IdentifierNode>("LocalInterface", testToken, testToken), {}, {}, testToken, testToken
+        };
+        const ImportedInterface importedInterface{ "ImportedInterface", {}, {}, {}, "public" };
     };
 
     TEST_F(ClassInheritanceNodeTest, LocalNodeStoresDeclarationWithoutParent) {
@@ -165,8 +170,10 @@ namespace vnlc {
 
     class InterfaceInheritanceNodeTest : public ::testing::Test {
     protected:
-        const InterfaceDeclarationNode localInterface{ std::make_unique<IdentifierNode>("Local", testToken, testToken), {}, {}, testToken, testToken };
-        const ImportedInterface importedInterface{ "Imported", {}, {}, {} };
+        const InterfaceDeclarationNode localInterface{
+            TypeDeclarationKind::AccessModifier::PUBLIC, std::make_unique<IdentifierNode>("Local", testToken, testToken), {}, {}, testToken, testToken
+        };
+        const ImportedInterface importedInterface{ "Imported", {}, {}, {}, "public" };
     };
 
     TEST_F(InterfaceInheritanceNodeTest, LocalNodeStoresDeclaration) {
@@ -197,8 +204,8 @@ namespace vnlc {
 
     class EnumInheritanceNodeTest : public ::testing::Test {
     protected:
-        const EnumDeclarationNode localEnum{ std::make_unique<IdentifierNode>("Local", testToken, testToken), {}, {}, testToken, testToken };
-        const ImportedEnum importedEnum{ "Imported", {}, {} };
+        const EnumDeclarationNode localEnum{ TypeDeclarationKind::AccessModifier::PUBLIC, std::make_unique<IdentifierNode>("Local", testToken, testToken), {}, {}, testToken, testToken };
+        const ImportedEnum importedEnum{ "Imported", {}, {}, "public" };
         const EnumMemberDeclarationNode localMember{ std::make_unique<IdentifierNode>("LocalMember", testToken, testToken), {}, testToken, testToken };
         const ImportedEnumMember importedMember{ "ImportedMember", {} };
     };

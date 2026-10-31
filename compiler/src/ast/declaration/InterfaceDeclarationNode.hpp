@@ -3,6 +3,7 @@
 
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include <memory>
 #include <vector>
@@ -10,6 +11,7 @@
 namespace vnlc {
     class InterfaceDeclarationNode : public TypeDeclarationNode {
     private:
+        TypeDeclarationKind::AccessModifier accessModifier;
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
@@ -19,6 +21,7 @@ namespace vnlc {
         InterfaceDeclarationNode() = delete;
 
         InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -27,6 +30,7 @@ namespace vnlc {
         ) noexcept;
 
         InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -36,6 +40,7 @@ namespace vnlc {
         ) noexcept;
 
         InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -45,6 +50,7 @@ namespace vnlc {
         ) noexcept;
 
         InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -54,6 +60,7 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
+        [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethodDeclarations() const noexcept;

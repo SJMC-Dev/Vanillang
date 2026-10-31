@@ -1,6 +1,7 @@
 {
     "ExampleClass": {
         "category": "class",
+        "accessModifier": "public",
         "final": false,
         "genericParameters": [],
         "properties": {
@@ -35,6 +36,7 @@
     },
     "ExampleFunction": {
         "category": "func",
+        "accessModifier": "public",
         "name": "ExampleFunction",
         "returnType": "void",
         "parameters": {},

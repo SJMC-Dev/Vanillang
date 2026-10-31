@@ -62,7 +62,6 @@
 #include "type/StandardLibraryTypeNames.hpp"
 #include "type/Type.hpp"
 #include "type/VoidType.hpp"
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
 #include "vni/import/ImportedEnum.hpp"
@@ -93,7 +92,7 @@
 
 namespace vnlc {
     namespace {
-        RegularSymbolKind getImportedSymbolKind(const ImportedItem& item) {
+        std::optional<RegularSymbolKind> getImportedSymbolKind(const ImportedItem& item) {
             if (dynamic_cast<const ImportedPackage*>(&item)) return RegularSymbolKind::PACKAGE;
             if (dynamic_cast<const ImportedModule*>(&item)) return RegularSymbolKind::MODULE;
             if (dynamic_cast<const ImportedLet*>(&item)) return RegularSymbolKind::VARIABLE;
@@ -107,11 +106,16 @@ namespace vnlc {
             if (dynamic_cast<const ImportedMethod*>(&item)) return RegularSymbolKind::METHOD;
             if (dynamic_cast<const ImportedConstructor*>(&item)) return RegularSymbolKind::METHOD;
             if (dynamic_cast<const ImportedParameter*>(&item)) return RegularSymbolKind::PARAMETER;
-            return RegularSymbolKind::IMPORT_ALIAS;
+            return std::nullopt;
         }
 
         std::optional<ScopeKind> getImportedScopeKind(const ImportedItem& item) {
-            switch (getImportedSymbolKind(item)) {
+            const auto symbolKind = getImportedSymbolKind(item);
+            if (!symbolKind.has_value()) {
+                return std::nullopt;
+            }
+
+            switch (symbolKind.value()) {
                 case RegularSymbolKind::PACKAGE:
                     return ScopeKind::PACKAGE;
                 case RegularSymbolKind::MODULE:
@@ -136,12 +140,8 @@ namespace vnlc {
 
         RegularSymbolAccessModifier getImportedAccessModifier(const ImportedItem& item) {
             std::string_view accessModifier;
-            if (const auto* property = dynamic_cast<const ImportedProperty*>(&item)) {
-                accessModifier = property->getAccessModifier();
-            } else if (const auto* method = dynamic_cast<const ImportedMethod*>(&item)) {
-                accessModifier = method->getAccessModifier();
-            } else if (const auto* constructor = dynamic_cast<const ImportedConstructor*>(&item)) {
-                accessModifier = constructor->getAccessModifier();
+            if (const auto* identifier = dynamic_cast<const ImportedIdentifier*>(&item)) {
+                accessModifier = identifier->getAccessModifier();
             }
             if (accessModifier == "private") return RegularSymbolAccessModifier::PRIVATE;
             if (accessModifier == "protected") return RegularSymbolAccessModifier::PROTECTED;
@@ -408,7 +408,7 @@ namespace vnlc {
                     functionSymbol.addOverloading(RegularSymbol(RegularSymbolKind::METHOD, getImportedAccessModifier(*child), child->getName(), child.get()));
                     scope.declare(std::move(functionSymbol));
                 } else {
-                    scope.declare(RegularSymbol(getImportedSymbolKind(*child), getImportedAccessModifier(*child), name, child.get()));
+                    scope.declare(RegularSymbol(getImportedSymbolKind(*child).value(), getImportedAccessModifier(*child), name, child.get()));
                 }
             }
         };
@@ -459,22 +459,32 @@ namespace vnlc {
                     context.reportError(*varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl->getName().getIdentifierString()));
                 }
             } else if (auto* classDecl = dynamic_cast<ClassDeclarationNode*>(declNode)) {
-                RegularSymbol symbol(RegularSymbolKind::CLASS, RegularSymbolAccessModifier::PUBLIC, classDecl->getName().getIdentifierString(), classDecl);
+                RegularSymbol symbol(RegularSymbolKind::CLASS, static_cast<RegularSymbolAccessModifier>(classDecl->getAccessModifier()), classDecl->getName().getIdentifierString(), classDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
                     context.reportError(*classDecl, fmt::format("Redeclaration of symbol '{}'", classDecl->getName().getIdentifierString()));
                 }
             } else if (auto* interfaceDecl = dynamic_cast<InterfaceDeclarationNode*>(declNode)) {
-                RegularSymbol symbol(RegularSymbolKind::INTERFACE, RegularSymbolAccessModifier::PUBLIC, interfaceDecl->getName().getIdentifierString(), interfaceDecl);
+                RegularSymbol symbol(
+                    RegularSymbolKind::INTERFACE,
+                    static_cast<RegularSymbolAccessModifier>(interfaceDecl->getAccessModifier()),
+                    interfaceDecl->getName().getIdentifierString(),
+                    interfaceDecl
+                );
                 if (!context.currentScope().declare(std::move(symbol))) {
                     context.reportError(*interfaceDecl, fmt::format("Redeclaration of symbol '{}'", interfaceDecl->getName().getIdentifierString()));
                 }
             } else if (auto* enumDecl = dynamic_cast<EnumDeclarationNode*>(declNode)) {
-                RegularSymbol symbol(RegularSymbolKind::ENUM, RegularSymbolAccessModifier::PUBLIC, enumDecl->getName().getIdentifierString(), enumDecl);
+                RegularSymbol symbol(RegularSymbolKind::ENUM, static_cast<RegularSymbolAccessModifier>(enumDecl->getAccessModifier()), enumDecl->getName().getIdentifierString(), enumDecl);
                 if (!context.currentScope().declare(std::move(symbol))) {
                     context.reportError(*enumDecl, fmt::format("Redeclaration of symbol '{}'", enumDecl->getName().getIdentifierString()));
                 }
             } else if (auto* typeAliasDecl = dynamic_cast<TypeAliasDeclarationNode*>(declNode)) {
-                RegularSymbol symbol(RegularSymbolKind::TYPE_ALIAS, RegularSymbolAccessModifier::PUBLIC, typeAliasDecl->getAliasName().getIdentifierString(), typeAliasDecl);
+                RegularSymbol symbol(
+                    RegularSymbolKind::TYPE_ALIAS,
+                    static_cast<RegularSymbolAccessModifier>(typeAliasDecl->getAccessModifier()),
+                    typeAliasDecl->getAliasName().getIdentifierString(),
+                    typeAliasDecl
+                );
                 if (!context.currentScope().declare(std::move(symbol))) {
                     context.reportError(*typeAliasDecl, fmt::format("Redeclaration of symbol '{}'", typeAliasDecl->getAliasName().getIdentifierString()));
                 }
@@ -1541,10 +1551,6 @@ namespace vnlc {
             }
         }
 
-        for (const auto& exportDecl : moduleNode.getExportDeclarations()) {
-            checkExport(*exportDecl);
-        }
-
         context.popScope();
     }
 
@@ -1573,27 +1579,14 @@ namespace vnlc {
                 name = target->getName();
             }
 
-            std::unordered_set<const ImportedAlias*> visitedAliases;
-            while (const auto* importedAlias = dynamic_cast<const ImportedAlias*>(target)) {
-                if (!visitedAliases.insert(importedAlias).second) {
-                    context.reportError(location, fmt::format("Cyclic imported alias '{}'", importedAlias->getSource()));
-                    return;
-                }
-
-                path.assign(1, std::string());
-                for (const char ch : importedAlias->getSource()) {
-                    if (ch == '.') {
-                        path.emplace_back();
-                    } else {
-                        path.back().push_back(ch);
-                    }
-                }
-
-                target = context.getImportedItemByFullPath(path);
-                if (target == nullptr) {
-                    context.reportError(location, fmt::format("Could not find imported alias target '{}'", importedAlias->getSource()));
-                    return;
-                }
+            if (!getImportedSymbolKind(*target).has_value()) {
+                context.reportError(location, "Import path must name a package, module or identifier");
+                return;
+            }
+            if (getImportedAccessModifier(*target) == RegularSymbolAccessModifier::PRIVATE) {
+                const auto* function = dynamic_cast<const ImportedFunc*>(target);
+                context.reportError(location, fmt::format("Cannot import private identifier '{}'", function != nullptr ? function->getOriginalName() : target->getName()));
+                return;
             }
 
             const bool isFunction = dynamic_cast<const ImportedFunc*>(target) != nullptr || dynamic_cast<const ImportedMethod*>(target) != nullptr;
@@ -1610,7 +1603,7 @@ namespace vnlc {
                 return;
             }
 
-            bindings.push_back({ name, std::move(path) });
+            bindings.push_back({ .name = name, .path = std::move(path) });
         };
 
         std::function<void(const ImportDeclarationItem&, const ImportedItem*, std::vector<std::string>)> checkItem;
@@ -1634,11 +1627,16 @@ namespace vnlc {
                         if (importedModule != nullptr && &part == &item.namePrefix.back() && item.nameSuffixes.empty()) {
                             const IdentifierNode* alias = item.alias.get();
                             bool matched = false;
+                            bool matchedPrivate = false;
                             for (const auto& [internalName, identifier] : importedModule->getIdentifiers()) {
                                 const auto* function = dynamic_cast<const ImportedFunc*>(identifier.get());
                                 const auto* method = dynamic_cast<const ImportedMethod*>(identifier.get());
                                 const std::string_view originalName = function != nullptr ? function->getOriginalName() : method != nullptr ? method->getOriginalName() : std::string_view();
                                 if (originalName != name) {
+                                    continue;
+                                }
+                                if (getImportedAccessModifier(*identifier) == RegularSymbolAccessModifier::PRIVATE) {
+                                    matchedPrivate = true;
                                     continue;
                                 }
 
@@ -1648,6 +1646,10 @@ namespace vnlc {
                                 bind(identifier.get(), std::move(functionPath), alias, alias ? *alias : location);
                             }
                             if (matched) {
+                                return;
+                            }
+                            if (matchedPrivate) {
+                                context.reportError(*part, fmt::format("Cannot import private identifier '{}'", name));
                                 return;
                             }
                         }
@@ -1678,9 +1680,11 @@ namespace vnlc {
                 }
                 std::vector<std::string> identifierNames;
                 for (const auto& [name, identifier] : importedModule->getIdentifiers()) {
-                    identifierNames.push_back(name);
+                    if (getImportedSymbolKind(*identifier).has_value() && getImportedAccessModifier(*identifier) != RegularSymbolAccessModifier::PRIVATE) {
+                        identifierNames.push_back(name);
+                    }
                 }
-                std::sort(identifierNames.begin(), identifierNames.end());
+                std::ranges::sort(identifierNames);
                 for (const auto& name : identifierNames) {
                     path.push_back(name);
                     bind(importedModule->getIdentifierByName(name), path, nullptr, location);
@@ -1721,7 +1725,7 @@ namespace vnlc {
                 functionSymbol.addOverloading(RegularSymbol(RegularSymbolKind::METHOD, getImportedAccessModifier(*method), method->getName(), method));
                 declared = context.currentScope().declare(std::move(functionSymbol));
             } else {
-                declared = context.currentScope().declare(RegularSymbol(getImportedSymbolKind(*target), RegularSymbolAccessModifier::PUBLIC, binding.name, target));
+                declared = context.currentScope().declare(RegularSymbol(getImportedSymbolKind(*target).value(), RegularSymbolAccessModifier::PUBLIC, binding.name, target));
             }
             if (!declared && reportedRedeclarations.insert(binding.name).second) {
                 context.reportError(importDecl, fmt::format("Redeclaration of symbol '{}'", binding.name));
@@ -1740,14 +1744,6 @@ namespace vnlc {
 
         for (const auto* root : importedRoots) {
             registerImportedTypeReferences(*root);
-        }
-    }
-
-    void SemanticAnalyzer::checkExport(const ExportDeclarationNode& exportDecl) {
-        for (auto& item : exportDecl.getNameList()) {
-            if (context.currentScope().lookup(item.name->getIdentifierString()) == nullptr) {
-                context.reportError(exportDecl, fmt::format("Use of undeclared identifier '{}'", item.name->getIdentifierString()));
-            }
         }
     }
 

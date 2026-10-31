@@ -131,5 +131,3 @@ func add(a: int, b: int) -> int {
 func refEqual(a: Vec3<int>, b: Vec3<int>) -> bool {
     return a === b
 }
-
-export VnlPlayer

@@ -1,7 +1,6 @@
 #ifndef VNLC_MODULE_INTERFACE_FILE_READER_HPP
 #define VNLC_MODULE_INTERFACE_FILE_READER_HPP
 
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
 #include "vni/import/ImportedEnum.hpp"
@@ -29,6 +28,7 @@ namespace vnlc {
         std::string moduleName;
 
         static std::array<std::string, 3> validAccessModifiers;
+        static std::array<std::string, 2> validModuleLevelAccessModifiers;
 
         std::unordered_map<std::string, std::optional<std::string>> parseImportedMetadata(const nlohmann::json& metadataJson);
 
@@ -43,7 +43,6 @@ namespace vnlc {
         std::unique_ptr<ImportedEnumMember> parseImportedEnumMember(std::string_view key, const nlohmann::json& value);
         std::unique_ptr<ImportedEnumValue> parseImportedEnumValue(std::string_view key, const nlohmann::json& value);
         std::unique_ptr<ImportedTypeAlias> parseImportedTypeAlias(std::string_view key, const nlohmann::json& value);
-        std::unique_ptr<ImportedAlias> parseImportedAlias(std::string_view key, const nlohmann::json& value);
         std::unique_ptr<ImportedProperty> parseImportedProperty(std::string_view key, const nlohmann::json& value);
         std::unique_ptr<ImportedParameter> parseImportedParameter(std::string_view key, const nlohmann::json& value);
 

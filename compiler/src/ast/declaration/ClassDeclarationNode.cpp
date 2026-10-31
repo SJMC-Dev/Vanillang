@@ -2,6 +2,7 @@
 
 namespace vnlc {
     ClassDeclarationNode::ClassDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
         std::unique_ptr<TypeReferenceNode>&& baseClass,
@@ -15,6 +16,7 @@ namespace vnlc {
         const Token& lastToken
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken),
+          accessModifier(accessModifier),
           final(final),
           name(std::move(name)),
           baseClass(std::move(baseClass)),
@@ -26,6 +28,7 @@ namespace vnlc {
           operatorDeclarations(std::move(operatorDeclarations)) {}
 
     ClassDeclarationNode::ClassDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
         std::unique_ptr<TypeReferenceNode>&& baseClass,
@@ -40,6 +43,7 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+          accessModifier(accessModifier),
           final(final),
           name(std::move(name)),
           baseClass(std::move(baseClass)),
@@ -49,6 +53,10 @@ namespace vnlc {
           methodDeclarations(std::move(methodDeclarations)),
           constructorDeclarations(std::move(constructorDeclarations)),
           operatorDeclarations(std::move(operatorDeclarations)) {}
+
+    TypeDeclarationKind::AccessModifier ClassDeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
 
     bool ClassDeclarationNode::isFinal() const noexcept {
         return final;

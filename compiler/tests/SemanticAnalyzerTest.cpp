@@ -1004,6 +1004,50 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         EXPECT_EQ(result.getErrors()[1].getMessage(), "Use of undeclared type 'AlsoMissing'");
     }
 
+    TEST(SemanticAnalyzerTest, DeclaresModulePrivateTopLevelSymbolsWithPrivateAccessModifiers) {
+        constexpr std::string_view source = R"(
+let shown = 1
+private let hidden = 2
+func run() {}
+private func helper() {}
+private class Box {}
+private interface Readable {}
+private enum State {
+    Ready
+}
+private type Alias = int
+class Visible {}
+)";
+        const auto config = makeConfig("module_private.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* scope = result.getScopeByAstNode(*module);
+        ASSERT_NE(scope, nullptr);
+        const auto accessModifierOf = [scope](std::string_view name) -> std::optional<RegularSymbolAccessModifier> {
+            const Symbol* symbol = scope->lookupLocal(name);
+            if (const auto* regularSymbol = asRegularSymbol(symbol)) {
+                return regularSymbol->getAccessModifier();
+            }
+            if (const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(symbol); functionSymbol != nullptr && functionSymbol->isUnique()) {
+                return functionSymbol->getOverloadings().begin()->second.getAccessModifier();
+            }
+            return std::nullopt;
+        };
+        for (const auto name : { "hidden", "helper", "Box", "Readable", "State", "Alias" }) {
+            SCOPED_TRACE(name);
+            EXPECT_EQ(accessModifierOf(name), RegularSymbolAccessModifier::PRIVATE);
+        }
+        for (const auto name : { "shown", "run", "Visible" }) {
+            SCOPED_TRACE(name);
+            EXPECT_EQ(accessModifierOf(name), RegularSymbolAccessModifier::PUBLIC);
+        }
+    }
+
     TEST(SemanticContextTest, RetainsPoppedScopesAndTheirParents) {
         const auto config = makeConfig("scopes.vnl");
         const auto module = parseModule("class Sample {}", config);
@@ -1094,17 +1138,17 @@ class Aliased extends BaseAlias implements ReadableAlias {}
             config.dependencyPackageRootPaths.emplace("extra", testDirectory / "another_source");
             config.dependencyPackageRootPaths.emplace("vanillang", testDirectory / "standard_library");
             writeFile("standard_library/typesystem.vni", R"({
-    "Optional": {"category": "enum", "genericParameters": ["T"], "members": {}},
-    "Ordering": {"category": "enum", "genericParameters": [],
+    "Optional": {"category": "enum", "accessModifier": "public", "genericParameters": ["T"], "members": {}},
+    "Ordering": {"category": "enum", "accessModifier": "public", "genericParameters": [],
         "members": {
             "Less": {"category": "enummember", "associatedValues": {}},
             "Equal": {"category": "enummember", "associatedValues": {}},
             "Greater": {"category": "enummember", "associatedValues": {}}}}
 })");
-            writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"count":{"category":"let","type":"int"}})");
-            writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","type":"bool"}})");
-            writeFile("dependency_source/sub/second.vni", R"({"caption":{"category":"let","type":"string"}})");
-            writeFile("another_source/tools.vni", R"({"enabled":{"category":"let","type":"bool"}})");
+            writeFile("dependency_source/api.vni", R"({"value":{"category":"let","accessModifier":"public","type":"int"},"count":{"category":"let","accessModifier":"public","type":"int"}})");
+            writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","accessModifier":"public","type":"bool"}})");
+            writeFile("dependency_source/sub/second.vni", R"({"caption":{"category":"let","accessModifier":"public","type":"string"}})");
+            writeFile("another_source/tools.vni", R"({"enabled":{"category":"let","accessModifier":"public","type":"bool"}})");
         }
 
         void TearDown() override {
@@ -1121,23 +1165,22 @@ class Aliased extends BaseAlias implements ReadableAlias {}
 
         void writeScopedModule() const {
             writeFile("dependency_source/api.vni", R"({
-    "value": {"category": "let", "type": "int"},
-    "run": {"category": "func", "name": "run", "returnType": "void", "native": false,
+    "value": {"category": "let", "accessModifier": "public", "type": "int"},
+    "run": {"category": "func", "accessModifier": "public", "name": "run", "returnType": "void", "native": false,
         "parameters": {"amount": {"category": "parameter", "type": "int"}}},
-    "Box": {"category": "class", "genericParameters": ["T"], "baseClass": null, "implementedInterfaces": [], "final": false,
+    "Box": {"category": "class", "accessModifier": "public", "genericParameters": ["T"], "baseClass": null, "implementedInterfaces": [], "final": false,
         "properties": {
             "visible": {"category": "property", "type": "T", "static": false, "accessModifier": "public"},
             "secret": {"category": "property", "type": "int", "static": true, "accessModifier": "private"}},
         "methods": {"apply": {"category": "method", "name": "apply", "returnType": "T", "native": false, "static": false, "accessModifier": "protected",
             "parameters": {"input": {"category": "parameter", "type": "T"}}}},
         "constructors": {}, "operators": {}},
-    "Readable": {"category": "interface", "genericParameters": ["R"],
+    "Readable": {"category": "interface", "accessModifier": "public", "genericParameters": ["R"],
         "methods": {"read": {"category": "method", "name": "read", "returnType": "R", "native": false, "static": false, "accessModifier": "public",
             "parameters": {"input": {"category": "parameter", "type": "R"}}}}, "operators": {}},
-    "State": {"category": "enum", "genericParameters": ["E"],
+    "State": {"category": "enum", "accessModifier": "public", "genericParameters": ["E"],
         "members": {"Ready": {"category": "enummember", "associatedValues": {"payload": {"category": "enumvalue", "type": "E"}}}}},
-    "Alias": {"category": "typealias", "genericParameters": ["A"], "originalType": "A"},
-    "External": {"category": "imported", "source": "extra.tools.enabled"},
+    "Alias": {"category": "typealias", "accessModifier": "public", "genericParameters": ["A"], "originalType": "A"},
     "method": {"category": "method", "name": "method", "returnType": "void", "native": false, "static": true, "accessModifier": "public",
         "parameters": {"amount": {"category": "parameter", "type": "int"}}},
     "Ready": {"category": "enummember", "associatedValues": {"payload": {"category": "enumvalue", "type": "int"}}},
@@ -1148,12 +1191,31 @@ class Aliased extends BaseAlias implements ReadableAlias {}
 
         void writeInheritanceModule() const {
             writeFile("dependency_source/api.vni", R"({
-    "Base": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+    "Base": {"category": "class", "accessModifier": "public", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
         "baseClass": null, "implementedInterfaces": [], "final": false},
-    "Sealed": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+    "Sealed": {"category": "class", "accessModifier": "public", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
         "baseClass": null, "implementedInterfaces": [], "final": true},
-    "Readable": {"category": "interface", "genericParameters": [], "methods": {}, "operators": {}},
-    "State": {"category": "enum", "genericParameters": [], "members": {"Ready": {"category": "enummember", "associatedValues": {}}}}
+    "Readable": {"category": "interface", "accessModifier": "public", "genericParameters": [], "methods": {}, "operators": {}},
+    "State": {"category": "enum", "accessModifier": "public", "genericParameters": [], "members": {"Ready": {"category": "enummember", "associatedValues": {}}}}
+})");
+        }
+
+        void writeModulePrivateModule() const {
+            writeFile("dependency_source/api.vni", R"({
+    "value": {"category": "let", "accessModifier": "public", "type": "int"},
+    "hidden": {"category": "let", "accessModifier": "private", "type": "int"},
+    "helper": {"category": "func", "accessModifier": "private", "name": "helper", "returnType": "void", "native": false, "parameters": {}},
+    "add_int": {"category": "func", "accessModifier": "public", "name": "add", "returnType": "void", "native": false,
+        "parameters": {"value": {"category": "parameter", "type": "int"}}},
+    "add_string": {"category": "func", "accessModifier": "private", "name": "add", "returnType": "void", "native": false,
+        "parameters": {"value": {"category": "parameter", "type": "string"}}},
+    "secret_int": {"category": "func", "accessModifier": "private", "name": "secret", "returnType": "void", "native": false,
+        "parameters": {"value": {"category": "parameter", "type": "int"}}},
+    "Secret": {"category": "class", "accessModifier": "private", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+        "baseClass": null, "implementedInterfaces": [], "final": false},
+    "Readable": {"category": "interface", "accessModifier": "private", "genericParameters": [], "methods": {}, "operators": {}},
+    "State": {"category": "enum", "accessModifier": "private", "genericParameters": [], "members": {}},
+    "Alias": {"category": "typealias", "accessModifier": "private", "genericParameters": [], "originalType": "int"}
 })");
         }
 
@@ -1459,9 +1521,9 @@ class Aliased extends BaseAlias implements ReadableAlias {}
         writeFile(
             "dependency_source/api.vni",
             R"({
-    "Box": {"category": "class", "genericParameters": ["T"], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+    "Box": {"category": "class", "accessModifier": "public", "genericParameters": ["T"], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
         "baseClass": null, "implementedInterfaces": [], "final": false},
-    "Wrapped": {"category": "typealias", "genericParameters": ["T"], "originalType": "pkg.api.Box<T>"}
+    "Wrapped": {"category": "typealias", "accessModifier": "public", "genericParameters": ["T"], "originalType": "pkg.api.Box<T>"}
 })"
         );
 
@@ -1478,7 +1540,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
     }
 
     TEST_F(SemanticAnalyzerImportTest, SubstitutesGenericArgumentsInPrefixedImportedAliasTypeNames) {
-        writeFile("dependency_source/api.vni", R"({"Identity":{"category":"typealias","genericParameters":["T"],"originalType":"T"}})");
+        writeFile("dependency_source/api.vni", R"({"Identity":{"category":"typealias","accessModifier":"public","genericParameters":["T"],"originalType":"T"}})");
 
         withAliasType(
             "import pkg.api as api\n"
@@ -1689,7 +1751,7 @@ interface Operable {
 
     TEST_F(SemanticAnalyzerImportTest, BuildsImportedPackageModuleAndMemberScopes) {
         writeScopedModule();
-        const auto result = analyze("import pkg as library\nlet localOnly = 0\nexport library\n");
+        const auto result = analyze("import pkg as library\nlet localOnly = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         const auto* localScope = result.getScopeByAstNode(*module);
@@ -1801,14 +1863,7 @@ interface Operable {
         const auto* functionScope = expectChildScope(*apiScope, "run", ScopeKind::FUNCTION);
         ASSERT_NE(functionScope, nullptr);
         EXPECT_NE(functionScope->lookupLocal("amount"), nullptr);
-        const auto* external = asRegularSymbol(apiScope->lookupLocal("External"));
-        ASSERT_NE(external, nullptr);
-        EXPECT_EQ(external->getKind(), RegularSymbolKind::IMPORT_ALIAS);
-        EXPECT_EQ(result.getScopeByImportedNode(*external->getImportedNode()), nullptr);
-        const auto* extraPackage = getImportedRootPackageByName("extra");
-        ASSERT_NE(extraPackage, nullptr);
-        EXPECT_EQ(result.getScopeByImportedNode(*extraPackage), nullptr);
-        for (const auto name : { "api", "Box", "T", "apply", "input", "Ready", "payload", "extra", "External" }) {
+        for (const auto name : { "api", "Box", "T", "apply", "input", "Ready", "payload" }) {
             EXPECT_EQ(localScope->lookupLocal(name), nullptr);
         }
     }
@@ -1826,7 +1881,7 @@ interface Operable {
         };
         for (const auto& [path, name, kind] : scopedIdentifiers) {
             SCOPED_TRACE(path);
-            const auto result = analyze("import pkg.api." + path + " as selected\nexport selected\n");
+            const auto result = analyze("import pkg.api." + path + " as selected\n");
             ASSERT_FALSE(result.hasErrors());
             const auto* node = findImportedNode(result, "selected");
             ASSERT_NE(node, nullptr);
@@ -1855,9 +1910,9 @@ interface Operable {
         }
     }
 
-    TEST_F(SemanticAnalyzerImportTest, DoesNotCreateScopesForImportedValuesOrAliasesToValues) {
+    TEST_F(SemanticAnalyzerImportTest, DoesNotCreateScopesForImportedValues) {
         writeScopedModule();
-        for (const auto name : { "value", "property", "parameter", "External" }) {
+        for (const auto name : { "value", "property", "parameter" }) {
             SCOPED_TRACE(name);
             const auto result = analyze(std::string("import pkg.api.") + name + "\n");
             ASSERT_FALSE(result.hasErrors());
@@ -1937,8 +1992,8 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, DeclaresScopesForIndirectModulesInAnImportedPackage) {
-        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"extra.types.Remote"}})");
-        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","genericParameters":["T"],"originalType":"T"}})");
+        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","accessModifier":"public","type":"extra.types.Remote"}})");
+        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","accessModifier":"public","genericParameters":["T"],"originalType":"T"}})");
         const auto result = analyze("import extra.tools as tools\nimport pkg.api.value\n");
 
         ASSERT_FALSE(result.hasErrors());
@@ -1969,7 +2024,7 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, DeclaresOnlyTheTerminalMember) {
-        const auto result = analyze("import pkg.api.value\nlet pkg = 0\nlet api = 0\nexport value\n");
+        const auto result = analyze("import pkg.api.value\nlet pkg = 0\nlet api = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         EXPECT_EQ(findImportedNode(result, "pkg"), nullptr);
@@ -1987,16 +2042,18 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, DoesNotDeclarePathPrefixesInTheModuleScope) {
-        const auto result = analyze("import pkg.api.value\nexport pkg, api\n");
+        const auto result = analyze("import pkg.api.value\n");
 
-        ASSERT_TRUE(result.hasErrors());
-        ASSERT_EQ(result.getErrors().size(), 2);
-        EXPECT_EQ(result.getErrors()[0].getMessage(), "Use of undeclared identifier 'pkg'");
-        EXPECT_EQ(result.getErrors()[1].getMessage(), "Use of undeclared identifier 'api'");
+        ASSERT_FALSE(result.hasErrors());
+        const auto* scope = result.getScopeByAstNode(*module);
+        ASSERT_NE(scope, nullptr);
+        EXPECT_NE(scope->lookupLocal("value"), nullptr);
+        EXPECT_EQ(scope->lookupLocal("pkg"), nullptr);
+        EXPECT_EQ(scope->lookupLocal("api"), nullptr);
     }
 
     TEST_F(SemanticAnalyzerImportTest, DeclaresOnlyTheTerminalModule) {
-        const auto result = analyze("import pkg.api\nlet pkg = 0\nlet value = 0\nexport api\n");
+        const auto result = analyze("import pkg.api\nlet pkg = 0\nlet value = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         const auto* package = getImportedRootPackageByName("pkg");
@@ -2015,13 +2072,12 @@ interface Operable {
         writeFile(
             "dependency_source/api.vni",
             R"({
-    "value": {"category": "let", "type": "int"},
-    "run": {"category": "func", "name": "run", "returnType": "void", "parameters": {}, "native": false},
-    "Box": {"category": "class", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {}, "baseClass": null, "implementedInterfaces": [], "final": false},
-    "Readable": {"category": "interface", "genericParameters": [], "methods": {}, "operators": {}},
-    "State": {"category": "enum", "genericParameters": [], "members": {}},
-    "Alias": {"category": "typealias", "genericParameters": [], "originalType": "int"},
-    "External": {"category": "imported", "source": "extra.tools.enabled"},
+    "value": {"category": "let", "accessModifier": "public", "type": "int"},
+    "run": {"category": "func", "accessModifier": "public", "name": "run", "returnType": "void", "parameters": {}, "native": false},
+    "Box": {"category": "class", "accessModifier": "public", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {}, "baseClass": null, "implementedInterfaces": [], "final": false},
+    "Readable": {"category": "interface", "accessModifier": "public", "genericParameters": [], "methods": {}, "operators": {}},
+    "State": {"category": "enum", "accessModifier": "public", "genericParameters": [], "members": {}},
+    "Alias": {"category": "typealias", "accessModifier": "public", "genericParameters": [], "originalType": "int"},
     "method": {"category": "method", "name": "method", "returnType": "void", "parameters": {}, "native": false, "static": true, "accessModifier": "public"},
     "Ready": {"category": "enummember", "associatedValues": {}},
     "property": {"category": "property", "type": "int", "static": true, "accessModifier": "public"},
@@ -2041,7 +2097,6 @@ interface Operable {
             { "Readable", "Readable", RegularSymbolKind::INTERFACE, false },
             { "State", "State", RegularSymbolKind::ENUM, false },
             { "Alias", "Alias", RegularSymbolKind::TYPE_ALIAS, false },
-            { "External", "External", RegularSymbolKind::VARIABLE, false },
             { "method", "method", RegularSymbolKind::METHOD, true },
             { "Ready", "Ready", RegularSymbolKind::ENUM_MEMBER, false },
             { "property", "property", RegularSymbolKind::PROPERTY, false },
@@ -2066,16 +2121,7 @@ interface Operable {
                 const Symbol* symbol = scope->lookupLocal(aliased ? "selected" : name);
                 ASSERT_NE(symbol, nullptr);
 
-                const ImportedItem* expectedTarget = nullptr;
-                if (path == "External") {
-                    const auto* extraPackage = getImportedRootPackageByName("extra");
-                    ASSERT_NE(extraPackage, nullptr);
-                    const auto* toolsModule = extraPackage->getModuleByName("tools");
-                    ASSERT_NE(toolsModule, nullptr);
-                    expectedTarget = toolsModule->getIdentifierByName("enabled");
-                } else {
-                    expectedTarget = importedModule->getIdentifierByName(path);
-                }
+                const ImportedItem* expectedTarget = importedModule->getIdentifierByName(path);
 
                 if (function) {
                     const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(symbol);
@@ -2133,7 +2179,7 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, AliasesBindToTheirOriginalTargets) {
-        const auto result = analyze("import pkg.api.value as renamed\nimport pkg.api as library\nlet value = 0\nlet api = 0\nlet pkg = 0\nexport renamed, library\n");
+        const auto result = analyze("import pkg.api.value as renamed\nimport pkg.api as library\nlet value = 0\nlet api = 0\nlet pkg = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         const auto* package = getImportedRootPackageByName("pkg");
@@ -2146,39 +2192,8 @@ interface Operable {
         EXPECT_EQ(findImportedNode(result, "api"), nullptr);
     }
 
-    TEST_F(SemanticAnalyzerImportTest, ResolvesReexportedAliasesWhilePreservingDirectRenamedAndWildcardBindings) {
-        writeFile("dependency_source/api.vni", R"({"External":{"category":"imported","source":"pkg.sub.other.bridge"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"bridge":{"category":"imported","source":"extra.tools.enabled"}})");
-
-        for (const auto source : {
-                 "import pkg.api.External\nimport pkg.api.External as renamed\nimport extra.tools.enabled\n",
-                 "import pkg.api.*\nimport pkg.api.External as renamed\nimport extra.tools.enabled\n",
-             }) {
-            SCOPED_TRACE(source);
-            const auto result = analyze(source);
-
-            ASSERT_FALSE(result.hasErrors());
-            const auto* scope = result.getScopeByAstNode(*module);
-            ASSERT_NE(scope, nullptr);
-            const auto* enabled = findImportedNode(result, "enabled");
-            ASSERT_NE(enabled, nullptr);
-            EXPECT_EQ(enabled->getName(), "enabled");
-            for (const auto name : { "External", "renamed", "enabled" }) {
-                const auto* symbol = asRegularSymbol(scope->lookupLocal(name));
-                ASSERT_NE(symbol, nullptr);
-                EXPECT_EQ(symbol->getName(), name);
-                EXPECT_EQ(symbol->getKind(), RegularSymbolKind::VARIABLE);
-                EXPECT_EQ(symbol->getOrigin(), RegularSymbolOrigin::IMPORTED);
-                EXPECT_EQ(symbol->getImportedNode(), enabled);
-            }
-            for (const auto name : { "pkg", "api", "bridge", "extra", "tools" }) {
-                EXPECT_EQ(scope->lookupLocal(name), nullptr);
-            }
-        }
-    }
-
     TEST_F(SemanticAnalyzerImportTest, ResolvesNestedImportsAndSelfAliases) {
-        const auto result = analyze("import pkg.{api.{self as m, value as v}, sub.other}\nlet pkg = 0\nlet api = 0\nlet sub = 0\nlet value = 0\nexport m, v, other\n");
+        const auto result = analyze("import pkg.{api.{self as m, value as v}, sub.other}\nlet pkg = 0\nlet api = 0\nlet sub = 0\nlet value = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         const auto* package = getImportedRootPackageByName("pkg");
@@ -2194,7 +2209,7 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, ExpandsModuleWildcardsAndCanImportTheModuleItself) {
-        for (const auto source : { "import pkg.api.*\nlet api = 0\nexport value, count\n", "import pkg.api.{*, self}\nexport api, value, count\n" }) {
+        for (const auto source : { "import pkg.api.*\nlet api = 0\n", "import pkg.api.{*, self}\n" }) {
             SCOPED_TRACE(source);
             const auto result = analyze(source);
 
@@ -2207,7 +2222,7 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, BindsPackagesAndPackageSelf) {
-        for (const auto source : { "import pkg as library\nexport library\n", "import pkg.{self as library}\nexport library\n" }) {
+        for (const auto source : { "import pkg as library\n", "import pkg.{self as library}\n" }) {
             SCOPED_TRACE(source);
             const auto result = analyze(source);
 
@@ -2220,7 +2235,7 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, RetainsImportedBindingsAfterTheAnalyzerIsDestroyed) {
-        const auto result = analyze("import pkg.api.value\nimport pkg.sub.other.flag\nimport pkg.sub.second.caption\nimport extra.tools.enabled\nexport value, flag, caption, enabled\n");
+        const auto result = analyze("import pkg.api.value\nimport pkg.sub.other.flag\nimport pkg.sub.second.caption\nimport extra.tools.enabled\n");
 
         ASSERT_FALSE(result.hasErrors());
         for (const auto name : { "value", "flag", "caption", "enabled" }) {
@@ -2231,9 +2246,12 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, DoesNotDeclareIndirectImportBindings) {
-        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"External":{"category":"imported","source":"extra.tools.enabled"}})");
+        writeFile(
+            "dependency_source/api.vni",
+            R"({"value":{"category":"let","accessModifier":"public","type":"int"},"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"}})"
+        );
 
-        const auto result = analyze("import pkg.api.value\nlet enabled = 0\nlet tools = 0\nlet extra = 0\nexport value, enabled, tools, extra\n");
+        const auto result = analyze("import pkg.api.value\nlet enabled = 0\nlet tools = 0\nlet extra = 0\n");
 
         ASSERT_FALSE(result.hasErrors());
         const auto* package = getImportedRootPackageByName("pkg");
@@ -2252,80 +2270,16 @@ interface Operable {
         }
     }
 
-    TEST_F(SemanticAnalyzerImportTest, BindsReexportedNamesThroughRepeatedAndCyclicModuleDependencies) {
-        writeFile("dependency_source/api.vni", R"({"External":{"category":"imported","source":"pkg.sub.other.bridge"},"repeated":{"category":"imported","source":"pkg.sub.other.bridge"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"bridge":{"category":"imported","source":"extra.tools.enabled"},"back":{"category":"imported","source":"pkg.api.External"}})");
-
-        const auto result = analyze("import pkg.api.External\nexport External\n");
-
-        ASSERT_FALSE(result.hasErrors());
-        const auto* extraPackage = getImportedRootPackageByName("extra");
-        ASSERT_NE(extraPackage, nullptr);
-        const auto* toolsModule = extraPackage->getModuleByName("tools");
-        ASSERT_NE(toolsModule, nullptr);
-        EXPECT_EQ(findImportedNode(result, "External"), toolsModule->getIdentifierByName("enabled"));
-        const auto* scope = result.getScopeByAstNode(*module);
-        ASSERT_NE(scope, nullptr);
-        const auto* external = asRegularSymbol(scope->lookupLocal("External"));
-        ASSERT_NE(external, nullptr);
-        EXPECT_EQ(external->getKind(), RegularSymbolKind::VARIABLE);
-        for (const auto name : { "repeated", "bridge", "back", "enabled", "other", "tools" }) {
-            EXPECT_EQ(scope->lookupLocal(name), nullptr);
-        }
-    }
-
-    TEST_F(SemanticAnalyzerImportTest, BindsReexportedPackagesAndModules) {
-        for (const auto source : { "extra", "extra.tools", "pkg.sub" }) {
-            SCOPED_TRACE(source);
-            writeFile("dependency_source/api.vni", std::string(R"({"External":{"category":"imported","source":")") + source + R"("}})");
-
-            const auto result = analyze("import pkg.api.External\nexport External\n");
-
-            ASSERT_FALSE(result.hasErrors());
-            const ImportedItem* target = nullptr;
-            if (std::string_view(source) == "pkg.sub") {
-                const auto* package = getImportedRootPackageByName("pkg");
-                ASSERT_NE(package, nullptr);
-                const auto* subPackage = package->getSubPackageByName("sub");
-                ASSERT_NE(subPackage, nullptr);
-                target = subPackage;
-            } else {
-                const auto* extraPackage = getImportedRootPackageByName("extra");
-                ASSERT_NE(extraPackage, nullptr);
-                target = std::string_view(source) == "extra" ? static_cast<const ImportedItem*>(extraPackage) : extraPackage->getModuleByName("tools");
-            }
-            const auto* scope = result.getScopeByAstNode(*module);
-            ASSERT_NE(scope, nullptr);
-            const auto* external = asRegularSymbol(scope->lookupLocal("External"));
-            ASSERT_NE(external, nullptr);
-            EXPECT_EQ(external->getImportedNode(), target);
-            EXPECT_EQ(external->getKind(), std::string_view(source) == "extra.tools" ? RegularSymbolKind::MODULE : RegularSymbolKind::PACKAGE);
-            ASSERT_NE(target, nullptr);
-            const auto* targetScope = result.getScopeByImportedNode(*target);
-            ASSERT_NE(targetScope, nullptr);
-            EXPECT_EQ(targetScope->getKind(), std::string_view(source) == "extra.tools" ? ScopeKind::MODULE : ScopeKind::PACKAGE);
-            if (std::string_view(source) == "extra") {
-                EXPECT_EQ(targetScope->findParent(), nullptr);
-            } else {
-                const auto* parentPackage = getImportedRootPackageByName(std::string_view(source) == "pkg.sub" ? "pkg" : "extra");
-                ASSERT_NE(parentPackage, nullptr);
-                const auto* parentScope = result.getScopeByImportedNode(*parentPackage);
-                ASSERT_NE(parentScope, nullptr);
-                EXPECT_EQ(targetScope->findParent(), parentScope);
-            }
-            for (const auto name : { "extra", "tools", "sub", "other", "second" }) {
-                EXPECT_EQ(scope->lookupLocal(name), nullptr);
-            }
-        }
-    }
-
     TEST_F(SemanticAnalyzerImportTest, PreservesBindingsWhenDirectAndIndirectImportsShareModules) {
-        writeFile("dependency_source/api.vni", R"({"External":{"category":"imported","source":"extra.tools.enabled"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","type":"bool"},"External":{"category":"imported","source":"extra.tools.enabled"}})");
+        writeFile("dependency_source/api.vni", R"({"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"}})");
+        writeFile(
+            "dependency_source/sub/other.vni",
+            R"({"flag":{"category":"let","accessModifier":"public","type":"bool"},"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"}})"
+        );
 
         for (const auto source : {
-                 "import pkg.api.External\nimport extra.tools.enabled\nimport pkg.sub.other.flag\nimport extra.tools as tools\nexport External, enabled, flag, tools\n",
-                 "import extra.tools.enabled\nimport pkg.api.External\nimport pkg.sub.other.flag\nimport extra.tools as tools\nexport External, enabled, flag, tools\n",
+                 "import pkg.api.External\nimport extra.tools.enabled\nimport pkg.sub.other.flag\nimport extra.tools as tools\n",
+                 "import extra.tools.enabled\nimport pkg.api.External\nimport pkg.sub.other.flag\nimport extra.tools as tools\n",
              }) {
             SCOPED_TRACE(source);
             const auto result = analyze(source);
@@ -2344,46 +2298,14 @@ interface Operable {
             ASSERT_NE(toolsModule, nullptr);
             EXPECT_EQ(findImportedNode(result, "tools"), toolsModule);
             EXPECT_EQ(findImportedNode(result, "enabled"), toolsModule->getIdentifierByName("enabled"));
-            EXPECT_EQ(findImportedNode(result, "External"), findImportedNode(result, "enabled"));
+            const auto* api = package->getModuleByName("api");
+            ASSERT_NE(api, nullptr);
+            EXPECT_EQ(findImportedNode(result, "External"), api->getIdentifierByName("External"));
             const auto* scope = result.getScopeByAstNode(*module);
             ASSERT_NE(scope, nullptr);
             const auto* external = asRegularSymbol(scope->lookupLocal("External"));
             ASSERT_NE(external, nullptr);
             EXPECT_EQ(external->getKind(), RegularSymbolKind::VARIABLE);
-        }
-    }
-
-    TEST_F(SemanticAnalyzerImportTest, RejectsMissingAndCyclicAliasTargetsWithoutCommittingPartialBindings) {
-        const std::vector<std::pair<std::string_view, std::string_view>> cases = {
-            { R"({"valid":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":"extra.tools.absent"}})", "Could not find imported alias target" },
-            { R"({"valid":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":"extra.tools.enabled.member"}})",
-              "Could not find imported alias target" },
-            { R"({"valid":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":"pkg.broken.broken"}})", "Cyclic imported alias" },
-            { R"({"valid":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":"pkg.broken.link"},"link":{"category":"imported","source":"pkg.broken.broken"}})",
-              "Cyclic imported alias" },
-        };
-        for (const auto& [contents, diagnosticPrefix] : cases) {
-            SCOPED_TRACE(contents);
-            writeFile("dependency_source/broken.vni", contents);
-            for (const auto importSource : { "import pkg.broken.broken\n", "import pkg.broken.{valid, broken}\n", "import pkg.broken.*\n" }) {
-                SCOPED_TRACE(importSource);
-                std::optional<SemanticResult> result;
-                ASSERT_NO_THROW(result.emplace(analyze(std::string("import pkg.api.value as kept\n") + importSource + "let valid = 0\nlet broken = 0\nexport kept\n")));
-
-                ASSERT_TRUE(result->hasErrors());
-                for (const auto& error : result->getErrors()) {
-                    EXPECT_EQ(error.getPhase(), DiagnosticPhase::SEMANTIC);
-                    EXPECT_TRUE(error.getMessage().starts_with(diagnosticPrefix)) << error.getMessage();
-                }
-                const auto* package = getImportedRootPackageByName("pkg");
-                ASSERT_NE(package, nullptr);
-                const auto* api = package->getModuleByName("api");
-                ASSERT_NE(api, nullptr);
-                EXPECT_EQ(findImportedNode(*result, "kept"), api->getIdentifierByName("value"));
-                for (const auto name : { "valid", "broken", "link" }) {
-                    EXPECT_EQ(findImportedNode(*result, name), nullptr);
-                }
-            }
         }
     }
 
@@ -2452,7 +2374,10 @@ interface Operable {
     }
 
     TEST_F(SemanticAnalyzerImportTest, RejectsFunctionRedeclarationsAcrossImportsAndLocalDeclarations) {
-        writeFile("dependency_source/api.vni", R"({"add":{"category":"func","name":"add","returnType":"void","parameters":{"value":{"category":"parameter","type":"int"}},"native":false}})");
+        writeFile(
+            "dependency_source/api.vni",
+            R"({"add":{"category":"func","accessModifier":"public","name":"add","returnType":"void","parameters":{"value":{"category":"parameter","type":"int"}},"native":false}})"
+        );
 
         const auto result = analyze("import pkg.api.add\nfunc add(value: string) {}\n");
 
@@ -2460,8 +2385,116 @@ interface Operable {
         EXPECT_EQ(result.getErrors().front().getMessage(), "Redeclaration of symbol 'add'");
     }
 
+    TEST_F(SemanticAnalyzerImportTest, RejectsImportsOfModulePrivateIdentifiers) {
+        writeModulePrivateModule();
+
+        const std::vector<std::pair<std::string_view, std::string_view>> cases = {
+            { "import pkg.api.hidden\n", "hidden" },
+            { "import pkg.api.hidden as renamed\n", "hidden" },
+            { "import pkg.api.helper\n", "helper" },
+            { "import pkg.api.secret\n", "secret" },
+            { "import pkg.api.Secret\n", "Secret" },
+            { "import pkg.api.Readable\n", "Readable" },
+            { "import pkg.api.State\n", "State" },
+            { "import pkg.api.Alias\n", "Alias" },
+            { "import pkg.api.{value, hidden}\n", "hidden" },
+        };
+        for (const auto& [source, name] : cases) {
+            SCOPED_TRACE(source);
+            const auto result = analyze(source);
+
+            ASSERT_EQ(result.getErrors().size(), 1);
+            EXPECT_EQ(result.getErrors().front().getPhase(), DiagnosticPhase::SEMANTIC);
+            EXPECT_EQ(result.getErrors().front().getMessage(), "Cannot import private identifier '" + std::string(name) + "'");
+            const auto* scope = result.getScopeByAstNode(*module);
+            ASSERT_NE(scope, nullptr);
+            for (const auto binding : { "value", "hidden", "renamed", "helper", "secret", "Secret", "Readable", "State", "Alias" }) {
+                EXPECT_EQ(scope->lookupLocal(binding), nullptr) << binding;
+            }
+        }
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, ImportsOnlyPublicOverloadsOfFunctions) {
+        writeModulePrivateModule();
+        const auto result = analyze("import pkg.api.add\n");
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* package = getImportedRootPackageByName("pkg");
+        ASSERT_NE(package, nullptr);
+        const auto* api = package->getModuleByName("api");
+        ASSERT_NE(api, nullptr);
+        EXPECT_EQ(findImportedNode(result, "add"), api->getIdentifierByName("add_int"));
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, WildcardImportsSkipModulePrivateIdentifiers) {
+        writeModulePrivateModule();
+        const auto result = analyze("import pkg.api.*\n");
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* package = getImportedRootPackageByName("pkg");
+        ASSERT_NE(package, nullptr);
+        const auto* api = package->getModuleByName("api");
+        ASSERT_NE(api, nullptr);
+        EXPECT_EQ(findImportedNode(result, "value"), api->getIdentifierByName("value"));
+        EXPECT_EQ(findImportedNode(result, "add"), api->getIdentifierByName("add_int"));
+        const auto* scope = result.getScopeByAstNode(*module);
+        ASSERT_NE(scope, nullptr);
+        for (const auto name : { "hidden", "helper", "secret", "Secret", "Readable", "State", "Alias" }) {
+            EXPECT_EQ(scope->lookupLocal(name), nullptr) << name;
+        }
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, DeclaresModulePrivateIdentifiersAsPrivateInImportedModuleScopes) {
+        writeModulePrivateModule();
+        const auto result = analyze("import pkg.api\n");
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* package = getImportedRootPackageByName("pkg");
+        ASSERT_NE(package, nullptr);
+        const auto* api = package->getModuleByName("api");
+        ASSERT_NE(api, nullptr);
+        const auto* apiScope = result.getScopeByImportedNode(*api);
+        ASSERT_NE(apiScope, nullptr);
+
+        for (const auto& [name, accessModifier] : std::vector<std::pair<std::string_view, RegularSymbolAccessModifier>>{
+                 { "value", RegularSymbolAccessModifier::PUBLIC },
+                 { "hidden", RegularSymbolAccessModifier::PRIVATE },
+                 { "Secret", RegularSymbolAccessModifier::PRIVATE },
+                 { "Readable", RegularSymbolAccessModifier::PRIVATE },
+                 { "State", RegularSymbolAccessModifier::PRIVATE },
+                 { "Alias", RegularSymbolAccessModifier::PRIVATE },
+             }) {
+            SCOPED_TRACE(name);
+            const auto* symbol = asRegularSymbol(apiScope->lookupLocal(name));
+            ASSERT_NE(symbol, nullptr);
+            EXPECT_EQ(symbol->getAccessModifier(), accessModifier);
+        }
+
+        const auto* helper = dynamic_cast<const FunctionSymbol*>(apiScope->lookupLocal("helper"));
+        ASSERT_NE(helper, nullptr);
+        ASSERT_TRUE(helper->isUnique());
+        EXPECT_EQ(helper->getOverloadings().begin()->second.getAccessModifier(), RegularSymbolAccessModifier::PRIVATE);
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, DoesNotImportModuleLevelOperatorEntries) {
+        writeFile(
+            "dependency_source/api.vni",
+            R"({"value":{"category":"let","accessModifier":"public","type":"int"},"addition":{"category":"operator","returnType":"int","parameters":{},"native":false,"accessModifier":"public"}})"
+        );
+
+        const auto rejected = analyze("import pkg.api.addition\n");
+        ASSERT_EQ(rejected.getErrors().size(), 1);
+        EXPECT_EQ(rejected.getErrors().front().getMessage(), "Import path must name a package, module or identifier");
+        EXPECT_EQ(findImportedNode(rejected, "addition"), nullptr);
+
+        const auto wildcard = analyze("import pkg.api.*\n");
+        ASSERT_FALSE(wildcard.hasErrors());
+        EXPECT_NE(findImportedNode(wildcard, "value"), nullptr);
+        EXPECT_EQ(findImportedNode(wildcard, "addition"), nullptr);
+    }
+
     TEST_F(SemanticAnalyzerImportTest, FailedImportsPreserveEarlierBindingsWithoutDeclaringPartialNames) {
-        const auto result = analyze("import pkg.api as kept\nimport pkg.sub.{other as staged, missing}\nlet staged = 0\nexport kept\n", "import pkg\n");
+        const auto result = analyze("import pkg.api as kept\nimport pkg.sub.{other as staged, missing}\nlet staged = 0\n", "import pkg\n");
 
         ASSERT_EQ(result.getErrors().size(), 1);
         EXPECT_EQ(result.getErrors().front().getPhase(), DiagnosticPhase::SEMANTIC);

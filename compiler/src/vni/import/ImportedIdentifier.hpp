@@ -15,6 +15,9 @@ namespace vnlc {
         ImportedIdentifier(std::string_view name);
 
         [[nodiscard]] const std::unordered_map<std::string, std::optional<std::string>>& getMetadata() const;
+
+    public:
+        [[nodiscard]] virtual std::string_view getAccessModifier() const;
     };
 } // namespace vnlc
 

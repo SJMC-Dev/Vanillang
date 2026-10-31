@@ -3,7 +3,6 @@
 #include "error/IllegalModuleOrPackageNameError.hpp"
 #include "error/SyntaxError.hpp"
 #include "lexer/Lexer.hpp"
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedLet.hpp"
 #include <algorithm>
 #include <filesystem>
@@ -44,10 +43,10 @@ namespace vnlc {
                 },
                 .optimizationLevel = std::nullopt,
             };
-            writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"count":{"category":"let","type":"int"}})");
-            writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","type":"bool"}})");
-            writeFile("dependency_source/sub/second.vni", R"({"caption":{"category":"let","type":"string"}})");
-            writeFile("another_source/tools.vni", R"({"enabled":{"category":"let","type":"bool"}})");
+            writeFile("dependency_source/api.vni", R"({"value":{"category":"let","accessModifier":"public","type":"int"},"count":{"category":"let","accessModifier":"public","type":"int"}})");
+            writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","accessModifier":"public","type":"bool"}})");
+            writeFile("dependency_source/sub/second.vni", R"({"caption":{"category":"let","accessModifier":"public","type":"string"}})");
+            writeFile("another_source/tools.vni", R"({"enabled":{"category":"let","accessModifier":"public","type":"bool"}})");
         }
 
         void TearDown() override {
@@ -185,58 +184,35 @@ namespace vnlc {
         }
     }
 
-    TEST_F(CollectorTest, LoadsDependenciesOfUnselectedImportedAliases) {
-        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"External":{"category":"imported","source":"extra.tools.enabled"}})");
-
-        const auto result = collect("import pkg.api.value\n");
-
-        ASSERT_TRUE(result.getErrors().empty());
-        EXPECT_EQ(result.getImports().size(), 2);
-        const auto* package = importedPackage(result, "pkg");
-        ASSERT_NE(package, nullptr);
-        const auto* api = package->getModuleByName("api");
-        ASSERT_NE(api, nullptr);
-        const auto* alias = dynamic_cast<const ImportedAlias*>(api->getIdentifierByName("External"));
-        ASSERT_NE(alias, nullptr);
-        EXPECT_EQ(alias->getSource(), "extra.tools.enabled");
-        const auto* extra = importedPackage(result, "extra");
-        ASSERT_NE(extra, nullptr);
-        const auto* tools = extra->getModuleByName("tools");
-        ASSERT_NE(tools, nullptr);
-        const auto* enabled = dynamic_cast<const ImportedLet*>(tools->getIdentifierByName("enabled"));
-        ASSERT_NE(enabled, nullptr);
-        EXPECT_EQ(enabled->getType(), "bool");
-    }
-
     TEST_F(CollectorTest, ScansTypeDependenciesInEveryNestedIdentifierCollection) {
-        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","genericParameters":[],"originalType":"pkg.sub.other.Target"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"Target":{"category":"typealias","genericParameters":[],"originalType":"int"}})");
+        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","accessModifier":"public","genericParameters":[],"originalType":"pkg.sub.other.Target"}})");
+        writeFile("dependency_source/sub/other.vni", R"({"Target":{"category":"typealias","accessModifier":"public","genericParameters":[],"originalType":"int"}})");
         for (
             const auto contents : {
-                R"({"category":"let","type":"extra.types.Remote"})",
-                R"({"category":"func","name":"holder","returnType":"extra.types.Remote","native":false,"parameters":{}})",
-                R"({"category":"func","name":"holder","returnType":"void","native":false,"parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}})",
+                R"({"category":"let","accessModifier":"public","type":"extra.types.Remote"})",
+                R"({"category":"func","accessModifier":"public","name":"holder","returnType":"extra.types.Remote","native":false,"parameters":{}})",
+                R"({"category":"func","accessModifier":"public","name":"holder","returnType":"void","native":false,"parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}})",
                 R"({"category":"method","name":"holder","returnType":"extra.types.Remote","native":false,"static":false,"accessModifier":"public","parameters":{}})",
                 R"({"category":"method","name":"holder","returnType":"void","native":false,"static":false,"accessModifier":"public","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}})",
                 R"({"category":"operator","returnType":"extra.types.Remote","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"native":false,"accessModifier":"public"})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":"extra.types.Remote","implementedInterfaces":[],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":["extra.types.Remote"],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{"property":{"category":"property","type":"extra.types.Remote","static":false,"accessModifier":"public"}},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{"method":{"category":"method","name":"method","returnType":"extra.types.Remote","native":false,"static":false,"accessModifier":"public","parameters":{}}},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{"method":{"category":"method","name":"method","returnType":"void","native":false,"static":false,"accessModifier":"public","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}}},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{},"constructors":{"init":{"category":"constructor","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"accessModifier":"public"}},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
-                R"({"category":"class","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{"addition":{"category":"operator","returnType":"extra.types.Remote","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"native":false,"accessModifier":"public"}},"baseClass":null,"implementedInterfaces":[],"final":false})",
-                R"({"category":"interface","genericParameters":[],"methods":{"method":{"category":"method","name":"method","returnType":"extra.types.Remote","native":false,"static":false,"accessModifier":"public","parameters":{}}},"operators":{}})",
-                R"({"category":"interface","genericParameters":[],"methods":{"method":{"category":"method","name":"method","returnType":"void","native":false,"static":false,"accessModifier":"public","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}}},"operators":{}})",
-                R"({"category":"interface","genericParameters":[],"methods":{},"operators":{"equality":{"category":"operator","returnType":"extra.types.Remote","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"native":false,"accessModifier":"public"}}})",
-                R"({"category":"enum","genericParameters":[],"members":{"member":{"category":"enummember","associatedValues":{"value":{"category":"enumvalue","type":"extra.types.Remote"}}}}})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":"extra.types.Remote","implementedInterfaces":[],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":["extra.types.Remote"],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{"property":{"category":"property","type":"extra.types.Remote","static":false,"accessModifier":"public"}},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{"method":{"category":"method","name":"method","returnType":"extra.types.Remote","native":false,"static":false,"accessModifier":"public","parameters":{}}},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{"method":{"category":"method","name":"method","returnType":"void","native":false,"static":false,"accessModifier":"public","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}}},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{},"constructors":{"init":{"category":"constructor","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"accessModifier":"public"}},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false})",
+                R"({"category":"class","accessModifier":"public","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{"addition":{"category":"operator","returnType":"extra.types.Remote","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"native":false,"accessModifier":"public"}},"baseClass":null,"implementedInterfaces":[],"final":false})",
+                R"({"category":"interface","accessModifier":"public","genericParameters":[],"methods":{"method":{"category":"method","name":"method","returnType":"extra.types.Remote","native":false,"static":false,"accessModifier":"public","parameters":{}}},"operators":{}})",
+                R"({"category":"interface","accessModifier":"public","genericParameters":[],"methods":{"method":{"category":"method","name":"method","returnType":"void","native":false,"static":false,"accessModifier":"public","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}}}},"operators":{}})",
+                R"({"category":"interface","accessModifier":"public","genericParameters":[],"methods":{},"operators":{"equality":{"category":"operator","returnType":"extra.types.Remote","parameters":{"input":{"category":"parameter","type":"extra.types.Remote"}},"native":false,"accessModifier":"public"}}})",
+                R"({"category":"enum","accessModifier":"public","genericParameters":[],"members":{"member":{"category":"enummember","associatedValues":{"value":{"category":"enumvalue","type":"extra.types.Remote"}}}}})",
                 R"({"category":"enummember","associatedValues":{"value":{"category":"enumvalue","type":"extra.types.Remote"}}})",
-                R"({"category":"typealias","genericParameters":[],"originalType":"extra.types.Remote"})",
+                R"({"category":"typealias","accessModifier":"public","genericParameters":[],"originalType":"extra.types.Remote"})",
                 R"({"category":"property","type":"extra.types.Remote","static":false,"accessModifier":"public"})",
                 R"({"category":"parameter","type":"extra.types.Remote"})",
             }) {
             SCOPED_TRACE(contents);
-            writeFile("dependency_source/api.vni", std::string(R"({"value":{"category":"let","type":"int"},"holder":)") + contents + "}");
+            writeFile("dependency_source/api.vni", std::string(R"({"value":{"category":"let","accessModifier":"public","type":"int"},"holder":)") + contents + "}");
 
             const auto result = collect("import pkg.api.value\n");
 
@@ -257,9 +233,12 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, LoadsEveryQualifiedTypeInGenericArgumentsAndNullableTypes) {
-        writeFile("dependency_source/api.vni", R"({"Alias":{"category":"typealias","genericParameters":["T"],"originalType":"pkg.sub.other.Pair<T, List<extra.types.Remote?>>?"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"Pair":{"category":"typealias","genericParameters":["A","B"],"originalType":"A"}})");
-        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","genericParameters":[],"originalType":"int"}})");
+        writeFile(
+            "dependency_source/api.vni",
+            R"({"Alias":{"category":"typealias","accessModifier":"public","genericParameters":["T"],"originalType":"pkg.sub.other.Pair<T, List<extra.types.Remote?>>?"}})"
+        );
+        writeFile("dependency_source/sub/other.vni", R"({"Pair":{"category":"typealias","accessModifier":"public","genericParameters":["A","B"],"originalType":"A"}})");
+        writeFile("another_source/types.vni", R"({"Remote":{"category":"typealias","accessModifier":"public","genericParameters":[],"originalType":"int"}})");
 
         const auto result = collect("import pkg.api.Alias\n");
 
@@ -279,9 +258,15 @@ namespace vnlc {
         EXPECT_NE(types->getIdentifierByName("Remote"), nullptr);
     }
 
-    TEST_F(CollectorTest, FollowsTransitiveRepeatedAndCyclicIndirectImports) {
-        writeFile("dependency_source/api.vni", R"({"External":{"category":"imported","source":"pkg.sub.other.bridge"},"repeated":{"category":"imported","source":"pkg.sub.other.bridge"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"bridge":{"category":"imported","source":"extra.tools.enabled"},"back":{"category":"imported","source":"pkg.api.External"}})");
+    TEST_F(CollectorTest, FollowsTransitiveRepeatedAndCyclicTypeDependencies) {
+        writeFile(
+            "dependency_source/api.vni",
+            R"({"External":{"category":"let","accessModifier":"public","type":"pkg.sub.other.bridge"},"repeated":{"category":"let","accessModifier":"public","type":"pkg.sub.other.bridge"}})"
+        );
+        writeFile(
+            "dependency_source/sub/other.vni",
+            R"({"bridge":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"},"back":{"category":"let","accessModifier":"public","type":"pkg.api.External"}})"
+        );
 
         const auto result = collect("import pkg.api.External\n");
 
@@ -292,9 +277,9 @@ namespace vnlc {
         const auto* api = package->getModuleByName("api");
         ASSERT_NE(api, nullptr);
         EXPECT_EQ(api->getIdentifiers().size(), 2);
-        const auto* alias = dynamic_cast<const ImportedAlias*>(api->getIdentifierByName("External"));
-        ASSERT_NE(alias, nullptr);
-        EXPECT_EQ(alias->getSource(), "pkg.sub.other.bridge");
+        const auto* external = dynamic_cast<const ImportedLet*>(api->getIdentifierByName("External"));
+        ASSERT_NE(external, nullptr);
+        EXPECT_EQ(external->getType(), "pkg.sub.other.bridge");
         const auto* sub = package->getSubPackageByName("sub");
         ASSERT_NE(sub, nullptr);
         ASSERT_EQ(sub->getModules().size(), 1);
@@ -310,38 +295,12 @@ namespace vnlc {
         EXPECT_NE(tools->getIdentifierByName("enabled"), nullptr);
     }
 
-    TEST_F(CollectorTest, LoadsPackagesAndModulesReferencedByIndirectImports) {
-        for (const auto source : { "extra", "extra.tools", "pkg.sub" }) {
-            SCOPED_TRACE(source);
-            writeFile("dependency_source/api.vni", std::string(R"({"External":{"category":"imported","source":")") + source + R"("}})");
-
-            const auto result = collect("import pkg.api.External\n");
-
-            ASSERT_TRUE(result.getErrors().empty());
-            const auto* package = importedPackage(result, "pkg");
-            ASSERT_NE(package, nullptr);
-            EXPECT_NE(package->getModuleByName("api"), nullptr);
-            if (std::string_view(source) == "pkg.sub") {
-                EXPECT_EQ(result.getImports().size(), 1);
-                const auto* sub = package->getSubPackageByName("sub");
-                ASSERT_NE(sub, nullptr);
-                EXPECT_EQ(sub->getModules().size(), 2);
-                EXPECT_NE(sub->getModuleByName("other"), nullptr);
-                EXPECT_NE(sub->getModuleByName("second"), nullptr);
-            } else {
-                EXPECT_EQ(result.getImports().size(), 2);
-                const auto* extra = importedPackage(result, "extra");
-                ASSERT_NE(extra, nullptr);
-                const auto* tools = extra->getModuleByName("tools");
-                ASSERT_NE(tools, nullptr);
-                EXPECT_NE(tools->getIdentifierByName("enabled"), nullptr);
-            }
-        }
-    }
-
     TEST_F(CollectorTest, MergesOverlappingDirectAndIndirectImportsInEitherOrder) {
-        writeFile("dependency_source/api.vni", R"({"External":{"category":"imported","source":"extra.tools.enabled"}})");
-        writeFile("dependency_source/sub/other.vni", R"({"flag":{"category":"let","type":"bool"},"External":{"category":"imported","source":"extra.tools.enabled"}})");
+        writeFile("dependency_source/api.vni", R"({"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"}})");
+        writeFile(
+            "dependency_source/sub/other.vni",
+            R"({"flag":{"category":"let","accessModifier":"public","type":"bool"},"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"}})"
+        );
         for (const auto source : {
                  "import pkg.api.External\nimport extra.tools.enabled\nimport pkg.sub.other.flag\nimport extra.tools as tools\n",
                  "import extra.tools.enabled\nimport pkg.api.External\nimport pkg.sub.other.flag\nimport extra.tools as tools\n",
@@ -355,13 +314,13 @@ namespace vnlc {
             ASSERT_NE(package, nullptr);
             const auto* api = package->getModuleByName("api");
             ASSERT_NE(api, nullptr);
-            EXPECT_NE(dynamic_cast<const ImportedAlias*>(api->getIdentifierByName("External")), nullptr);
+            EXPECT_NE(dynamic_cast<const ImportedLet*>(api->getIdentifierByName("External")), nullptr);
             const auto* sub = package->getSubPackageByName("sub");
             ASSERT_NE(sub, nullptr);
             const auto* other = sub->getModuleByName("other");
             ASSERT_NE(other, nullptr);
             EXPECT_NE(other->getIdentifierByName("flag"), nullptr);
-            EXPECT_NE(dynamic_cast<const ImportedAlias*>(other->getIdentifierByName("External")), nullptr);
+            EXPECT_NE(dynamic_cast<const ImportedLet*>(other->getIdentifierByName("External")), nullptr);
             const auto* extra = importedPackage(result, "extra");
             ASSERT_NE(extra, nullptr);
             ASSERT_EQ(extra->getModules().size(), 1);
@@ -374,11 +333,12 @@ namespace vnlc {
 
     TEST_F(CollectorTest, DoesNotCommitImportsWithMissingOrMalformedIndirectDependencies) {
         writeFile("another_source/broken.vni", "invalid json");
-        for (const auto source : { "absent.tools.enabled", "extra.missing.enabled", "extra.broken.enabled", "", ".extra.tools.enabled", "extra..tools.enabled", "extra.tools.enabled." }) {
+        for (const auto source : { "absent.tools.enabled", "extra.missing.enabled", "extra.broken.enabled", ".extra.tools.enabled", "extra..tools.enabled", "extra.tools.enabled." }) {
             SCOPED_TRACE(source);
             writeFile(
                 "dependency_source/api.vni",
-                std::string(R"({"External":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":")") + source + R"("}})"
+                std::string(R"({"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"},"broken":{"category":"let","accessModifier":"public","type":")") + source +
+                    R"("}})"
             );
 
             const auto result = collect("import pkg.api.External\n");
@@ -391,7 +351,10 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, FailedIndirectImportsPreserveEarlierModulesWithoutCommittingDependencies) {
-        writeFile("dependency_source/broken.vni", R"({"External":{"category":"imported","source":"extra.tools.enabled"},"broken":{"category":"imported","source":"pkg.sub.missing.value"}})");
+        writeFile(
+            "dependency_source/broken.vni",
+            R"({"External":{"category":"let","accessModifier":"public","type":"extra.tools.enabled"},"broken":{"category":"let","accessModifier":"public","type":"pkg.sub.missing.value"}})"
+        );
 
         const auto result = collect("import pkg.api as kept\nimport pkg.broken as staged\n");
 
@@ -439,7 +402,7 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, ReportsMalformedModuleInterfacesAsCollectorErrors) {
-        for (const auto contents : { "", "invalid json", "[]", R"({"value":{"category":"let","type":123}})", R"({"value":{"category":null}})" }) {
+        for (const auto contents : { "", "invalid json", "[]", R"({"value":{"category":"let","accessModifier":"public","type":123}})", R"({"value":{"category":null}})" }) {
             SCOPED_TRACE(contents);
             writeFile("dependency_source/broken.vni", contents);
 
@@ -452,7 +415,7 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, RejectsMalformedUnselectedIdentifiersWhenImportingAModuleOrIdentifier) {
-        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","type":"int"},"unused":{"category":"let","type":123}})");
+        writeFile("dependency_source/api.vni", R"({"value":{"category":"let","accessModifier":"public","type":"int"},"unused":{"category":"let","accessModifier":"public","type":123}})");
         for (const auto source : { "import pkg.api\n", "import pkg.api.value\n" }) {
             SCOPED_TRACE(source);
             const auto result = collect(source);
@@ -474,7 +437,7 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, PreservesModuleNamesWhenReadingSymbolicLinks) {
-        writeFile("shared/original.vni", R"({"linked":{"category":"let","type":"int"}})");
+        writeFile("shared/original.vni", R"({"linked":{"category":"let","accessModifier":"public","type":"int"}})");
         std::error_code error;
         std::filesystem::create_symlink(testDirectory / "shared/original.vni", testDirectory / "dependency_source/linkedApi.vni", error);
         if (error) {
@@ -495,8 +458,8 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, ImportsModuleInterfaceFilesWithCaseInsensitiveExtensions) {
-        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","type":"int"}})");
-        writeFile("dependency_source/sub/Mixed.Vni", R"({"mixedValue":{"category":"let","type":"int"}})");
+        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","accessModifier":"public","type":"int"}})");
+        writeFile("dependency_source/sub/Mixed.Vni", R"({"mixedValue":{"category":"let","accessModifier":"public","type":"int"}})");
 
         for (const auto source : { "import pkg.Upper\nimport pkg.sub.Mixed\n", "import pkg\n" }) {
             SCOPED_TRACE(source);
@@ -520,7 +483,7 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, RequiresImportedPackageAndModuleNamesToMatchTheCaseOfTheirFiles) {
-        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","type":"int"}})");
+        writeFile("dependency_source/Upper.VNI", R"({"upperValue":{"category":"let","accessModifier":"public","type":"int"}})");
 
         for (const auto source : { "import pkg.upper\n", "import pkg.UPPER\n", "import pkg.API\n", "import pkg.Sub.other\n" }) {
             SCOPED_TRACE(source);
@@ -534,8 +497,8 @@ namespace vnlc {
     }
 
     TEST_F(CollectorTest, ReportsModuleInterfaceFilesWhoseNamesDifferOnlyInExtensionCase) {
-        writeFile("dependency_source/duplicate.vni", R"({"lower":{"category":"let","type":"int"}})");
-        writeFile("dependency_source/duplicate.VNI", R"({"upper":{"category":"let","type":"int"}})");
+        writeFile("dependency_source/duplicate.vni", R"({"lower":{"category":"let","accessModifier":"public","type":"int"}})");
+        writeFile("dependency_source/duplicate.VNI", R"({"upper":{"category":"let","accessModifier":"public","type":"int"}})");
         const auto duplicateCount = std::count_if(std::filesystem::directory_iterator(testDirectory / "dependency_source"), std::filesystem::directory_iterator(), [](const auto& entry) {
             return entry.path().stem() == "duplicate";
         });
@@ -727,27 +690,47 @@ type Alias = int
         EXPECT_EQ(alias->getAliasName(), "Alias");
     }
 
-    TEST_F(CollectorTest, StopsCollectingAtTopLevelExports) {
-        const std::string source = "class Before {}\nexport Before\nclass After {}\n";
+    TEST_F(CollectorTest, CollectsModulePrivateTypeDeclarationsUntilTheEndOfFile) {
+        const std::string source = "private class Before {}\nprivate let value = 0\nprivate final class Sealed {}\nprivate interface Readable {}\n"
+                                   "private enum State {\n    Ready\n}\nprivate type Alias = int\nclass After {}\n";
         const auto result = collect(source);
 
+        ASSERT_TRUE(result.getErrors().empty());
         const auto& outline = result.getModuleOutline();
-        ASSERT_EQ(outline.getTypeDeclarations().size(), 1);
-        const auto* declaration = dynamic_cast<const ClassDeclarationOutline*>(outline.getTypeDeclarations()[0].get());
-        ASSERT_NE(declaration, nullptr);
-        EXPECT_EQ(declaration->getName(), "Before");
         EXPECT_EQ(outline.getOffset(), 0);
-        EXPECT_EQ(outline.getLength(), source.find("export"));
+        EXPECT_EQ(outline.getLength(), source.size());
+        const auto& declarations = outline.getTypeDeclarations();
+        ASSERT_EQ(declarations.size(), 6);
+        const auto* before = dynamic_cast<const ClassDeclarationOutline*>(declarations[0].get());
+        const auto* sealed = dynamic_cast<const ClassDeclarationOutline*>(declarations[1].get());
+        const auto* readable = dynamic_cast<const InterfaceDeclarationOutline*>(declarations[2].get());
+        const auto* state = dynamic_cast<const EnumDeclarationOutline*>(declarations[3].get());
+        const auto* alias = dynamic_cast<const TypeAliasDeclarationOutline*>(declarations[4].get());
+        const auto* after = dynamic_cast<const ClassDeclarationOutline*>(declarations[5].get());
+        ASSERT_NE(before, nullptr);
+        ASSERT_NE(sealed, nullptr);
+        ASSERT_NE(readable, nullptr);
+        ASSERT_NE(state, nullptr);
+        ASSERT_NE(alias, nullptr);
+        ASSERT_NE(after, nullptr);
+        EXPECT_EQ(before->getName(), "Before");
+        EXPECT_EQ(before->getOffset(), source.find("class Before"));
+        EXPECT_EQ(sealed->getName(), "Sealed");
+        EXPECT_EQ(sealed->getOffset(), source.find("final class Sealed"));
+        EXPECT_EQ(readable->getName(), "Readable");
+        EXPECT_EQ(state->getName(), "State");
+        EXPECT_EQ(alias->getAliasName(), "Alias");
+        EXPECT_EQ(after->getName(), "After");
     }
 
     TEST_F(CollectorTest, RecordsTypeAndEnumMemberSourceLocations) {
-        const std::string source = "\n  final class Box {}\ninterface Readable {}\nenum State {\n    Ready\n    Some(value: int)\n}\nexport Box\n";
+        const std::string source = "\n  final class Box {}\ninterface Readable {}\nenum State {\n    Ready\n    Some(value: int)\n}\nlet value = 0\n";
         const auto result = collect(source);
 
         const auto& outline = result.getModuleOutline();
         EXPECT_EQ(outline.locate(), (std::pair<std::size_t, std::size_t>{ 1, 1 }));
         EXPECT_EQ(outline.getOffset(), 0);
-        EXPECT_EQ(outline.getLength(), source.find("export"));
+        EXPECT_EQ(outline.getLength(), source.size());
         const auto& declarations = outline.getTypeDeclarations();
         ASSERT_EQ(declarations.size(), 3);
         EXPECT_EQ(declarations[0]->locate(), (std::pair<std::size_t, std::size_t>{ 2, 3 }));
@@ -760,7 +743,7 @@ type Alias = int
         ASSERT_NE(enumDeclaration, nullptr);
         EXPECT_EQ(enumDeclaration->locate(), (std::pair<std::size_t, std::size_t>{ 4, 1 }));
         EXPECT_EQ(enumDeclaration->getOffset(), source.find("enum"));
-        EXPECT_EQ(enumDeclaration->getLength(), source.find("export") - source.find("enum"));
+        EXPECT_EQ(enumDeclaration->getLength(), source.find("let") - source.find("enum"));
         const auto& members = enumDeclaration->getMemberDeclarations();
         ASSERT_EQ(members.size(), 2);
         EXPECT_EQ(members[0]->locate(), (std::pair<std::size_t, std::size_t>{ 5, 5 }));
@@ -768,7 +751,7 @@ type Alias = int
         EXPECT_EQ(members[0]->getLength(), source.find("Some") - source.find("Ready"));
         EXPECT_EQ(members[1]->locate(), (std::pair<std::size_t, std::size_t>{ 6, 5 }));
         EXPECT_EQ(members[1]->getOffset(), source.find("Some"));
-        EXPECT_EQ(members[1]->getLength(), source.find("}\nexport") - source.find("Some"));
+        EXPECT_EQ(members[1]->getLength(), source.find("}\nlet") - source.find("Some"));
     }
 
     TEST_F(CollectorTest, CollectsImportsAndOutlinesAcrossTokenBufferBoundaries) {

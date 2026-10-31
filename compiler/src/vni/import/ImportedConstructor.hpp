@@ -23,7 +23,7 @@ namespace vnlc {
         ImportedConstructor(std::string_view name, std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>&& parameters, std::string_view accessModifier);
 
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>& getParameters() const;
-        [[nodiscard]] std::string_view getAccessModifier() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
 
         [[nodiscard]] const ImportedParameter* getParameterByName(std::string_view name) const;
     };

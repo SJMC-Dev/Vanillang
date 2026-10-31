@@ -3,8 +3,10 @@
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
+#include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include "ast/declaration/TypeAliasDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
@@ -18,7 +20,6 @@
 #include "token/Token.hpp"
 #include "type/PrimitiveType.hpp"
 #include "vni/export/ModuleInterfaceFileGenerator.hpp"
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
 #include "vni/import/ImportedEnum.hpp"
@@ -98,14 +99,68 @@ namespace vnlc {
             return std::make_unique<ValueDeclarationNode>(kind, context, accessModifier, makeIdentifier(name), std::move(type), nullptr, testToken, testToken, std::move(metadata));
         }
 
-        std::unique_ptr<EnumDeclarationNode>
-        makeEnum(std::string_view name, std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters, std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations) {
-            return std::make_unique<EnumDeclarationNode>(makeIdentifier(name), std::move(genericParameters), std::move(memberDeclarations), testToken, testToken);
+        std::unique_ptr<EnumDeclarationNode> makeEnum(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::string_view name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations
+        ) {
+            return std::make_unique<EnumDeclarationNode>(accessModifier, makeIdentifier(name), std::move(genericParameters), std::move(memberDeclarations), testToken, testToken);
         }
 
-        std::unique_ptr<TypeAliasDeclarationNode>
-        makeTypeAlias(std::string_view name, std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters, std::unique_ptr<TypeReferenceNode>&& originalType) {
-            return std::make_unique<TypeAliasDeclarationNode>(makeIdentifier(name), std::move(genericParameters), std::move(originalType), testToken, testToken);
+        std::unique_ptr<TypeAliasDeclarationNode> makeTypeAlias(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::string_view name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::unique_ptr<TypeReferenceNode>&& originalType
+        ) {
+            return std::make_unique<TypeAliasDeclarationNode>(accessModifier, makeIdentifier(name), std::move(genericParameters), std::move(originalType), testToken, testToken);
+        }
+
+        std::unique_ptr<FunctionDeclarationNode> makeFunction(FunctionDeclarationKind::AccessModifier accessModifier, std::string_view name) {
+            auto function = std::make_unique<FunctionDeclarationNode>(
+                FunctionDeclarationKind::Implementation::NATIVE,
+                FunctionDeclarationKind::Context::TOP_LEVEL,
+                accessModifier,
+                FunctionDeclarationKind::Binding::STATIC,
+                makeIdentifier(name),
+                std::vector<std::unique_ptr<ValueDeclarationNode>>{},
+                nullptr,
+                nullptr,
+                testToken,
+                testToken
+            );
+            function->setInternalName(name);
+            return function;
+        }
+
+        std::unique_ptr<ClassDeclarationNode> makeClass(TypeDeclarationKind::AccessModifier accessModifier, std::string_view name) {
+            return std::make_unique<ClassDeclarationNode>(
+                accessModifier,
+                false,
+                makeIdentifier(name),
+                nullptr,
+                std::vector<std::unique_ptr<TypeReferenceNode>>{},
+                std::vector<std::unique_ptr<IdentifierNode>>{},
+                std::vector<std::unique_ptr<ValueDeclarationNode>>{},
+                std::vector<std::unique_ptr<FunctionDeclarationNode>>{},
+                std::vector<std::unique_ptr<ConstructorDeclarationNode>>{},
+                std::vector<std::unique_ptr<OperatorDeclarationNode>>{},
+                testToken,
+                testToken
+            );
+        }
+
+        std::unique_ptr<InterfaceDeclarationNode> makeInterface(TypeDeclarationKind::AccessModifier accessModifier, std::string_view name) {
+            return std::make_unique<InterfaceDeclarationNode>(
+                accessModifier,
+                makeIdentifier(name),
+                std::vector<std::unique_ptr<IdentifierNode>>{},
+                std::vector<std::unique_ptr<FunctionDeclarationNode>>{},
+                std::vector<std::unique_ptr<OperatorDeclarationNode>>{},
+                testToken,
+                testToken
+            );
         }
 
         SemanticResult makeSemanticResult(
@@ -164,7 +219,10 @@ namespace vnlc {
 
         ImportedRootPackageMap makeNestedImports() {
             std::unordered_map<std::string, std::unique_ptr<ImportedIdentifier>> identifiers;
-            identifiers.emplace("State", std::make_unique<ImportedEnum>("State", std::vector<std::string>{ "T" }, std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>{}));
+            identifiers.emplace(
+                "State",
+                std::make_unique<ImportedEnum>("State", std::vector<std::string>{ "T" }, std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>{}, "public")
+            );
 
             std::unordered_map<std::string, std::unique_ptr<ImportedModule>> modules;
             modules.emplace("api", std::make_unique<ImportedModule>("api", std::move(identifiers)));
@@ -221,13 +279,13 @@ namespace vnlc {
     } // namespace
 
     TEST_F(VniTest, ImportedItemExposesName) {
-        const ImportedLet importedLet("value", "int");
+        const ImportedLet importedLet("value", "int", "public");
 
         EXPECT_EQ(importedLet.getName(), "value");
     }
 
     TEST_F(VniTest, ImportedLetStoresNameAndType) {
-        const ImportedLet importedLet("value", "string");
+        const ImportedLet importedLet("value", "string", "public");
 
         EXPECT_EQ(importedLet.getName(), "value");
         EXPECT_EQ(importedLet.getType(), "string");
@@ -238,13 +296,43 @@ namespace vnlc {
         metadata.emplace("since", "1.0");
         metadata.emplace("draft", std::nullopt);
 
-        const ImportedLetMetadataProbe importedLet("value", "int", std::move(metadata));
+        const ImportedLetMetadataProbe importedLet("value", "int", "public", std::move(metadata));
         const auto& storedMetadata = importedLet.getMetadataProbe();
 
         ASSERT_EQ(storedMetadata.size(), 2);
         ASSERT_TRUE(storedMetadata.at("since").has_value());
         EXPECT_EQ(storedMetadata.at("since").value(), "1.0");
         EXPECT_FALSE(storedMetadata.at("draft").has_value());
+    }
+
+    TEST_F(VniTest, ImportedTopLevelIdentifiersStoreAccessModifiers) {
+        const ImportedLet hiddenLet("hidden", "int", "private");
+        const ImportedFunc hiddenFunction("hidden", "hidden", "void", {}, false, "private");
+        const ImportedClass hiddenClass("Hidden", std::nullopt, {}, false, {}, {}, {}, {}, {}, "private");
+        const ImportedInterface hiddenInterface("Hidden", {}, {}, {}, "private");
+        const ImportedEnum hiddenEnum("Hidden", {}, {}, "private");
+        const ImportedTypeAlias hiddenTypeAlias("Hidden", {}, "int", "private");
+        const ImportedLet visibleLet("visible", "int", "public");
+
+        for (const ImportedIdentifier* identifier :
+             std::initializer_list<const ImportedIdentifier*>{ &hiddenLet, &hiddenFunction, &hiddenClass, &hiddenInterface, &hiddenEnum, &hiddenTypeAlias }) {
+            EXPECT_EQ(identifier->getAccessModifier(), "private");
+        }
+        EXPECT_EQ(visibleLet.getAccessModifier(), "public");
+    }
+
+    TEST_F(VniTest, ImportedIdentifiersExposeAccessModifiersThroughTheirBaseClass) {
+        const ImportedProperty property("count", "int", false, "private");
+        const ImportedMethod method("run", "run", "void", {}, false, false, "protected");
+        const ImportedParameter parameter("amount", "int");
+        const ImportedEnumValue enumValue("code", "int");
+        const ImportedEnumMember enumMember("Ready", {});
+
+        EXPECT_EQ(static_cast<const ImportedIdentifier&>(property).getAccessModifier(), "private");
+        EXPECT_EQ(static_cast<const ImportedIdentifier&>(method).getAccessModifier(), "protected");
+        for (const ImportedIdentifier* identifier : std::initializer_list<const ImportedIdentifier*>{ &parameter, &enumValue, &enumMember }) {
+            EXPECT_EQ(identifier->getAccessModifier(), "public");
+        }
     }
 
     TEST_F(VniTest, ImportedParameterStoresNameAndType) {
@@ -270,15 +358,8 @@ namespace vnlc {
         EXPECT_EQ(property.getAccessModifier(), "protected");
     }
 
-    TEST_F(VniTest, ImportedAliasStoresSource) {
-        const ImportedAlias alias("External", "dependency.module.External");
-
-        EXPECT_EQ(alias.getName(), "External");
-        EXPECT_EQ(alias.getSource(), "dependency.module.External");
-    }
-
     TEST_F(VniTest, ImportedTypeAliasStoresGenericParametersAndOriginalType) {
-        const ImportedTypeAlias typeAlias("Wrapper", { "T" }, "List<T>");
+        const ImportedTypeAlias typeAlias("Wrapper", { "T" }, "List<T>", "public");
 
         EXPECT_EQ(typeAlias.getName(), "Wrapper");
         EXPECT_EQ(typeAlias.getGenericParameters(), std::vector<std::string>({ "T" }));
@@ -289,7 +370,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
         parameters.emplace("amount", std::make_unique<ImportedParameter>("amount", "int"));
 
-        const ImportedFunc function("add", "add", "int", std::move(parameters), true);
+        const ImportedFunc function("add", "add", "int", std::move(parameters), true, "public");
 
         EXPECT_EQ(function.getOriginalName(), "add");
         EXPECT_EQ(function.getReturnType(), "int");
@@ -353,8 +434,18 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
         operators.emplace("addition", std::make_unique<ImportedOperator>("addition", "Box<T>", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false, "public"));
 
-        const ImportedClass
-            importedClass("Box", std::optional<std::string>("Base"), { "Readable" }, true, { "T" }, std::move(properties), std::move(methods), std::move(constructors), std::move(operators));
+        const ImportedClass importedClass(
+            "Box",
+            std::optional<std::string>("Base"),
+            { "Readable" },
+            true,
+            { "T" },
+            std::move(properties),
+            std::move(methods),
+            std::move(constructors),
+            std::move(operators),
+            "public"
+        );
 
         EXPECT_EQ(importedClass.getName(), "Box");
         ASSERT_TRUE(importedClass.getBaseClass().has_value());
@@ -385,7 +476,7 @@ namespace vnlc {
     }
 
     TEST_F(VniTest, ImportedClassAllowsNoBaseClassAndEmptyMembers) {
-        const ImportedClass importedClass("Empty", std::nullopt, {}, false, {}, {}, {}, {});
+        const ImportedClass importedClass("Empty", std::nullopt, {}, false, {}, {}, {}, {}, "public");
 
         EXPECT_FALSE(importedClass.getBaseClass().has_value());
         EXPECT_TRUE(importedClass.getImplementedInterfaces().empty());
@@ -405,7 +496,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
         operators.emplace("equality", std::make_unique<ImportedOperator>("equality", "bool", std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>{}, false, "public"));
 
-        const ImportedInterface importedInterface("Readable", { "T" }, std::move(methods), std::move(operators));
+        const ImportedInterface importedInterface("Readable", { "T" }, std::move(methods), std::move(operators), "public");
 
         EXPECT_EQ(importedInterface.getGenericParameters(), std::vector<std::string>({ "T" }));
         const auto* method = importedInterface.getMethodByName("read");
@@ -425,7 +516,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>> members;
         members.emplace("Ready", std::make_unique<ImportedEnumMember>("Ready", std::move(associatedValues)));
 
-        const ImportedEnum importedEnum("State", { "T" }, std::move(members));
+        const ImportedEnum importedEnum("State", { "T" }, std::move(members), "public");
 
         EXPECT_EQ(importedEnum.getGenericParameters(), std::vector<std::string>({ "T" }));
         const auto* member = importedEnum.getMemberByName("Ready");
@@ -436,7 +527,7 @@ namespace vnlc {
 
     TEST_F(VniTest, ImportedModuleExposesNameAndIdentifiers) {
         std::unordered_map<std::string, std::unique_ptr<ImportedIdentifier>> identifiers;
-        identifiers.emplace("value", std::make_unique<ImportedLet>("value", "int"));
+        identifiers.emplace("value", std::make_unique<ImportedLet>("value", "int", "public"));
 
         const ImportedModule module("module", std::move(identifiers));
 
@@ -450,8 +541,8 @@ namespace vnlc {
     TEST_F(VniTest, ImportedModuleDoesNotOverwriteExistingIdentifier) {
         ImportedModule module("module", {});
 
-        module.addIdentifier(std::make_unique<ImportedLet>("value", "int"));
-        module.addIdentifier(std::make_unique<ImportedLet>("value", "string"));
+        module.addIdentifier(std::make_unique<ImportedLet>("value", "int", "public"));
+        module.addIdentifier(std::make_unique<ImportedLet>("value", "string", "public"));
 
         ASSERT_EQ(module.getIdentifiers().size(), 1);
         const auto* identifier = module.getIdentifierByName("value");
@@ -519,6 +610,7 @@ namespace vnlc {
             R"({
     "value": {
         "category": "let",
+        "accessModifier": "private",
         "type": "int",
         "metadata": {
             "since": "1.0",
@@ -527,6 +619,7 @@ namespace vnlc {
     },
     "run": {
         "category": "func",
+        "accessModifier": "public",
         "name": "run",
         "returnType": "void",
         "parameters": {
@@ -548,6 +641,7 @@ namespace vnlc {
     },
     "Box": {
         "category": "class",
+        "accessModifier": "public",
         "genericParameters": ["T"],
         "properties": {
             "count": {
@@ -605,6 +699,7 @@ namespace vnlc {
     },
     "Readable": {
         "category": "interface",
+        "accessModifier": "public",
         "genericParameters": ["T"],
         "methods": {
             "read": {
@@ -629,6 +724,7 @@ namespace vnlc {
     },
     "State": {
         "category": "enum",
+        "accessModifier": "public",
         "genericParameters": [],
         "members": {
             "Ready": {
@@ -644,12 +740,9 @@ namespace vnlc {
     },
     "Alias": {
         "category": "typealias",
+        "accessModifier": "public",
         "genericParameters": ["T"],
         "originalType": "List<T>"
-    },
-    "External": {
-        "category": "imported",
-        "source": "dependency.module.External"
     },
     "standaloneProperty": {
         "category": "property",
@@ -668,11 +761,18 @@ namespace vnlc {
         const auto module = reader.read();
 
         ASSERT_EQ(module->getName(), "api");
-        ASSERT_EQ(module->getIdentifiers().size(), 10);
+        ASSERT_EQ(module->getIdentifiers().size(), 9);
 
         const auto* value = module->getIdentifierByName("value");
         ASSERT_NE(value, nullptr);
         EXPECT_EQ(dynamic_cast<const ImportedLet*>(value)->getType(), "int");
+        EXPECT_EQ(value->getAccessModifier(), "private");
+        for (const auto name : { "run", "standaloneMethod", "Box", "Readable", "State", "Alias" }) {
+            SCOPED_TRACE(name);
+            const auto* identifier = module->getIdentifierByName(name);
+            ASSERT_NE(identifier, nullptr);
+            EXPECT_EQ(identifier->getAccessModifier(), "public");
+        }
 
         const auto* function = module->getIdentifierByName("run");
         ASSERT_NE(function, nullptr);
@@ -751,12 +851,6 @@ namespace vnlc {
         const auto* typeAlias = dynamic_cast<const ImportedTypeAlias*>(typeAliasIdentifier);
         ASSERT_NE(typeAlias, nullptr);
         EXPECT_EQ(typeAlias->getOriginalType(), "List<T>");
-
-        const auto* importedAliasIdentifier = module->getIdentifierByName("External");
-        ASSERT_NE(importedAliasIdentifier, nullptr);
-        const auto* importedAlias = dynamic_cast<const ImportedAlias*>(importedAliasIdentifier);
-        ASSERT_NE(importedAlias, nullptr);
-        EXPECT_EQ(importedAlias->getSource(), "dependency.module.External");
     }
 
     TEST_F(VniTest, ModuleInterfaceFileReaderThrowsOnEmptyFile) {
@@ -784,7 +878,7 @@ namespace vnlc {
     TEST_F(VniTest, ModuleInterfaceFileReaderAcceptsCaseInsensitiveExtensionsAndKeepsModuleNameCase) {
         for (const auto& [fileName, moduleName] : { std::pair{ "Upper.VNI", "Upper" }, std::pair{ "Mixed.Vni", "Mixed" }, std::pair{ "lower.vni", "lower" } }) {
             SCOPED_TRACE(fileName);
-            const auto filePath = writeFile(fileName, R"({"value":{"category":"let","type":"int"}})");
+            const auto filePath = writeFile(fileName, R"({"value":{"category":"let","accessModifier":"public","type":"int"}})");
             ModuleInterfaceFileReader reader(filePath);
 
             const auto module = reader.read();
@@ -801,22 +895,21 @@ namespace vnlc {
     }
 
     TEST_F(VniTest, ModuleInterfaceFileReaderThrowsOnUnknownCategory) {
-        const auto filePath = writeFile(
-            "module.vni",
-            R"({
-    "value": {
-        "category": "unknown"
-    }
-})"
-        );
-        ModuleInterfaceFileReader reader(filePath);
+        for (const auto contents : {
+                 R"({"value":{"category":"unknown"}})",
+                 R"({"External":{"category":"imported","source":"dependency.module.External"}})",
+             }) {
+            SCOPED_TRACE(contents);
+            const auto filePath = writeFile("module.vni", contents);
+            ModuleInterfaceFileReader reader(filePath);
 
-        EXPECT_THROW(static_cast<void>(reader.read()), ModuleInterfaceFileReaderError);
+            EXPECT_THROW(static_cast<void>(reader.read()), ModuleInterfaceFileReaderError);
+        }
     }
 
     TEST_F(VniTest, ModuleInterfaceFileReaderThrowsWhenFunctionOrMethodLacksName) {
         for (const auto contents : {
-                 R"({"run":{"category":"func","returnType":"void","parameters":{},"native":false}})",
+                 R"({"run":{"category":"func","accessModifier":"public","returnType":"void","parameters":{},"native":false}})",
                  R"({"run":{"category":"method","returnType":"void","parameters":{},"native":false,"static":false,"accessModifier":"public"}})",
              }) {
             SCOPED_TRACE(contents);
@@ -837,6 +930,31 @@ namespace vnlc {
             ModuleInterfaceFileReader reader(filePath);
 
             EXPECT_THROW(static_cast<void>(reader.read()), ModuleInterfaceFileReaderError);
+        }
+    }
+
+    TEST_F(VniTest, ModuleInterfaceFileReaderThrowsWhenTopLevelIdentifierLacksValidAccessModifier) {
+        for (const auto category : {
+                 R"("category":"let","type":"int")",
+                 R"("category":"func","name":"run","returnType":"void","parameters":{},"native":false)",
+                 R"("category":"class","genericParameters":[],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false)",
+                 R"("category":"interface","genericParameters":[],"methods":{},"operators":{})",
+                 R"("category":"enum","genericParameters":[],"members":{})",
+                 R"("category":"typealias","genericParameters":[],"originalType":"int")",
+             }) {
+            for (const auto accessModifierField : { "", R"(,"accessModifier":"protected")", R"(,"accessModifier":"internal")", R"(,"accessModifier":false)", R"(,"accessModifier":null)" }) {
+                const auto contents = std::string(R"({"identifier":{)") + category + accessModifierField + "}}";
+                SCOPED_TRACE(contents);
+                const auto filePath = writeFile("module.vni", contents);
+                ModuleInterfaceFileReader reader(filePath);
+
+                try {
+                    static_cast<void>(reader.read());
+                    ADD_FAILURE() << "Expected ModuleInterfaceFileReaderError";
+                } catch (const ModuleInterfaceFileReaderError& error) {
+                    EXPECT_NE(std::string_view(error.what()).find("'accessModifier' field"), std::string_view::npos) << error.what();
+                }
+            }
         }
     }
 
@@ -866,6 +984,7 @@ namespace vnlc {
             output << R"({
     "value": {
         "category": "let",
+        "accessModifier": "public",
         "type": "int"
     }
 })";
@@ -901,14 +1020,57 @@ namespace vnlc {
         const auto* declarationNode = declaration.get();
         const auto semantic = makeSemanticResult({ { typeNode, PrimitiveType::intType() } });
 
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({ declarationNode }, config, semantic);
         generator.generate();
         const auto json = readJson(generatedOutputPath(config));
 
         EXPECT_EQ(json["count"]["category"], "let");
         EXPECT_EQ(json["count"]["type"], "int");
+        EXPECT_EQ(json["count"]["accessModifier"], "public");
         EXPECT_EQ(json["count"]["metadata"]["since"], "1.0");
         EXPECT_TRUE(json["count"]["metadata"]["draft"].is_null());
+    }
+
+    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesAccessModifiersOfTopLevelDeclarations) {
+        struct AccessModifierCase {
+            ValueDeclarationKind::AccessModifier valueAccessModifier;
+            FunctionDeclarationKind::AccessModifier functionAccessModifier;
+            TypeDeclarationKind::AccessModifier typeAccessModifier;
+            std::string_view expected;
+        };
+        const std::vector<AccessModifierCase> cases = {
+            { ValueDeclarationKind::AccessModifier::PUBLIC, FunctionDeclarationKind::AccessModifier::PUBLIC, TypeDeclarationKind::AccessModifier::PUBLIC, "public" },
+            { ValueDeclarationKind::AccessModifier::PRIVATE, FunctionDeclarationKind::AccessModifier::PRIVATE, TypeDeclarationKind::AccessModifier::PRIVATE, "private" },
+        };
+        for (const auto& [valueAccessModifier, functionAccessModifier, typeAccessModifier, expected] : cases) {
+            SCOPED_TRACE(expected);
+            const auto config = makeGeneratorConfig(testDirectory);
+
+            auto variableType = makeType("int");
+            auto originalType = makeType("int");
+            const auto semantic = makeSemanticResult(
+                {
+                    { variableType.get(), PrimitiveType::intType() },
+                    { originalType.get(), PrimitiveType::intType() },
+                }
+            );
+            const auto variable = makeValue(ValueDeclarationKind::Kind::LET, ValueDeclarationKind::Context::TOP_LEVEL, valueAccessModifier, "count", std::move(variableType));
+            const auto function = makeFunction(functionAccessModifier, "run");
+            const auto classNode = makeClass(typeAccessModifier, "Box");
+            const auto interfaceNode = makeInterface(typeAccessModifier, "Readable");
+            const auto enumNode = makeEnum(typeAccessModifier, "State", {}, {});
+            const auto typeAlias = makeTypeAlias(typeAccessModifier, "Alias", {}, std::move(originalType));
+
+            ModuleInterfaceFileGenerator generator({ variable.get(), function.get(), classNode.get(), interfaceNode.get(), enumNode.get(), typeAlias.get() }, config, semantic);
+            generator.generate();
+            const auto json = readJson(generatedOutputPath(config));
+
+            ASSERT_EQ(json.size(), 6);
+            for (const auto name : { "count", "run", "Box", "Readable", "State", "Alias" }) {
+                SCOPED_TRACE(name);
+                EXPECT_EQ(json[name]["accessModifier"].get<std::string>(), expected);
+            }
+        }
     }
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesEnumWithMemberAndValue) {
@@ -927,7 +1089,7 @@ namespace vnlc {
         std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
         genericParameters.push_back(makeIdentifier("T"));
 
-        auto declaration = makeEnum("State", std::move(genericParameters), std::move(members));
+        auto declaration = makeEnum(TypeDeclarationKind::AccessModifier::PUBLIC, "State", std::move(genericParameters), std::move(members));
         const auto* declarationNode = declaration.get();
         const auto semantic = makeSemanticResult(
             {
@@ -935,11 +1097,12 @@ namespace vnlc {
             }
         );
 
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({ declarationNode }, config, semantic);
         generator.generate();
         const auto json = readJson(generatedOutputPath(config));
 
         EXPECT_EQ(json["State"]["category"], "enum");
+        EXPECT_EQ(json["State"]["accessModifier"], "public");
         EXPECT_EQ(json["State"]["genericParameters"].size(), 1);
         EXPECT_EQ(json["State"]["genericParameters"][0], "T");
         EXPECT_EQ(json["State"]["members"]["Ready"]["category"], "enummember");
@@ -955,7 +1118,7 @@ namespace vnlc {
         std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
         genericParameters.push_back(makeIdentifier("T"));
 
-        auto declaration = makeTypeAlias("Wrapper", std::move(genericParameters), std::move(originalType));
+        auto declaration = makeTypeAlias(TypeDeclarationKind::AccessModifier::PUBLIC, "Wrapper", std::move(genericParameters), std::move(originalType));
         const auto* declarationNode = declaration.get();
         const auto semantic = makeSemanticResult(
             {
@@ -963,26 +1126,15 @@ namespace vnlc {
             }
         );
 
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({ declarationNode }, config, semantic);
         generator.generate();
         const auto json = readJson(generatedOutputPath(config));
 
         EXPECT_EQ(json["Wrapper"]["category"], "typealias");
+        EXPECT_EQ(json["Wrapper"]["accessModifier"], "public");
         EXPECT_EQ(json["Wrapper"]["genericParameters"].size(), 1);
         EXPECT_EQ(json["Wrapper"]["genericParameters"][0], "T");
         EXPECT_EQ(json["Wrapper"]["originalType"], "int");
-    }
-
-    TEST_F(VniTest, ModuleInterfaceFileGeneratorGeneratesImportedAliasCategory) {
-        const auto config = makeGeneratorConfig(testDirectory);
-        const auto semantic = makeSemanticResult();
-
-        ModuleInterfaceFileGenerator generator({}, { "External" }, config, semantic);
-        generator.generate();
-        const auto json = readJson(generatedOutputPath(config));
-
-        EXPECT_EQ(json["External"]["category"], "imported");
-        EXPECT_EQ(json["External"]["source"], "External");
     }
 
     TEST_F(VniTest, ModuleInterfaceFileGeneratorUsesInferredTypes) {
@@ -996,7 +1148,7 @@ namespace vnlc {
             }
         );
 
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({ declarationNode }, config, semantic);
         generator.generate();
         const auto json = readJson(generatedOutputPath(config));
 
@@ -1037,6 +1189,7 @@ namespace vnlc {
         operators[1]->setInternalName("vnl-operator-subtraction()");
 
         auto declaration = std::make_unique<ClassDeclarationNode>(
+            TypeDeclarationKind::AccessModifier::PUBLIC,
             false,
             makeIdentifier("Vec3"),
             nullptr,
@@ -1052,7 +1205,7 @@ namespace vnlc {
         const auto* declarationNode = declaration.get();
         const auto semantic = makeSemanticResult();
 
-        ModuleInterfaceFileGenerator generator({ declarationNode }, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({ declarationNode }, config, semantic);
         generator.generate();
         const auto json = readJson(generatedOutputPath(config));
 
@@ -1065,7 +1218,7 @@ namespace vnlc {
         config.moduleInterfaceOutputDirectory.clear();
         const auto semantic = makeSemanticResult();
 
-        ModuleInterfaceFileGenerator generator({}, {}, config, semantic);
+        ModuleInterfaceFileGenerator generator({}, config, semantic);
         generator.generate();
 
         EXPECT_FALSE(std::filesystem::exists(testDirectory / "interfaces"));

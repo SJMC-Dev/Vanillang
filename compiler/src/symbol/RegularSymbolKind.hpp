@@ -17,8 +17,6 @@ namespace vnlc {
         PROPERTY,
         METHOD,
         PARAMETER,
-        IMPORT_ALIAS,
-        EXPORT_ALIAS,
         GENERIC_PARAMETER,
         LOOP_LABEL,
     };

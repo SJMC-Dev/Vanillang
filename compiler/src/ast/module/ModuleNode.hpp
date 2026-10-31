@@ -3,7 +3,6 @@
 
 #include "ast/AstNode.hpp"
 #include "ast/declaration/DeclarationNode.hpp"
-#include "ast/declaration/ExportDeclarationNode.hpp"
 #include "ast/declaration/ImportDeclarationNode.hpp"
 #include <memory>
 #include <vector>
@@ -16,7 +15,6 @@ namespace vnlc {
 
         std::vector<std::unique_ptr<ImportDeclarationNode>> importDeclarations;
         std::vector<std::unique_ptr<DeclarationNode>> topIdentifierDeclarations;
-        std::vector<std::unique_ptr<ExportDeclarationNode>> exportDeclarations;
 
     public:
         ModuleNode() = delete;
@@ -26,7 +24,6 @@ namespace vnlc {
             std::string&& fullName,
             std::vector<std::unique_ptr<ImportDeclarationNode>>&& importDeclarations,
             std::vector<std::unique_ptr<DeclarationNode>>&& topIdentifierDeclarations,
-            std::vector<std::unique_ptr<ExportDeclarationNode>>&& exportDeclarations,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
@@ -35,7 +32,6 @@ namespace vnlc {
         [[nodiscard]] std::string_view getFullName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ImportDeclarationNode>>& getImportDeclarations() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<DeclarationNode>>& getTopIdentifierDeclarations() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<ExportDeclarationNode>>& getExportDeclarations() const noexcept;
     };
 } // namespace vnlc
 

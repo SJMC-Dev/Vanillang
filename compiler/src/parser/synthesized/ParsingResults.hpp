@@ -26,8 +26,6 @@
 #include "parser/synthesized/EnumMemberDeclarationParsingResult.hpp"        // IWYU pragma: export
 #include "parser/synthesized/EqualityExpressionParsingResult.hpp"           // IWYU pragma: export
 #include "parser/synthesized/ExponentialExpressionParsingResult.hpp"        // IWYU pragma: export
-#include "parser/synthesized/ExportDeclarationParsingResult.hpp"            // IWYU pragma: export
-#include "parser/synthesized/ExportListParsingResult.hpp"                   // IWYU pragma: export
 #include "parser/synthesized/ExpressionParsingResult.hpp"                   // IWYU pragma: export
 #include "parser/synthesized/ExpressionStatementParsingResult.hpp"          // IWYU pragma: export
 #include "parser/synthesized/ForStatementParsingResult.hpp"                 // IWYU pragma: export

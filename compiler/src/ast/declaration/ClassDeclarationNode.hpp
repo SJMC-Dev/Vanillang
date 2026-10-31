@@ -4,6 +4,7 @@
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
@@ -14,6 +15,7 @@
 namespace vnlc {
     class ClassDeclarationNode : public TypeDeclarationNode {
     private:
+        TypeDeclarationKind::AccessModifier accessModifier;
         bool final;
         std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeReferenceNode> baseClass;                          // nullptr if no base class
@@ -28,6 +30,7 @@ namespace vnlc {
         ClassDeclarationNode() = delete;
 
         ClassDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
             std::unique_ptr<TypeReferenceNode>&& baseClass,
@@ -42,6 +45,7 @@ namespace vnlc {
         ) noexcept;
 
         ClassDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
             std::unique_ptr<TypeReferenceNode>&& baseClass,
@@ -56,6 +60,7 @@ namespace vnlc {
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
         ) noexcept;
 
+        [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] bool isFinal() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeReferenceNode* getBaseClass() const noexcept;

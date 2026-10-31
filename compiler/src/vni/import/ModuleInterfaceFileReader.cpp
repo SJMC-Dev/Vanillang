@@ -1,6 +1,7 @@
 #include "ModuleInterfaceFileReader.hpp"
 #include "error/ModuleInterfaceReaderError.hpp"
 #include "utils/Utils.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
@@ -9,6 +10,7 @@ namespace vnlc {
     ModuleInterfaceFileReader::ModuleInterfaceFileReader(const std::filesystem::path& filePath) : filePath(std::filesystem::canonical(filePath)), moduleName(filePath.stem().string()) {}
 
     std::array<std::string, 3> ModuleInterfaceFileReader::validAccessModifiers = { "public", "protected", "private" };
+    std::array<std::string, 2> ModuleInterfaceFileReader::validModuleLevelAccessModifiers = { "public", "private" };
 
     std::unordered_map<std::string, std::optional<std::string>> ModuleInterfaceFileReader::parseImportedMetadata(const nlohmann::json& metadataJson) {
         std::unordered_map<std::string, std::optional<std::string>> metadata;
@@ -33,19 +35,25 @@ namespace vnlc {
     std::unique_ptr<ImportedLet> ModuleInterfaceFileReader::parseImportedLet(std::string_view key, const nlohmann::json& value) {
         std::string name = std::string(key);
         std::string type;
+        std::string accessModifier;
 
         if (!value.contains("type") || !value["type"].is_string()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'type' field for let '{}'", name));
         }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for let '{}'", name));
+        }
 
         type = value["type"].get<std::string>();
+        accessModifier = value["accessModifier"].get<std::string>();
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedLet>(name, type, std::move(metadata));
+            return std::make_unique<ImportedLet>(name, type, accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedLet>(name, type);
+        return std::make_unique<ImportedLet>(name, type, accessModifier);
     }
 
     std::unique_ptr<ImportedFunc> ModuleInterfaceFileReader::parseImportedFunc(std::string_view key, const nlohmann::json& value) {
@@ -53,6 +61,7 @@ namespace vnlc {
         std::string name;
         std::string returnType;
         std::unordered_map<std::string, std::unique_ptr<ImportedParameter>> parameters;
+        std::string accessModifier;
         bool native;
 
         if (!value.contains("name") || !value["name"].is_string()) {
@@ -67,10 +76,15 @@ namespace vnlc {
         if (!value.contains("parameters") || !value["parameters"].is_object()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'parameters' field for func '{}'", internalName));
         }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for func '{}'", internalName));
+        }
 
         name = value["name"].get<std::string>();
         returnType = value["returnType"].get<std::string>();
         native = value["native"].get<bool>();
+        accessModifier = value["accessModifier"].get<std::string>();
 
         for (auto& [key, value] : value["parameters"].items()) {
             if (!value.is_object() || value.find("category") == value.end()) {
@@ -82,10 +96,10 @@ namespace vnlc {
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedFunc>(std::move(internalName), std::move(name), std::move(returnType), std::move(parameters), native, std::move(metadata));
+            return std::make_unique<ImportedFunc>(std::move(internalName), std::move(name), std::move(returnType), std::move(parameters), native, accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedFunc>(std::move(internalName), std::move(name), std::move(returnType), std::move(parameters), native);
+        return std::make_unique<ImportedFunc>(std::move(internalName), std::move(name), std::move(returnType), std::move(parameters), native, accessModifier);
     }
 
     std::unique_ptr<ImportedMethod> ModuleInterfaceFileReader::parseImportedMethod(std::string_view key, const nlohmann::json& value) {
@@ -113,7 +127,7 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'parameters' field for method '{}'", internalName));
         }
         if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
-            std::find(validAccessModifiers.begin(), validAccessModifiers.end(), value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
+            std::ranges::find(validAccessModifiers, value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for method '{}'", internalName));
         }
 
@@ -157,7 +171,7 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'parameters' field for operator '{}'", internalName));
         }
         if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
-            std::find(validAccessModifiers.begin(), validAccessModifiers.end(), value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
+            std::ranges::find(validAccessModifiers, value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for operator '{}'", internalName));
         }
 
@@ -190,7 +204,7 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'parameters' field for constructor '{}'", name));
         }
         if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
-            std::find(validAccessModifiers.begin(), validAccessModifiers.end(), value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
+            std::ranges::find(validAccessModifiers, value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for constructor '{}'", name));
         }
 
@@ -221,6 +235,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
         std::optional<std::string> baseClass;
         std::vector<std::string> implementedInterfaces;
+        std::string accessModifier;
         bool final;
 
         if (!value.contains("genericParameters") || !value["genericParameters"].is_array()) {
@@ -247,6 +262,10 @@ namespace vnlc {
         if (!value.contains("operators") || !value["operators"].is_object()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'operators' field for class '{}'", name));
         }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for class '{}'", name));
+        }
 
         if (value["baseClass"].is_null()) {
             baseClass = std::nullopt;
@@ -260,6 +279,7 @@ namespace vnlc {
             implementedInterfaces.push_back(interface.get<std::string>());
         }
         final = value["final"].get<bool>();
+        accessModifier = value["accessModifier"].get<std::string>();
 
         for (const auto& param : value["genericParameters"]) {
             if (!param.is_string()) {
@@ -312,6 +332,7 @@ namespace vnlc {
                 std::move(methods),
                 std::move(constructors),
                 std::move(operators),
+                accessModifier,
                 std::move(metadata)
             );
         }
@@ -325,7 +346,8 @@ namespace vnlc {
             std::move(properties),
             std::move(methods),
             std::move(constructors),
-            std::move(operators)
+            std::move(operators),
+            accessModifier
         );
     }
 
@@ -334,6 +356,7 @@ namespace vnlc {
         std::vector<std::string> genericParameters;
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>> methods;
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
+        std::string accessModifier;
 
         if (!value.contains("genericParameters") || !value["genericParameters"].is_array()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'genericParameters' field for interface '{}'", name));
@@ -344,6 +367,12 @@ namespace vnlc {
         if (!value.contains("operators") || !value["operators"].is_object()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'operators' field for interface '{}'", name));
         }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for interface '{}'", name));
+        }
+
+        accessModifier = value["accessModifier"].get<std::string>();
 
         for (const auto& param : value["genericParameters"]) {
             if (!param.is_string()) {
@@ -370,16 +399,17 @@ namespace vnlc {
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedInterface>(std::move(name), std::move(genericParameters), std::move(methods), std::move(operators), std::move(metadata));
+            return std::make_unique<ImportedInterface>(std::move(name), std::move(genericParameters), std::move(methods), std::move(operators), accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedInterface>(std::move(name), std::move(genericParameters), std::move(methods), std::move(operators));
+        return std::make_unique<ImportedInterface>(std::move(name), std::move(genericParameters), std::move(methods), std::move(operators), accessModifier);
     }
 
     std::unique_ptr<ImportedEnum> ModuleInterfaceFileReader::parseImportedEnum(std::string_view key, const nlohmann::json& value) {
         std::string name = std::string(key);
         std::vector<std::string> genericParameters;
         std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>> members;
+        std::string accessModifier;
 
         if (!value.contains("genericParameters") || !value["genericParameters"].is_array()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'genericParameters' field for enum '{}'", name));
@@ -387,6 +417,12 @@ namespace vnlc {
         if (!value.contains("members") || !value["members"].is_object()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'members' field for enum '{}'", name));
         }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for enum '{}'", name));
+        }
+
+        accessModifier = value["accessModifier"].get<std::string>();
 
         for (const auto& param : value["genericParameters"]) {
             if (!param.is_string()) {
@@ -405,10 +441,10 @@ namespace vnlc {
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedEnum>(std::move(name), std::move(genericParameters), std::move(members), std::move(metadata));
+            return std::make_unique<ImportedEnum>(std::move(name), std::move(genericParameters), std::move(members), accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedEnum>(std::move(name), std::move(genericParameters), std::move(members));
+        return std::make_unique<ImportedEnum>(std::move(name), std::move(genericParameters), std::move(members), accessModifier);
     }
 
     std::unique_ptr<ImportedEnumMember> ModuleInterfaceFileReader::parseImportedEnumMember(std::string_view key, const nlohmann::json& value) {
@@ -447,12 +483,17 @@ namespace vnlc {
         std::string name = std::string(key);
         std::vector<std::string> genericParameters;
         std::string originalType;
+        std::string accessModifier;
 
         if (!value.contains("genericParameters") || !value["genericParameters"].is_array()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'genericParameters' field for type alias '{}'", name));
         }
         if (!value.contains("originalType") || !value["originalType"].is_string()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'originalType' field for type alias '{}'", name));
+        }
+        if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
+            std::ranges::find(validModuleLevelAccessModifiers, value["accessModifier"].get<std::string>()) == validModuleLevelAccessModifiers.end()) {
+            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for type alias '{}'", name));
         }
 
         for (const auto& param : value["genericParameters"]) {
@@ -463,26 +504,14 @@ namespace vnlc {
         }
 
         originalType = value["originalType"].get<std::string>();
+        accessModifier = value["accessModifier"].get<std::string>();
 
         if (value.contains("metadata")) {
             std::unordered_map<std::string, std::optional<std::string>> metadata = parseImportedMetadata(value["metadata"]);
-            return std::make_unique<ImportedTypeAlias>(std::move(name), std::move(genericParameters), std::move(originalType), std::move(metadata));
+            return std::make_unique<ImportedTypeAlias>(std::move(name), std::move(genericParameters), std::move(originalType), accessModifier, std::move(metadata));
         }
 
-        return std::make_unique<ImportedTypeAlias>(std::move(name), std::move(genericParameters), std::move(originalType));
-    }
-
-    std::unique_ptr<ImportedAlias> ModuleInterfaceFileReader::parseImportedAlias(std::string_view key, const nlohmann::json& value) {
-        std::string name = std::string(key);
-        std::string source;
-
-        if (!value.contains("source") || !value["source"].is_string()) {
-            throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'source' field for alias '{}'", name));
-        }
-
-        source = value["source"].get<std::string>();
-
-        return std::make_unique<ImportedAlias>(std::move(name), std::move(source));
+        return std::make_unique<ImportedTypeAlias>(std::move(name), std::move(genericParameters), std::move(originalType), accessModifier);
     }
 
     std::unique_ptr<ImportedProperty> ModuleInterfaceFileReader::parseImportedProperty(std::string_view key, const nlohmann::json& value) {
@@ -495,7 +524,7 @@ namespace vnlc {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'type' field for property '{}'", name));
         }
         if (!value.contains("accessModifier") || !value["accessModifier"].is_string() ||
-            std::find(validAccessModifiers.begin(), validAccessModifiers.end(), value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
+            std::ranges::find(validAccessModifiers, value["accessModifier"].get<std::string>()) == validAccessModifiers.end()) {
             throw ModuleInterfaceFileReaderError(fmt::format("Missing or invalid 'accessModifier' field for property '{}'", name));
         }
         if (!value.contains("static") || !value["static"].is_boolean()) {
@@ -581,8 +610,6 @@ namespace vnlc {
                 importedModule->addIdentifier(parseImportedEnumMember(key, value));
             } else if (value["category"] == "typealias") {
                 importedModule->addIdentifier(parseImportedTypeAlias(key, value));
-            } else if (value["category"] == "imported") {
-                importedModule->addIdentifier(parseImportedAlias(key, value));
             } else if (value["category"] == "property") {
                 importedModule->addIdentifier(parseImportedProperty(key, value));
             } else if (value["category"] == "parameter") {

@@ -10,6 +10,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
         std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
+        std::string_view accessModifier,
         std::unordered_map<std::string, std::optional<std::string>>&& metadata
     )
         : ImportedClass(
@@ -22,6 +23,7 @@ namespace vnlc {
               std::move(methods),
               std::move(constructors),
               std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>{},
+              accessModifier,
               std::move(metadata)
           ) {}
 
@@ -35,6 +37,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
         std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+        std::string_view accessModifier,
         std::unordered_map<std::string, std::optional<std::string>>&& metadata
     )
         : ImportedIdentifier(name, std::move(metadata)),
@@ -45,7 +48,8 @@ namespace vnlc {
           properties(std::move(properties)),
           methods(std::move(methods)),
           constructors(std::move(constructors)),
-          operators(std::move(operators)) {}
+          operators(std::move(operators)),
+          accessModifier(accessModifier) {}
 
     ImportedClass::ImportedClass(
         std::string_view name,
@@ -55,7 +59,8 @@ namespace vnlc {
         std::vector<std::string>&& genericParameters,
         std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
-        std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors
+        std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
+        std::string_view accessModifier
     )
         : ImportedClass(
               name,
@@ -66,7 +71,8 @@ namespace vnlc {
               std::move(properties),
               std::move(methods),
               std::move(constructors),
-              std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>{}
+              std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>{},
+              accessModifier
           ) {}
 
     ImportedClass::ImportedClass(
@@ -78,7 +84,8 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
         std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
-        std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators
+        std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+        std::string_view accessModifier
     )
         : ImportedIdentifier(name),
           baseClass(std::move(baseClass)),
@@ -88,7 +95,8 @@ namespace vnlc {
           properties(std::move(properties)),
           methods(std::move(methods)),
           constructors(std::move(constructors)),
-          operators(std::move(operators)) {}
+          operators(std::move(operators)),
+          accessModifier(accessModifier) {}
 
     const std::optional<std::string>& ImportedClass::getBaseClass() const {
         return baseClass;
@@ -120,6 +128,10 @@ namespace vnlc {
 
     const std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>& ImportedClass::getOperators() const {
         return operators;
+    }
+
+    std::string_view ImportedClass::getAccessModifier() const {
+        return accessModifier;
     }
 
     const ImportedProperty* ImportedClass::getPropertyByName(std::string_view name) const {

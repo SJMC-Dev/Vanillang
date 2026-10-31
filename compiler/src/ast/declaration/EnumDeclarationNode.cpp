@@ -3,6 +3,7 @@
 
 namespace vnlc {
     EnumDeclarationNode::EnumDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
@@ -10,11 +11,13 @@ namespace vnlc {
         const Token& lastToken
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken),
+          accessModifier(accessModifier),
           name(std::move(name)),
           genericParameterNames(std::move(genericParameterNames)),
           memberDeclarations(std::move(memberDeclarations)) {}
 
     EnumDeclarationNode::EnumDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
@@ -23,9 +26,14 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+          accessModifier(accessModifier),
           name(std::move(name)),
           genericParameterNames(std::move(genericParameterNames)),
           memberDeclarations(std::move(memberDeclarations)) {}
+
+    TypeDeclarationKind::AccessModifier EnumDeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
 
     const IdentifierNode& EnumDeclarationNode::getName() const noexcept {
         return *name;

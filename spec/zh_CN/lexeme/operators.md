@@ -1,6 +1,7 @@
 # Vanillang 运算符
 
 这些符号用于表示基本的运算操作，或对运算符重载函数的调用
+- 注意：Vanillang 仅支持在类或接口方法中重载运算符，不支持模块级运算符重载
 
 ## 数学运算符
 
@@ -44,10 +45,11 @@
 | `>=`   | 大于等于运算符，比较左值是否大于或等于右值                                | 是                        |
 
 注：四个比较运算符重载使用符号 `<=>`，该重载返回 `vanillang.typesystem.Ordering?` ，为 `None` 时表示无法比较，否则 `Some(value)` 中的 `value` 含义如下：
+
 - `vanillang.typesystem.Ordering.Less` 表示小于
 - `vanillang.typesystem.Ordering.Equal` 表示等于
 - `vanillang.typesystem.Ordering.Greater` 表示大于
-比较运算符重载不适用于 `==`，`vanillang.typesystem.Ordering.Equal` 仅用于判断 `<=` 和 `>=` 中的等号是否成立
+  比较运算符重载不适用于 `==`，`vanillang.typesystem.Ordering.Equal` 仅用于判断 `<=` 和 `>=` 中的等号是否成立
 
 ## 逻辑运算符
 

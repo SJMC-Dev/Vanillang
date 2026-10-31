@@ -44,7 +44,6 @@ namespace vnlc {
         [[nodiscard]] ModuleParsingResult parseModule(ModuleParsingContext context);
         [[nodiscard]] TopIdentifierDeclarationParsingResult parseTopIdentifierDeclaration();
         [[nodiscard]] ImportDeclarationParsingResult parseImportDeclaration();
-        [[nodiscard]] ExportDeclarationParsingResult parseExportDeclaration();
         [[nodiscard]] VariableDeclarationParsingResult parseVariableDeclaration(VariableDeclarationParsingContext context);
         [[nodiscard]] FunctionDeclarationParsingResult parseFunctionDeclaration(FunctionDeclarationParsingContext context);
         [[nodiscard]] TypeDeclarationParsingResult parseTypeDeclaration(TypeDeclarationParsingContext context);
@@ -59,7 +58,6 @@ namespace vnlc {
         [[nodiscard]] EnumDeclarationParsingResult parseEnumDeclaration(EnumDeclarationParsingContext context);
         [[nodiscard]] TypeAliasDeclarationParsingResult parseTypeAliasDeclaration(TypeAliasDeclarationParsingContext context);
         [[nodiscard]] ImportPathParsingResult parseImportPath();
-        [[nodiscard]] ExportListParsingResult parseExportList();
         [[nodiscard]] MetadataTermParsingResult parseMetadataTerm();
         [[nodiscard]] FunctionSignatureParsingResult parseFunctionSignature();
         [[nodiscard]] TypeParsingResult parseType();
