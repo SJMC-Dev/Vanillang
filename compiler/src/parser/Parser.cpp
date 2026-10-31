@@ -2534,7 +2534,7 @@ namespace vnlc {
 
         context.prefix.emplace_back(name->getIdentifierString());
 
-        std::vector<std::unique_ptr<ExpressionNode>> genericArguments;
+        std::vector<std::unique_ptr<TypeReferenceNode>> genericArguments;
         if (check(TokenKind::LEFT_ANGLE)) {
             std::string_view identifierName = name->getIdentifierString();
 
@@ -2574,10 +2574,8 @@ namespace vnlc {
 
             if (isTypeDeclaration) {
                 advance();
-                do {
-                    auto argumentResult = parsePostfixExpression();
-                    genericArguments.push_back(std::move(argumentResult.expression));
-                } while (match(TokenKind::COMMA));
+                auto genericArgumentListResult = parseGenericArgumentList();
+                genericArguments = std::move(genericArgumentListResult.arguments);
 
                 if (!consumeRightAngleInType()) {
                     throw SyntaxError("Expected '>' after generic argument list in identifier-like expression", peek().getLine(), peek().getColumn());

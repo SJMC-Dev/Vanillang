@@ -664,7 +664,8 @@ namespace vnlc {
             "class Item {}\n"
             "func test() {\n"
             "    let generic = Box<Pair<Item>>\n"
-            "    let member = Box<Item.value>\n"
+            "    let qualified = Box<models.Item>\n"
+            "    let nullable = Box<int?>\n"
             "    let compared = left < right\n"
             "}\n"
         );
@@ -689,7 +690,7 @@ namespace vnlc {
         ASSERT_NE(function->getBody(), nullptr);
 
         const auto& statements = function->getBody()->getStatements();
-        ASSERT_EQ(statements.size(), 3);
+        ASSERT_EQ(statements.size(), 4);
 
         const auto* genericStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
         ASSERT_NE(genericStatement, nullptr);
@@ -698,27 +699,41 @@ namespace vnlc {
         ASSERT_NE(genericExpression, nullptr);
         EXPECT_EQ(genericExpression->getName().getIdentifierString(), "Box");
         ASSERT_EQ(genericExpression->getGenericArguments().size(), 1);
-        const auto* pairExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(genericExpression->getGenericArguments().front().get());
-        ASSERT_NE(pairExpression, nullptr);
-        EXPECT_EQ(pairExpression->getName().getIdentifierString(), "Pair");
-        ASSERT_EQ(pairExpression->getGenericArguments().size(), 1);
-        const auto* itemExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(pairExpression->getGenericArguments().front().get());
-        ASSERT_NE(itemExpression, nullptr);
-        EXPECT_EQ(itemExpression->getName().getIdentifierString(), "Item");
-        EXPECT_TRUE(itemExpression->getGenericArguments().empty());
+        const auto* pairReference = dynamic_cast<const CustomizedTypeReferenceNode*>(genericExpression->getGenericArguments().front().get());
+        ASSERT_NE(pairReference, nullptr);
+        ASSERT_EQ(pairReference->getNameParts().size(), 1);
+        EXPECT_EQ(pairReference->getNameParts().front()->getIdentifierString(), "Pair");
+        ASSERT_EQ(pairReference->getGenericArguments().size(), 1);
+        const auto* itemReference = dynamic_cast<const CustomizedTypeReferenceNode*>(pairReference->getGenericArguments().front().get());
+        ASSERT_NE(itemReference, nullptr);
+        ASSERT_EQ(itemReference->getNameParts().size(), 1);
+        EXPECT_EQ(itemReference->getNameParts().front()->getIdentifierString(), "Item");
+        EXPECT_TRUE(itemReference->getGenericArguments().empty());
 
-        const auto* memberStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
-        ASSERT_NE(memberStatement, nullptr);
-        ASSERT_NE(memberStatement->getVariableDeclaration().getInitializer(), nullptr);
-        const auto* memberExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(memberStatement->getVariableDeclaration().getInitializer());
-        ASSERT_NE(memberExpression, nullptr);
-        ASSERT_EQ(memberExpression->getGenericArguments().size(), 1);
-        const auto* memberArgument = dynamic_cast<const MemberAccessExpressionNode*>(memberExpression->getGenericArguments().front().get());
-        ASSERT_NE(memberArgument, nullptr);
-        EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(&memberArgument->getObject()), nullptr);
-        EXPECT_EQ(memberArgument->getMember().getName().getIdentifierString(), "value");
+        const auto* qualifiedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
+        ASSERT_NE(qualifiedStatement, nullptr);
+        ASSERT_NE(qualifiedStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* qualifiedExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(qualifiedStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(qualifiedExpression, nullptr);
+        ASSERT_EQ(qualifiedExpression->getGenericArguments().size(), 1);
+        const auto* qualifiedReference = dynamic_cast<const CustomizedTypeReferenceNode*>(qualifiedExpression->getGenericArguments().front().get());
+        ASSERT_NE(qualifiedReference, nullptr);
+        ASSERT_EQ(qualifiedReference->getNameParts().size(), 2);
+        EXPECT_EQ(qualifiedReference->getNameParts()[0]->getIdentifierString(), "models");
+        EXPECT_EQ(qualifiedReference->getNameParts()[1]->getIdentifierString(), "Item");
 
-        const auto* comparedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
+        const auto* nullableStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
+        ASSERT_NE(nullableStatement, nullptr);
+        ASSERT_NE(nullableStatement->getVariableDeclaration().getInitializer(), nullptr);
+        const auto* nullableExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(nullableStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(nullableExpression, nullptr);
+        ASSERT_EQ(nullableExpression->getGenericArguments().size(), 1);
+        const auto* nullableReference = dynamic_cast<const PrimitiveTypeReferenceNode*>(nullableExpression->getGenericArguments().front().get());
+        ASSERT_NE(nullableReference, nullptr);
+        EXPECT_EQ(nullableReference->getKind(), PrimitiveTypeReferenceKind::INT);
+        EXPECT_TRUE(nullableReference->hasQuestionMarkSuffix());
+
+        const auto* comparedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[3].get());
         ASSERT_NE(comparedStatement, nullptr);
         ASSERT_NE(comparedStatement->getVariableDeclaration().getInitializer(), nullptr);
         const auto* comparedExpression = dynamic_cast<const BinaryExpressionNode*>(comparedStatement->getVariableDeclaration().getInitializer());
@@ -726,6 +741,27 @@ namespace vnlc {
         EXPECT_EQ(comparedExpression->getKind(), BinaryExpressionKind::LESS_THAN);
         EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(&comparedExpression->getLeft()), nullptr);
         EXPECT_NE(dynamic_cast<const IdentifierLikeExpressionNode*>(&comparedExpression->getRight()), nullptr);
+    }
+
+    TEST(ParserTest, RejectsNonTypeGenericArgumentsInExpressions) {
+        constexpr std::string_view arguments[] = { "create()", "1", "items[0]", "this" };
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        for (const auto argument : arguments) {
+            std::stringstream input("class Box {}\nfunc test() {\n    let value = Box<" + std::string(argument) + ">\n}\n");
+
+            EXPECT_THROW(static_cast<void>(parseModule(input, config)), SyntaxError) << "Box<" << argument << ">";
+        }
     }
 
     TEST(ParserTest, ParsesGenericArgumentsForImportedTypeDeclarations) {
@@ -787,9 +823,10 @@ namespace vnlc {
         ASSERT_NE(firstExpression, nullptr);
         EXPECT_EQ(firstExpression->getMember().getName().getIdentifierString(), "Box");
         ASSERT_EQ(firstExpression->getMember().getGenericArguments().size(), 1);
-        const auto* firstArgument = dynamic_cast<const IdentifierLikeExpressionNode*>(firstExpression->getMember().getGenericArguments().front().get());
+        const auto* firstArgument = dynamic_cast<const CustomizedTypeReferenceNode*>(firstExpression->getMember().getGenericArguments().front().get());
         ASSERT_NE(firstArgument, nullptr);
-        EXPECT_EQ(firstArgument->getName().getIdentifierString(), "Item");
+        ASSERT_EQ(firstArgument->getNameParts().size(), 1);
+        EXPECT_EQ(firstArgument->getNameParts().front()->getIdentifierString(), "Item");
 
         const auto secondStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
         ASSERT_NE(secondStatement, nullptr);
@@ -798,9 +835,10 @@ namespace vnlc {
         ASSERT_NE(secondExpression, nullptr);
         EXPECT_EQ(secondExpression->getMember().getName().getIdentifierString(), "Box");
         ASSERT_EQ(secondExpression->getMember().getGenericArguments().size(), 1);
-        const auto* secondArgument = dynamic_cast<const IdentifierLikeExpressionNode*>(secondExpression->getMember().getGenericArguments().front().get());
+        const auto* secondArgument = dynamic_cast<const CustomizedTypeReferenceNode*>(secondExpression->getMember().getGenericArguments().front().get());
         ASSERT_NE(secondArgument, nullptr);
-        EXPECT_EQ(secondArgument->getName().getIdentifierString(), "Value");
+        ASSERT_EQ(secondArgument->getNameParts().size(), 1);
+        EXPECT_EQ(secondArgument->getNameParts().front()->getIdentifierString(), "Value");
 
         const auto directStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[2].get());
         ASSERT_NE(directStatement, nullptr);
@@ -809,9 +847,10 @@ namespace vnlc {
         ASSERT_NE(directExpression, nullptr);
         EXPECT_EQ(directExpression->getName().getIdentifierString(), "DirectBox");
         ASSERT_EQ(directExpression->getGenericArguments().size(), 1);
-        const auto* directArgument = dynamic_cast<const IdentifierLikeExpressionNode*>(directExpression->getGenericArguments().front().get());
+        const auto* directArgument = dynamic_cast<const CustomizedTypeReferenceNode*>(directExpression->getGenericArguments().front().get());
         ASSERT_NE(directArgument, nullptr);
-        EXPECT_EQ(directArgument->getName().getIdentifierString(), "Member");
+        ASSERT_EQ(directArgument->getNameParts().size(), 1);
+        EXPECT_EQ(directArgument->getNameParts().front()->getIdentifierString(), "Member");
 
         std::error_code error;
         std::filesystem::remove_all(testDirectory, error);
