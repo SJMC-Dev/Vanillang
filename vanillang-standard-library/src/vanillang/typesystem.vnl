@@ -1,0 +1,304 @@
+#**
+ * Represents any type in Vanillang, including primitive types.
+ *#
+class Any {}
+
+#**
+ * Represents a value that may be present or absent.
+ *
+ * @generic T - The type of the wrapped value.
+ *#
+enum Optional<T> {
+    #** Contains a value. *#
+    Some(value: T)
+
+    #** Represents the absence of a value. *#
+    None
+}
+
+#**
+ * Represents the outcome of an operation that may succeed or fail.
+ *
+ * @generic T - The type of the value produced on success.
+ *#
+enum Result<T> {
+    #** The operation succeeded and produced a value. *#
+    Ok(value: T)
+
+    #** The operation failed; the message describes the error. *#
+    Error(message: string)
+}
+
+#**
+ * Provides sequential access to elements in an iteration.
+ *
+ * @generic T - The type of the elements produced by the iterator.
+ *#
+interface Iterator<T> {
+    #**
+     * Advances the iterator by one element.
+     *
+     * @return The next element, or None if the iteration is complete.
+     *#
+    func next() -> T?
+}
+
+#**
+ * Represents a type whose elements can be iterated over.
+ *
+ * @generic T - The type of the elements produced during iteration.
+ *#
+interface Iterable<T> {
+    #**
+     * Provides an iterator over the elements.
+     *
+     * @return An iterator that yields each element in turn.
+     *#
+    func getIterator() -> Iterator<T>
+}
+
+#**
+ * Represents a sequence of values from begin to end using a fixed step.
+ *
+ * @generic T - The type of the values in the range.
+ *#
+class Range<T> implements Iterable<T>, Iterator<T> {
+    private begin: T
+    private end: T
+    private step: T
+    private current: T
+
+    #**
+     * Creates a range that starts at begin and advances by step until it passes end.
+     *
+     * @param begin - The first value in the range.
+     * @param end - The upper bound of the range (inclusive).
+     * @param step - The increment applied after each value.
+     *#
+    init(begin: T, end: T, step: T) {
+        this.begin = begin
+        this.end = end
+        this.step = step
+        this.current = begin
+    }
+
+    #**
+     * Provides an iterator over the range.
+     *
+     * @return The range itself, since a range is its own iterator.
+     *#
+    func getIterator() -> Range<T> {
+        return this
+    }
+
+    #**
+     * Advances the range by step.
+     *
+     * @return The value before advancing, or None once it exceeds end.
+     *#
+    func next() -> T? {
+        if (current > end) {
+            return none
+        }
+
+        let ret = current
+        current += step
+
+        return ret
+    }
+}
+
+#**
+ * Represents an ordered sequence of elements of the same type.
+ *
+ * @generic T - The type of the elements.
+ *#
+class Array<T> implements Iterable<T> {
+    #**
+     * Gets the number of elements in the array.
+     *
+     * @return The number of elements.
+     *#
+    native func size() -> int
+
+    #**
+     * Gets the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     *
+     * @return The element, or None if index is out of bounds.
+     *#
+    native op [](index: int) -> T?
+
+    #**
+     * Replaces the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     * @param value - The new element.
+     *#
+    native func set(index: int, value: T) -> void
+
+    #**
+     * Adds an element to the end of the array.
+     *
+     * @param value - The element to add.
+     *#
+    native func append(value: T) -> void
+
+    #**
+     * Inserts an element before the given index.
+     *
+     * @param index - The zero-based position to insert at.
+     * @param value - The element to insert.
+     *#
+    native func insert(index: int, value: T) -> void
+
+    #**
+     * Removes the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     *#
+    native func remove(index: int) -> void
+
+    #**
+     * Provides an iterator over the elements.
+     *
+     * @return An iterator that yields each element in order.
+     *#
+    native func getIterator() -> Iterator<T>
+}
+
+#**
+ * Represents a list, written as [...], whose elements may be of any type.
+ *#
+class List implements Iterable<Any> {
+    #**
+     * Gets the number of elements in the list.
+     *
+     * @return The number of elements.
+     *#
+    native func size() -> int
+
+    #**
+     * Gets the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     *
+     * @return The element, or None if index is out of bounds.
+     *#
+    native op [](index: int) -> Any?
+
+    #**
+     * Replaces the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     * @param value - The new element.
+     *#
+    native func set(index: int, value: Any) -> void
+
+    #**
+     * Adds an element to the end of the list.
+     *
+     * @param value - The element to add.
+     *#
+    native func append(value: Any) -> void
+
+    #**
+     * Inserts an element before the given index.
+     *
+     * @param index - The zero-based position to insert at.
+     * @param value - The element to insert.
+     *#
+    native func insert(index: int, value: Any) -> void
+
+    #**
+     * Removes the element at the given index.
+     *
+     * @param index - The zero-based position of the element.
+     *#
+    native func remove(index: int) -> void
+
+    #**
+     * Provides an iterator over the elements.
+     *
+     * @return An iterator that yields each element in order.
+     *#
+    native func getIterator() -> Iterator<Any>
+}
+
+#**
+ * Represents a compound, written as {key: value, ...}, that maps string keys to values of any type.
+ *#
+class Dict {
+    #**
+     * Gets the number of entries in the dict.
+     *
+     * @return The number of entries.
+     *#
+    native func size() -> int
+
+    #**
+     * Gets the value associated with the given key.
+     *
+     * @param key - The key to look up.
+     *
+     * @return The value, or None if the key is absent.
+     *#
+    native op [](key: string) -> Any?
+
+    #**
+     * Associates a value with the given key, replacing any existing value.
+     *
+     * @param key - The key to associate the value with.
+     * @param value - The value to store.
+     *#
+    native func set(key: string, value: Any) -> void
+
+    #**
+     * Checks whether the given key is present.
+     *
+     * @param key - The key to look up.
+     * @return true if the key is present, otherwise false.
+     *#
+    native func contains(key: string) -> bool
+
+    #**
+     * Removes the entry with the given key if it is present.
+     *
+     * @param key - The key of the entry to remove.
+     *#
+    native func remove(key: string) -> void
+}
+
+#**
+ * Represents a target selector, written as @p, @r, @a, @e, @s or @n with optional arguments.
+ *#
+class Selector {
+    #**
+     * Counts the entities matched by the selector.
+     *
+     * @return The number of matched entities.
+     *#
+    native func count() -> int
+
+    #**
+     * Checks whether the selector matches any entity.
+     *
+     * @return true if at least one entity is matched, otherwise false.
+     *#
+    native func exists() -> bool
+}
+
+#**
+ * Represents the result of operator '<=>'.
+ *#
+enum Ordering {
+    #** The left operand is less than the right operand. *#
+    Less
+
+    #** The left operand is equal to the right operand. *#
+    Equal
+
+    #** The left operand is greater than the right operand. *#
+    Greater
+}
