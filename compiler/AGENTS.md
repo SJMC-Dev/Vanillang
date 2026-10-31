@@ -4,7 +4,7 @@
 This is a DSL compiler, which allows developers to use Vanillang DSL to develop Minecraft datapack. It compiles Vanillang source code to mcfunction.
 It is cross-platform, and should be available on Windows, macOS and Linux.
 
-- Refer to `../vanillang-documents` to get information about Vanillang language.
+- Refer to `../spec` to get information about Vanillang language.
 - Refer to `https://minecraft.wiki` to get information about datapack and mcfunction.
 
 ## Commands
