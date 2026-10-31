@@ -5,4 +5,4 @@ set(CMAKE_CXX_STANDARD 23)
 
 enable_testing()
 
-add_subdirectory(vanillang-compiler)
+add_subdirectory(compiler)
