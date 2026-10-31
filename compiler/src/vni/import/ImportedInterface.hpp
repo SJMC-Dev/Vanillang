@@ -14,6 +14,7 @@ namespace vnlc {
         std::vector<std::string> genericParameters;
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>> methods;
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
+        std::string accessModifier;
 
     public:
         ImportedInterface(
@@ -21,6 +22,7 @@ namespace vnlc {
             std::vector<std::string>&& genericParameters,
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
             std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+            std::string_view accessModifier,
             std::unordered_map<std::string, std::optional<std::string>>&& metadata
         );
 
@@ -28,12 +30,14 @@ namespace vnlc {
             std::string_view name,
             std::vector<std::string>&& genericParameters,
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
-            std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators
+            std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+            std::string_view accessModifier
         );
 
         [[nodiscard]] const std::vector<std::string>& getGenericParameters() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>& getMethods() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>& getOperators() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
 
         [[nodiscard]] const ImportedMethod* getMethodByName(std::string_view name) const;
         [[nodiscard]] const ImportedOperator* getOperatorByName(std::string_view internalName) const;

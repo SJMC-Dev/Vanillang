@@ -42,7 +42,6 @@ add_executable(
     ast/declaration/EnumMemberDeclarationNode.cpp
     ast/declaration/EnumDeclarationNode.cpp
     ast/declaration/ImportDeclarationNode.cpp
-    ast/declaration/ExportDeclarationNode.cpp
     ast/statement/StatementNode.cpp
     ast/statement/BlockStatementNode.cpp
     ast/statement/ExpressionStatementNode.cpp
@@ -105,7 +104,6 @@ add_executable(
     vni/import/ImportedEnum.cpp
     vni/import/ImportedEnumValue.cpp
     vni/import/ImportedTypeAlias.cpp
-    vni/import/ImportedAlias.cpp
     vni/import/ModuleInterfaceFileReader.cpp
     vni/import/PackageReader.cpp
     vni/export/ModuleInterfaceFileGenerator.cpp

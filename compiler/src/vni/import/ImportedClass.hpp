@@ -21,6 +21,7 @@ namespace vnlc {
         std::unordered_map<std::string, std::unique_ptr<ImportedMethod>> methods;
         std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>> constructors;
         std::unordered_map<std::string, std::unique_ptr<ImportedOperator>> operators;
+        std::string accessModifier;
 
     public:
         ImportedClass(
@@ -32,6 +33,7 @@ namespace vnlc {
             std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
             std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
+            std::string_view accessModifier,
             std::unordered_map<std::string, std::optional<std::string>>&& metadata
         );
 
@@ -45,6 +47,7 @@ namespace vnlc {
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
             std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
             std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+            std::string_view accessModifier,
             std::unordered_map<std::string, std::optional<std::string>>&& metadata
         );
 
@@ -56,7 +59,8 @@ namespace vnlc {
             std::vector<std::string>&& genericParameters,
             std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
-            std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors
+            std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
+            std::string_view accessModifier
         );
 
         ImportedClass(
@@ -68,7 +72,8 @@ namespace vnlc {
             std::unordered_map<std::string, std::unique_ptr<ImportedProperty>>&& properties,
             std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>&& methods,
             std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>&& constructors,
-            std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators
+            std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>&& operators,
+            std::string_view accessModifier
         );
 
         [[nodiscard]] const std::optional<std::string>& getBaseClass() const;
@@ -79,6 +84,7 @@ namespace vnlc {
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedMethod>>& getMethods() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedConstructor>>& getConstructors() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedOperator>>& getOperators() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
 
         [[nodiscard]] const ImportedProperty* getPropertyByName(std::string_view name) const;
         [[nodiscard]] const ImportedMethod* getMethodByName(std::string_view name) const;

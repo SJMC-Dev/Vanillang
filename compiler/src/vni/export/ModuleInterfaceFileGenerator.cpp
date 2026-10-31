@@ -8,16 +8,27 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <string_view>
 
 namespace vnlc {
-    ModuleInterfaceFileGenerator::ModuleInterfaceFileGenerator(
-        std::vector<const DeclarationNode*>&& declarationNodes,
-        std::vector<std::string>&& importedAliases,
-        const Config& config,
-        const SemanticResult& semantic
-    ) noexcept
+    namespace {
+        template <typename AccessModifier>
+        std::string_view getAccessModifierString(AccessModifier accessModifier) {
+            switch (accessModifier) {
+                case AccessModifier::PUBLIC:
+                    return "public";
+                case AccessModifier::PROTECTED:
+                    return "protected";
+                case AccessModifier::PRIVATE:
+                    return "private";
+            }
+
+            return "public";
+        }
+    } // namespace
+
+    ModuleInterfaceFileGenerator::ModuleInterfaceFileGenerator(std::vector<const DeclarationNode*>&& declarationNodes, const Config& config, const SemanticResult& semantic) noexcept
         : declarationNodes(std::move(declarationNodes)),
-          importedAliases(std::move(importedAliases)),
           config(config),
           semantic(semantic) {}
 
@@ -83,6 +94,8 @@ namespace vnlc {
             }
         }
 
+        variableObj.emplace("accessModifier", getAccessModifierString(variable->getAccessModifier()));
+
         return variableObj;
     }
 
@@ -117,6 +130,7 @@ namespace vnlc {
 
         functionObj.emplace("parameters", parametersObj);
         functionObj.emplace("native", function->getImplementation() == FunctionDeclarationKind::Implementation::NATIVE);
+        functionObj.emplace("accessModifier", getAccessModifierString(function->getAccessModifier()));
 
         return functionObj;
     }
@@ -178,6 +192,7 @@ namespace vnlc {
         classObj.emplace("methods", methodsObj);
         classObj.emplace("constructors", constructorsObj);
         classObj.emplace("operators", operatorsObj);
+        classObj.emplace("accessModifier", getAccessModifierString(classNode->getAccessModifier()));
 
         return classObj;
     }
@@ -206,6 +221,7 @@ namespace vnlc {
             operatorsObj.emplace(operatorNode->getInternalName(), operatorObj);
         }
         interfaceObj.emplace("operators", operatorsObj);
+        interfaceObj.emplace("accessModifier", getAccessModifierString(interfaceNode->getAccessModifier()));
 
         return interfaceObj;
     }
@@ -222,6 +238,7 @@ namespace vnlc {
             membersObj.emplace(member->getName().getIdentifierString(), memberObj);
         }
         enumObj.emplace("members", membersObj);
+        enumObj.emplace("accessModifier", getAccessModifierString(enumNode->getAccessModifier()));
 
         return enumObj;
     }
@@ -270,6 +287,8 @@ namespace vnlc {
             typeAliasObj.emplace("originalType", type->getFullTypeName());
         }
 
+        typeAliasObj.emplace("accessModifier", getAccessModifierString(typeAliasNode->getAccessModifier()));
+
         return typeAliasObj;
     }
 
@@ -296,20 +315,7 @@ namespace vnlc {
         }
 
         propertyObj.emplace("static", property->getKind() == ValueDeclarationKind::Kind::STATIC_PROPERTY);
-
-        std::string accessModifier;
-        switch (property->getAccessModifier()) {
-            case ValueDeclarationKind::AccessModifier::PUBLIC:
-                accessModifier = "public";
-                break;
-            case ValueDeclarationKind::AccessModifier::PROTECTED:
-                accessModifier = "protected";
-                break;
-            case ValueDeclarationKind::AccessModifier::PRIVATE:
-                accessModifier = "private";
-                break;
-        }
-        propertyObj.emplace("accessModifier", accessModifier);
+        propertyObj.emplace("accessModifier", getAccessModifierString(property->getAccessModifier()));
 
         return propertyObj;
     }
@@ -346,30 +352,9 @@ namespace vnlc {
         methodObj.emplace("parameters", parametersObj);
         methodObj.emplace("native", method->getImplementation() == FunctionDeclarationKind::Implementation::NATIVE);
         methodObj.emplace("static", method->getBinding() == FunctionDeclarationKind::Binding::STATIC);
-
-        std::string accessModifier;
-        switch (method->getAccessModifier()) {
-            case FunctionDeclarationKind::AccessModifier::PUBLIC:
-                accessModifier = "public";
-                break;
-            case FunctionDeclarationKind::AccessModifier::PROTECTED:
-                accessModifier = "protected";
-                break;
-            case FunctionDeclarationKind::AccessModifier::PRIVATE:
-                accessModifier = "private";
-                break;
-        }
-        methodObj.emplace("accessModifier", accessModifier);
+        methodObj.emplace("accessModifier", getAccessModifierString(method->getAccessModifier()));
 
         return methodObj;
-    }
-
-    nlohmann::json ModuleInterfaceFileGenerator::stringifyImported(std::string_view importedAlias) {
-        nlohmann::json importedObj = nlohmann::json::object();
-        importedObj.emplace("category", "imported");
-        importedObj.emplace("source", importedAlias);
-
-        return importedObj;
     }
 
     nlohmann::json ModuleInterfaceFileGenerator::stringifyConstructor(const ConstructorDeclarationNode* constructor) {
@@ -387,20 +372,7 @@ namespace vnlc {
         }
 
         constructorObj.emplace("parameters", parametersObj);
-
-        std::string accessModifier;
-        switch (constructor->getAccessModifier()) {
-            case ConstructorDeclarationKind::AccessModifier::PUBLIC:
-                accessModifier = "public";
-                break;
-            case ConstructorDeclarationKind::AccessModifier::PROTECTED:
-                accessModifier = "protected";
-                break;
-            case ConstructorDeclarationKind::AccessModifier::PRIVATE:
-                accessModifier = "private";
-                break;
-        }
-        constructorObj.emplace("accessModifier", accessModifier);
+        constructorObj.emplace("accessModifier", getAccessModifierString(constructor->getAccessModifier()));
 
         return constructorObj;
     }
@@ -433,20 +405,7 @@ namespace vnlc {
         }
         operatorObj.emplace("parameters", parametersObj);
         operatorObj.emplace("native", operatorNode->getImplementation() == OperatorDeclarationKind::Implementation::NATIVE);
-
-        std::string accessModifier;
-        switch (operatorNode->getAccessModifier()) {
-            case OperatorDeclarationKind::AccessModifier::PUBLIC:
-                accessModifier = "public";
-                break;
-            case OperatorDeclarationKind::AccessModifier::PROTECTED:
-                accessModifier = "protected";
-                break;
-            case OperatorDeclarationKind::AccessModifier::PRIVATE:
-                accessModifier = "private";
-                break;
-        }
-        operatorObj.emplace("accessModifier", accessModifier);
+        operatorObj.emplace("accessModifier", getAccessModifierString(operatorNode->getAccessModifier()));
 
         return operatorObj;
     }
@@ -474,10 +433,6 @@ namespace vnlc {
             } else {
                 assert(false && "Unsupported declaration node in module interface file generator");
             }
-        }
-
-        for (const auto& importedAlias : importedAliases) {
-            moduleObj.emplace(importedAlias, stringifyImported(importedAlias));
         }
 
         std::filesystem::path relativeInputPath = std::filesystem::relative(config.inputFilePath, config.packageRootPath);

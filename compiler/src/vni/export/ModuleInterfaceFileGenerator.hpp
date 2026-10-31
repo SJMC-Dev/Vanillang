@@ -19,7 +19,6 @@ namespace vnlc {
     class ModuleInterfaceFileGenerator {
     private:
         std::vector<const DeclarationNode*> declarationNodes;
-        std::vector<std::string> importedAliases;
         const Config& config;
         const SemanticResult& semantic;
 
@@ -38,15 +37,9 @@ namespace vnlc {
         [[nodiscard]] nlohmann::json stringifyMethod(const FunctionDeclarationNode* method);
         [[nodiscard]] nlohmann::json stringifyConstructor(const ConstructorDeclarationNode* constructor);
         [[nodiscard]] nlohmann::json stringifyOperator(const OperatorDeclarationNode* operatorNode);
-        [[nodiscard]] nlohmann::json stringifyImported(std::string_view importedAlias);
 
     public:
-        ModuleInterfaceFileGenerator(
-            std::vector<const DeclarationNode*>&& declarationNodes,
-            std::vector<std::string>&& importedAliases,
-            const Config& config,
-            const SemanticResult& semantic
-        ) noexcept;
+        ModuleInterfaceFileGenerator(std::vector<const DeclarationNode*>&& declarationNodes, const Config& config, const SemanticResult& semantic) noexcept;
 
         void generate();
     };

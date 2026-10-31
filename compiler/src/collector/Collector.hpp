@@ -31,7 +31,7 @@ namespace vnlc {
 
         void collectImport(const Config& config, ImportedRootPackageMap& imports, std::vector<Diagnostic>& errors);
         void collectImportPath(std::vector<std::string> prefix, bool allowSelf, std::vector<std::vector<std::string>>& paths);
-        void collectImportPathList(std::vector<std::string> prefix, std::vector<std::vector<std::string>>& paths);
+        void collectImportPathList(const std::vector<std::string>& prefix, std::vector<std::vector<std::string>>& paths);
 
         [[nodiscard]] std::unique_ptr<TypeDeclarationOutline> collectTypeDeclaration();
         [[nodiscard]] std::unique_ptr<ClassDeclarationOutline> collectClassDeclaration();

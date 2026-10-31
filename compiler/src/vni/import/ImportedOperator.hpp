@@ -36,7 +36,7 @@ namespace vnlc {
         [[nodiscard]] std::string_view getReturnType() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedParameter>>& getParameters() const;
         [[nodiscard]] bool isNative() const;
-        [[nodiscard]] std::string_view getAccessModifier() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
 
         [[nodiscard]] const ImportedParameter* getParameterByName(std::string_view name) const;
     };

@@ -22,7 +22,7 @@ namespace vnlc {
 
         [[nodiscard]] std::string_view getType() const;
         [[nodiscard]] bool isStatic() const;
-        [[nodiscard]] std::string_view getAccessModifier() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
     };
 } // namespace vnlc
 

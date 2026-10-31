@@ -2,6 +2,7 @@
 
 namespace vnlc {
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& aliasName,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::unique_ptr<TypeReferenceNode>&& originalType,
@@ -9,11 +10,13 @@ namespace vnlc {
         const Token& lastToken
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken),
+          accessModifier(accessModifier),
           aliasName(std::move(aliasName)),
           genericParameterNames(std::move(genericParameterNames)),
           originalType(std::move(originalType)) {}
 
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
+        TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& aliasName,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::unique_ptr<TypeReferenceNode>&& originalType,
@@ -22,9 +25,14 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+          accessModifier(accessModifier),
           aliasName(std::move(aliasName)),
           genericParameterNames(std::move(genericParameterNames)),
           originalType(std::move(originalType)) {}
+
+    TypeDeclarationKind::AccessModifier TypeAliasDeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
 
     const IdentifierNode& TypeAliasDeclarationNode::getAliasName() const noexcept {
         return *aliasName;

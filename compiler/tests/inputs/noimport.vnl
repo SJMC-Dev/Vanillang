@@ -14,5 +14,3 @@ func onLoad() {
     let foo = Foo("qux")
     foo.baz()
 }
-
-export Foo

@@ -12,19 +12,27 @@ namespace vnlc {
     private:
         std::vector<std::string> genericParameters;
         std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>> members;
+        std::string accessModifier;
 
     public:
         ImportedEnum(
             std::string_view name,
             std::vector<std::string>&& genericParameters,
             std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>&& members,
+            std::string_view accessModifier,
             std::unordered_map<std::string, std::optional<std::string>>&& metadata
         );
 
-        ImportedEnum(std::string_view name, std::vector<std::string>&& genericParameters, std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>&& members);
+        ImportedEnum(
+            std::string_view name,
+            std::vector<std::string>&& genericParameters,
+            std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>&& members,
+            std::string_view accessModifier
+        );
 
         [[nodiscard]] const std::vector<std::string>& getGenericParameters() const;
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedEnumMember>>& getMembers() const;
+        [[nodiscard]] std::string_view getAccessModifier() const override;
 
         [[nodiscard]] const ImportedEnumMember* getMemberByName(std::string_view name) const;
     };

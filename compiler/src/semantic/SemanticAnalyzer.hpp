@@ -6,7 +6,6 @@
 #include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
-#include "ast/declaration/ExportDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include "ast/declaration/ImportDeclarationNode.hpp"
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
@@ -108,7 +107,6 @@ namespace vnlc {
         MetadataInfo checkMetadata(const std::vector<DeclarationItem::MetadataTerm>& metadataTerms, const DeclarationNode& declNode);
         void checkModule(const ModuleNode& moduleNode, const Config& config);
         void checkImport(const ImportDeclarationNode& importDecl, const Config& config);
-        void checkExport(const ExportDeclarationNode& exportDecl);
         void checkValueDeclaration(const ValueDeclarationNode& varDecl);
         void checkFunctionDeclaration(const FunctionDeclarationNode& funcDecl);
         void checkConstructorDeclaration(const ConstructorDeclarationNode& constructorDecl);

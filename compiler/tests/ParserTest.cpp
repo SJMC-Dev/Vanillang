@@ -1,7 +1,13 @@
 #include "parser/Parser.hpp"
+#include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
+#include "ast/declaration/EnumDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
+#include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeAliasDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/BinaryExpressionNode.hpp"
 #include "ast/expression/IdentifierLikeExpressionNode.hpp"
 #include "ast/expression/MemberAccessExpressionNode.hpp"
@@ -424,6 +430,126 @@ namespace vnlc {
         EXPECT_EQ(interfaceRead->getBody(), nullptr);
     }
 
+    TEST(ParserTest, ParsesModulePrivateTopLevelDeclarations) {
+        const std::string source = "let shown = 1\n"
+                                   "private let hidden = 2\n"
+                                   "func run() {}\n"
+                                   "private func helper() {}\n"
+                                   "private native func bridge() -> int\n"
+                                   "private class Box {}\n"
+                                   "private final class Sealed {}\n"
+                                   "private interface Readable {}\n"
+                                   "private enum State {\n"
+                                   "    Ready\n"
+                                   "}\n"
+                                   "private type Alias = int\n"
+                                   "metadata(deprecated) private let legacy = 0\n"
+                                   "class Visible {}\n";
+        std::stringstream input(source);
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& declarations = result.getModuleNode().getTopIdentifierDeclarations();
+        ASSERT_EQ(declarations.size(), 12);
+
+        const auto* shown = dynamic_cast<const ValueDeclarationNode*>(declarations[0].get());
+        ASSERT_NE(shown, nullptr);
+        EXPECT_EQ(shown->getAccessModifier(), ValueDeclarationKind::AccessModifier::PUBLIC);
+
+        const auto* hidden = dynamic_cast<const ValueDeclarationNode*>(declarations[1].get());
+        ASSERT_NE(hidden, nullptr);
+        EXPECT_EQ(hidden->getAccessModifier(), ValueDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(hidden->getOffset(), source.find("private let hidden"));
+
+        const auto* run = dynamic_cast<const FunctionDeclarationNode*>(declarations[2].get());
+        ASSERT_NE(run, nullptr);
+        EXPECT_EQ(run->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PUBLIC);
+
+        const auto* helper = dynamic_cast<const FunctionDeclarationNode*>(declarations[3].get());
+        ASSERT_NE(helper, nullptr);
+        EXPECT_EQ(helper->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(helper->getContext(), FunctionDeclarationKind::Context::TOP_LEVEL);
+        EXPECT_EQ(helper->getOffset(), source.find("private func helper"));
+
+        const auto* bridge = dynamic_cast<const FunctionDeclarationNode*>(declarations[4].get());
+        ASSERT_NE(bridge, nullptr);
+        EXPECT_EQ(bridge->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(bridge->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
+        EXPECT_EQ(bridge->getBody(), nullptr);
+
+        const auto* box = dynamic_cast<const ClassDeclarationNode*>(declarations[5].get());
+        ASSERT_NE(box, nullptr);
+        EXPECT_EQ(box->getAccessModifier(), TypeDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_FALSE(box->isFinal());
+        EXPECT_EQ(box->getOffset(), source.find("private class Box"));
+
+        const auto* sealed = dynamic_cast<const ClassDeclarationNode*>(declarations[6].get());
+        ASSERT_NE(sealed, nullptr);
+        EXPECT_EQ(sealed->getAccessModifier(), TypeDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_TRUE(sealed->isFinal());
+
+        const auto* readable = dynamic_cast<const InterfaceDeclarationNode*>(declarations[7].get());
+        ASSERT_NE(readable, nullptr);
+        EXPECT_EQ(readable->getAccessModifier(), TypeDeclarationKind::AccessModifier::PRIVATE);
+
+        const auto* state = dynamic_cast<const EnumDeclarationNode*>(declarations[8].get());
+        ASSERT_NE(state, nullptr);
+        EXPECT_EQ(state->getAccessModifier(), TypeDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_EQ(state->getMemberDeclarations().size(), 1);
+
+        const auto* alias = dynamic_cast<const TypeAliasDeclarationNode*>(declarations[9].get());
+        ASSERT_NE(alias, nullptr);
+        EXPECT_EQ(alias->getAccessModifier(), TypeDeclarationKind::AccessModifier::PRIVATE);
+
+        const auto* legacy = dynamic_cast<const ValueDeclarationNode*>(declarations[10].get());
+        ASSERT_NE(legacy, nullptr);
+        EXPECT_EQ(legacy->getAccessModifier(), ValueDeclarationKind::AccessModifier::PRIVATE);
+        EXPECT_TRUE(legacy->doesIncludeMetadata());
+        EXPECT_EQ(legacy->getOffset(), source.find("metadata(deprecated)"));
+
+        const auto* visible = dynamic_cast<const ClassDeclarationNode*>(declarations[11].get());
+        ASSERT_NE(visible, nullptr);
+        EXPECT_EQ(visible->getAccessModifier(), TypeDeclarationKind::AccessModifier::PUBLIC);
+    }
+
+    TEST(ParserTest, RejectsExportDeclarationsAndOtherTopLevelAccessModifiers) {
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        for (const auto source : {
+                 "class Box {}\nexport Box\n",
+                 "export class Box {}\n",
+                 "let export = 0\n",
+                 "public let value = 0\n",
+                 "protected func run() {}\n",
+                 "private private let value = 0\n",
+                 "private metadata(deprecated) let value = 0\n",
+             }) {
+            SCOPED_TRACE(source);
+            std::stringstream input(source);
+
+            EXPECT_THROW(static_cast<void>(parseModule(input, config)), SyntaxError);
+        }
+    }
+
     TEST(ParserTest, RejectsStaticNativeOperatorDeclarations) {
         std::stringstream input(
             "class Vec3 {\n"
@@ -773,11 +899,11 @@ namespace vnlc {
 
         std::ofstream firstModuleInterface(testDirectory / "first_source" / "models.vni");
         firstModuleInterface
-            << R"({"Box":{"category":"class","genericParameters":["T"],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false}})";
+            << R"({"Box":{"category":"class","accessModifier":"public","genericParameters":["T"],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false}})";
         firstModuleInterface.close();
 
         std::ofstream secondModuleInterface(testDirectory / "second_source" / "models.vni");
-        secondModuleInterface << R"({"Box":{"category":"interface","genericParameters":["T"],"methods":{},"operators":{}}})";
+        secondModuleInterface << R"({"Box":{"category":"interface","accessModifier":"public","genericParameters":["T"],"methods":{},"operators":{}}})";
         secondModuleInterface.close();
 
         std::stringstream input(
@@ -851,6 +977,68 @@ namespace vnlc {
         ASSERT_NE(directArgument, nullptr);
         ASSERT_EQ(directArgument->getNameParts().size(), 1);
         EXPECT_EQ(directArgument->getNameParts().front()->getIdentifierString(), "Member");
+
+        std::error_code error;
+        std::filesystem::remove_all(testDirectory, error);
+    }
+
+    TEST(ParserTest, IgnoresModulePrivateWildcardImportsWhenParsingGenericArguments) {
+        const auto* testInfo = testing::UnitTest::GetInstance()->current_test_info();
+        auto testDirectory = std::filesystem::temp_directory_path() / ("vnlctest-parser-" + std::string(testInfo->name()));
+        std::filesystem::remove_all(testDirectory);
+        std::filesystem::create_directories(testDirectory / "first_source");
+
+        std::ofstream moduleInterface(testDirectory / "first_source" / "models.vni");
+        moduleInterface << R"({
+"Box":{"category":"class","accessModifier":"private","genericParameters":["T"],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false},
+"Pair":{"category":"class","accessModifier":"public","genericParameters":["T"],"properties":{},"methods":{},"constructors":{},"operators":{},"baseClass":null,"implementedInterfaces":[],"final":false}
+})";
+        moduleInterface.close();
+
+        std::stringstream input(
+            "import first.models.*\n"
+            "func test() {\n"
+            "    let compared = Box < left\n"
+            "    let generic = Pair<Item>\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testDirectory / "source_package",
+            .inputFilePath = testDirectory / "source_package" / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {
+                { "first", testDirectory / "first_source" },
+            },
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+
+        const auto& statements = function->getBody()->getStatements();
+        ASSERT_EQ(statements.size(), 2);
+
+        const auto* comparedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
+        ASSERT_NE(comparedStatement, nullptr);
+        const auto* comparedExpression = dynamic_cast<const BinaryExpressionNode*>(comparedStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(comparedExpression, nullptr);
+        EXPECT_EQ(comparedExpression->getKind(), BinaryExpressionKind::LESS_THAN);
+
+        const auto* genericStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
+        ASSERT_NE(genericStatement, nullptr);
+        const auto* genericExpression = dynamic_cast<const IdentifierLikeExpressionNode*>(genericStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(genericExpression, nullptr);
+        EXPECT_EQ(genericExpression->getName().getIdentifierString(), "Pair");
+        EXPECT_EQ(genericExpression->getGenericArguments().size(), 1);
 
         std::error_code error;
         std::filesystem::remove_all(testDirectory, error);

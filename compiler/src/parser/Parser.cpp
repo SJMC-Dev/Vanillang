@@ -1,8 +1,8 @@
 #include "Parser.hpp"
 #include "ast/declaration/DeclarationNode.hpp"
-#include "ast/declaration/ExportDeclarationNode.hpp"
 #include "ast/declaration/ImportDeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/BinaryExpressionKind.hpp"
@@ -45,7 +45,6 @@
 #include "token/TokenKind.hpp"
 #include "token/TokenKindUtil.hpp"
 #include "utils/Utils.hpp"
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedEnum.hpp"
 #include "vni/import/ImportedInterface.hpp"
@@ -180,7 +179,6 @@ namespace vnlc {
     ModuleParsingResult Parser::parseModule(ModuleParsingContext context) {
         std::vector<std::unique_ptr<ImportDeclarationNode>> importDeclarations;
         std::vector<std::unique_ptr<DeclarationNode>> declarations;
-        std::vector<std::unique_ptr<ExportDeclarationNode>> exportDeclarations;
         std::string name;
         std::string fullName;
 
@@ -231,28 +229,6 @@ namespace vnlc {
         importBindings.clear();
         const auto bindImport = [&](const ImportedItem* target, std::vector<std::string> path, const IdentifierNode* alias) {
             const std::string name(alias == nullptr ? target->getName() : alias->getIdentifierString());
-
-            std::unordered_set<const ImportedAlias*> visitedAliases;
-            while (const auto* importedAlias = dynamic_cast<const ImportedAlias*>(target)) {
-                if (!visitedAliases.insert(importedAlias).second) {
-                    return;
-                }
-
-                path.assign(1, std::string());
-                for (const char ch : importedAlias->getSource()) {
-                    if (ch == '.') {
-                        path.emplace_back();
-                    } else {
-                        path.back().push_back(ch);
-                    }
-                }
-
-                target = collectionResult.getImports().getImportedItemByFullPath(path);
-                if (target == nullptr) {
-                    return;
-                }
-            }
-
             importBindings.emplace(name, std::move(path));
         };
         const auto collectImportBinding = [&](const auto& self, const ImportDeclarationItem& item, const ImportedItem* parent, std::vector<std::string> path) {
@@ -284,6 +260,10 @@ namespace vnlc {
             if (item.wildcard) {
                 if (const auto* module = dynamic_cast<const ImportedModule*>(target)) {
                     for (const auto& [name, identifier] : module->getIdentifiers()) {
+                        if (identifier->getAccessModifier() == "private") {
+                            continue;
+                        }
+
                         auto identifierPath = path;
                         identifierPath.emplace_back(name);
                         bindImport(identifier.get(), std::move(identifierPath), nullptr);
@@ -305,24 +285,14 @@ namespace vnlc {
             collectImportBinding(collectImportBinding, importDeclaration->getNamePartsListWithAliases(), nullptr, {});
         }
 
-        while (!check(TokenKind::EXPORT) && !check(TokenKind::END_OF_FILE)) {
+        while (!check(TokenKind::END_OF_FILE)) {
             auto result = parseTopIdentifierDeclaration();
             declarations.push_back(std::move(result.declaration));
         }
 
-        while (check(TokenKind::EXPORT)) {
-            auto result = parseExportDeclaration();
-            exportDeclarations.push_back(std::move(result.declaration));
-        }
-
-        if (!check(TokenKind::END_OF_FILE)) {
-            throw SyntaxError("Unexpected declaration after export declaration", peek().getLine(), peek().getColumn());
-        }
-
         Token lastToken = peek();
 
-        std::unique_ptr<ModuleNode> node =
-            std::make_unique<ModuleNode>(std::move(name), std::move(fullName), std::move(importDeclarations), std::move(declarations), std::move(exportDeclarations), firstToken, lastToken);
+        std::unique_ptr<ModuleNode> node = std::make_unique<ModuleNode>(std::move(name), std::move(fullName), std::move(importDeclarations), std::move(declarations), firstToken, lastToken);
 
         return ModuleParsingResult{
             .moduleNode = std::move(node),
@@ -333,6 +303,14 @@ namespace vnlc {
         bool hasMetadata = false;
         std::vector<DeclarationItem::MetadataTerm> metadataTerms;
 
+        enum class AccessModifier : std::uint8_t {
+            PUBLIC,
+            PROTECTED,
+            PRIVATE,
+        };
+
+        AccessModifier accessModifier = AccessModifier::PUBLIC;
+
         Token firstToken = peek();
 
         if (check(TokenKind::METADATA)) {
@@ -342,9 +320,14 @@ namespace vnlc {
             metadataTerms = std::move(result.metadata);
         }
 
+        if (match(TokenKind::PRIVATE)) {
+            accessModifier = AccessModifier::PRIVATE;
+        }
+
         if (check(TokenKind::VAR) || check(TokenKind::LET) || check(TokenKind::CONST_KEYWORD)) {
             VariableDeclarationParsingContext context{
                 .position = VariableDeclarationParsingContext::Position::TOP_LEVEL,
+                .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
                 .hasMetadata = hasMetadata,
                 .metadataTerms = std::move(metadataTerms),
             };
@@ -369,7 +352,7 @@ namespace vnlc {
             FunctionDeclarationParsingContext context{
                 .implementation = implementation,
                 .context = FunctionDeclarationKind::Context::TOP_LEVEL,
-                .accessModifier = FunctionDeclarationKind::AccessModifier::PUBLIC,
+                .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
                 .binding = FunctionDeclarationKind::Binding::STATIC,
                 .hasMetadata = hasMetadata,
                 .metadataTerms = std::move(metadataTerms),
@@ -388,6 +371,7 @@ namespace vnlc {
             };
         } else if (check(TokenKind::CLASS) || check(TokenKind::INTERFACE) || check(TokenKind::ENUM) || check(TokenKind::TYPE) || check(TokenKind::FINAL)) {
             TypeDeclarationParsingContext context{
+                .accessModifier = static_cast<TypeDeclarationKind::AccessModifier>(accessModifier),
                 .hasMetadata = hasMetadata,
                 .metadataTerms = std::move(metadataTerms),
             };
@@ -430,28 +414,6 @@ namespace vnlc {
         };
     }
 
-    ExportDeclarationParsingResult Parser::parseExportDeclaration() {
-        Token firstToken = peek();
-
-        if (!match(TokenKind::EXPORT)) {
-            throw SyntaxError("Expected 'export' keyword", peek().getLine(), peek().getColumn());
-        }
-
-        auto result = parseExportList();
-
-        Token lastToken = peek();
-
-        std::unique_ptr<ExportDeclarationNode> node = std::make_unique<ExportDeclarationNode>(std::move(result.items), firstToken, lastToken);
-
-        if (!tokenStream.endsWithNewlineOrEOF()) {
-            throw SyntaxError("Expected newline after export declaration", peek().getLine(), peek().getColumn());
-        }
-
-        return ExportDeclarationParsingResult{
-            .declaration = std::move(node),
-        };
-    }
-
     VariableDeclarationParsingResult Parser::parseVariableDeclaration(VariableDeclarationParsingContext context) {
         Token firstToken = peek();
 
@@ -475,7 +437,7 @@ namespace vnlc {
             node = std::make_unique<ValueDeclarationNode>(
                 primaryResult.kind,
                 pos,
-                ValueDeclarationKind::AccessModifier::PUBLIC,
+                context.accessModifier,
                 std::move(primaryResult.name),
                 std::move(primaryResult.type),
                 std::move(initializerResult.expression),
@@ -487,7 +449,7 @@ namespace vnlc {
             node = std::make_unique<ValueDeclarationNode>(
                 primaryResult.kind,
                 pos,
-                ValueDeclarationKind::AccessModifier::PUBLIC,
+                context.accessModifier,
                 std::move(primaryResult.name),
                 std::move(primaryResult.type),
                 std::move(initializerResult.expression),
@@ -553,6 +515,7 @@ namespace vnlc {
 
         if (check(TokenKind::CLASS) || check(TokenKind::FINAL)) {
             ClassDeclarationParsingContext classContext{
+                .accessModifier = context.accessModifier,
                 .hasMetadata = context.hasMetadata,
                 .metadataTerms = std::move(context.metadataTerms),
             };
@@ -566,6 +529,7 @@ namespace vnlc {
             };
         } else if (check(TokenKind::INTERFACE)) {
             InterfaceDeclarationParsingContext interfaceContext{
+                .accessModifier = context.accessModifier,
                 .hasMetadata = context.hasMetadata,
                 .metadataTerms = std::move(context.metadataTerms),
             };
@@ -579,6 +543,7 @@ namespace vnlc {
             };
         } else if (check(TokenKind::ENUM)) {
             EnumDeclarationParsingContext enumContext{
+                .accessModifier = context.accessModifier,
                 .hasMetadata = context.hasMetadata,
                 .metadataTerms = std::move(context.metadataTerms),
             };
@@ -592,6 +557,7 @@ namespace vnlc {
             };
         } else if (check(TokenKind::TYPE)) {
             TypeAliasDeclarationParsingContext typeAliasContext{
+                .accessModifier = context.accessModifier,
                 .hasMetadata = context.hasMetadata,
                 .metadataTerms = std::move(context.metadataTerms),
             };
@@ -994,6 +960,7 @@ namespace vnlc {
         if (context.hasMetadata) {
             return ClassDeclarationParsingResult{
                 .declaration = std::make_unique<ClassDeclarationNode>(
+                    context.accessModifier,
                     final,
                     std::move(name),
                     std::move(baseClass),
@@ -1011,6 +978,7 @@ namespace vnlc {
         } else {
             return ClassDeclarationParsingResult{
                 .declaration = std::make_unique<ClassDeclarationNode>(
+                    context.accessModifier,
                     final,
                     std::move(name),
                     std::move(baseClass),
@@ -1069,6 +1037,7 @@ namespace vnlc {
         if (context.hasMetadata) {
             return InterfaceDeclarationParsingResult{
                 .declaration = std::make_unique<InterfaceDeclarationNode>(
+                    context.accessModifier,
                     std::move(name),
                     std::move(genericParameterNames),
                     std::move(methodDeclarations),
@@ -1080,8 +1049,15 @@ namespace vnlc {
             };
         } else {
             return InterfaceDeclarationParsingResult{
-                .declaration = std::make_unique<
-                    InterfaceDeclarationNode>(std::move(name), std::move(genericParameterNames), std::move(methodDeclarations), std::move(operatorDeclarations), firstToken, lastToken),
+                .declaration = std::make_unique<InterfaceDeclarationNode>(
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(genericParameterNames),
+                    std::move(methodDeclarations),
+                    std::move(operatorDeclarations),
+                    firstToken,
+                    lastToken
+                ),
             };
         }
     }
@@ -1118,12 +1094,20 @@ namespace vnlc {
 
         if (context.hasMetadata) {
             return EnumDeclarationParsingResult{
-                .declaration = std::make_unique<
-                    EnumDeclarationNode>(std::move(name), std::move(genericParameterNames), std::move(bodyResult.declarations), firstToken, lastToken, std::move(context.metadataTerms)),
+                .declaration = std::make_unique<EnumDeclarationNode>(
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(genericParameterNames),
+                    std::move(bodyResult.declarations),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
             };
         } else {
             return EnumDeclarationParsingResult{
-                .declaration = std::make_unique<EnumDeclarationNode>(std::move(name), std::move(genericParameterNames), std::move(bodyResult.declarations), firstToken, lastToken),
+                .declaration =
+                    std::make_unique<EnumDeclarationNode>(context.accessModifier, std::move(name), std::move(genericParameterNames), std::move(bodyResult.declarations), firstToken, lastToken),
             };
         }
     }
@@ -1164,35 +1148,22 @@ namespace vnlc {
 
         if (context.hasMetadata) {
             return TypeAliasDeclarationParsingResult{
-                .declaration = std::make_unique<
-                    TypeAliasDeclarationNode>(std::move(aliasName), std::move(genericParameterNames), std::move(typeResult.type), firstToken, lastToken, std::move(context.metadataTerms)),
+                .declaration = std::make_unique<TypeAliasDeclarationNode>(
+                    context.accessModifier,
+                    std::move(aliasName),
+                    std::move(genericParameterNames),
+                    std::move(typeResult.type),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
             };
         } else {
             return TypeAliasDeclarationParsingResult{
-                .declaration = std::make_unique<TypeAliasDeclarationNode>(std::move(aliasName), std::move(genericParameterNames), std::move(typeResult.type), firstToken, lastToken),
+                .declaration = std::make_unique<
+                    TypeAliasDeclarationNode>(context.accessModifier, std::move(aliasName), std::move(genericParameterNames), std::move(typeResult.type), firstToken, lastToken),
             };
         }
-    }
-
-    ExportListParsingResult Parser::parseExportList() {
-        std::vector<ExportDeclarationItem> items;
-
-        do {
-            std::unique_ptr<IdentifierNode> name;
-            std::unique_ptr<IdentifierNode> alias; // nullptr if no alias
-
-            if (!check(TokenKind::IDENTIFIER)) {
-                throw SyntaxError("Expected identifier in export list", peek().getLine(), peek().getColumn());
-            } else {
-                name = constructCurrentIdentifierNode();
-            }
-
-            items.emplace_back(ExportDeclarationItem{ .name = std::move(name) });
-        } while (match(TokenKind::COMMA));
-
-        return ExportListParsingResult{
-            .items = std::move(items),
-        };
     }
 
     MetadataTermParsingResult Parser::parseMetadataTerm() {
@@ -3115,6 +3086,7 @@ namespace vnlc {
 
         VariableDeclarationParsingContext context{
             .position = VariableDeclarationParsingContext::Position::STATEMENT,
+            .accessModifier = ValueDeclarationKind::AccessModifier::PUBLIC,
             .hasMetadata = false,
             .metadataTerms = {},
         };

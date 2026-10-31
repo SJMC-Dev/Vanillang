@@ -4,7 +4,6 @@
 #include "error/PackageReaderError.hpp"
 #include "error/SyntaxError.hpp"
 #include "utils/Utils.hpp"
-#include "vni/import/ImportedAlias.hpp"
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
 #include "vni/import/ImportedEnum.hpp"
@@ -139,7 +138,7 @@ namespace vnlc {
             }
 
             if (match(TokenKind::LEFT_BRACE)) {
-                collectImportPathList(std::move(prefix), paths);
+                collectImportPathList(prefix, paths);
                 if (!match(TokenKind::RIGHT_BRACE)) {
                     throw SyntaxError("Expected '}' after import path list", peek().getLine(), peek().getColumn());
                 }
@@ -156,7 +155,7 @@ namespace vnlc {
         paths.push_back(std::move(prefix));
     }
 
-    void Collector::collectImportPathList(std::vector<std::string> prefix, std::vector<std::vector<std::string>>& paths) {
+    void Collector::collectImportPathList(const std::vector<std::string>& prefix, std::vector<std::vector<std::string>>& paths) {
         do {
             collectImportPath(prefix, true, paths);
         } while (match(TokenKind::COMMA));
@@ -382,8 +381,6 @@ namespace vnlc {
             if (visitedModules.insert(module).second) {
                 collectChildren(module->getIdentifiers());
             }
-        } else if (const auto* alias = dynamic_cast<const ImportedAlias*>(&item)) {
-            dependencies.emplace(alias->getSource());
         } else if (const auto* variable = dynamic_cast<const ImportedLet*>(&item)) {
             collectTypeDependencies(variable->getType(), dependencies);
         } else if (const auto* property = dynamic_cast<const ImportedProperty*>(&item)) {
@@ -451,11 +448,9 @@ namespace vnlc {
 
             std::stringstream namePartStream(namePart);
             Lexer namePartLexer(namePartStream);
-            if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::IDENTIFIER)) {
-                throw IllegalModuleOrPackageNameError(namePart);
-            } else if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE)) {
-                throw IllegalModuleOrPackageNameError(namePart);
-            } else if (namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+            if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::IDENTIFIER) ||
+                !(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE) ||
+                namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
                 throw IllegalModuleOrPackageNameError(namePart);
             }
 
@@ -482,10 +477,6 @@ namespace vnlc {
         std::size_t braceDepth = 0;
 
         while (!check(TokenKind::END_OF_FILE)) {
-            if (braceDepth == 0 && check(TokenKind::EXPORT)) {
-                break;
-            }
-
             if (braceDepth == 0 && (check(TokenKind::FINAL) || check(TokenKind::CLASS) || check(TokenKind::INTERFACE) || check(TokenKind::ENUM) || check(TokenKind::TYPE))) {
                 typeDeclarations.push_back(collectTypeDeclaration());
                 continue;
@@ -501,7 +492,7 @@ namespace vnlc {
         }
 
         auto moduleOutline = std::make_unique<ModuleOutline>(std::move(name), std::move(fullName), std::move(typeDeclarations), firstToken, peek());
-        return CollectionResult(std::move(moduleOutline), std::move(imports), std::move(errors));
+        return { std::move(moduleOutline), std::move(imports), std::move(errors) };
     }
 
     CollectionResult Collector::collect(const Config& config) {
