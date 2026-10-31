@@ -1,18 +1,7 @@
 # Vanillang Compiler
 
-## Overview
-This is a DSL compiler, which allows developers to use Vanillang DSL to develop Minecraft datapack. It compiles Vanillang source code to mcfunction.
-It is cross-platform, and should be available on Windows, macOS and Linux.
-
-- Refer to `../spec` to get information about Vanillang language.
-- Refer to `https://minecraft.wiki` to get information about datapack and mcfunction.
-
-## Commands
-Be sure that your working directory is the root directory of the repository (the parent directory of this project) before running these commands.
-
-- Use `cmake --preset default-ninja` to generate build directory.
-- Use `cmake --build --preset debug` to get a debug build.
-- Use `cmake --build --preset release` to get a release build.
+This is the compiler of Vanillang DSL.
+- Refer to `AGENTS.md` in the root directory of the repository first.
 
 ## Coding Standards
 - Use PascalCase for customized type names and all type names defined in this project should be in the namespace `vnlc`.
@@ -20,12 +9,6 @@ Be sure that your working directory is the root directory of the repository (the
 - Follow `.clang-format` to format source code.
 - Format code after editing.
 - Add comments after namespaces and header guards.
-- Add comments to all variable declarations that can represent a null or empty semantic value excluding `std::optional` and raw pointers.
+- Add comments to all variable declarations that can represent a null or empty semantic value.
 - Do not add other comments unless you are explicitly instructed.
 - Refer to existing code for other coding standards.
-
-## Commits
-- Follow conventional commits when you need to write commit messages.
-
-## Explanation
-- Always explain the reason why you make such changes according to `git diff`.
