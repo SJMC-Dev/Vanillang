@@ -58,7 +58,7 @@ namespace vnlc {
 
         const auto* typeNode = parameter->getType();
         if (typeNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
+            const auto* type = semantic.getTypeByTypeAnnotationNode(typeNode);
             if (type != nullptr) {
                 parameterObj.emplace("type", type->getFullTypeName());
             }
@@ -83,7 +83,7 @@ namespace vnlc {
 
         const auto* typeNode = variable->getType();
         if (typeNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
+            const auto* type = semantic.getTypeByTypeAnnotationNode(typeNode);
             if (type != nullptr) {
                 variableObj.emplace("type", type->getFullTypeName());
             }
@@ -110,9 +110,9 @@ namespace vnlc {
             functionObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto* returnTypeReferenceNode = function->getReturnType();
-        if (returnTypeReferenceNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
+        const auto* returnTypeAnnotationNode = function->getReturnType();
+        if (returnTypeAnnotationNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeAnnotationNode(returnTypeAnnotationNode);
             if (type != nullptr) {
                 functionObj.emplace("returnType", type->getFullTypeName());
             }
@@ -146,8 +146,8 @@ namespace vnlc {
 
         std::optional<std::string> baseClassName;
         if (classNode->getBaseClass() != nullptr) {
-            const auto* baseClassTypeReferenceNode = classNode->getBaseClass();
-            const auto* type = semantic.getTypeByTypeReferenceNode(baseClassTypeReferenceNode);
+            const auto* baseClassTypeAnnotationNode = classNode->getBaseClass();
+            const auto* type = semantic.getTypeByTypeAnnotationNode(baseClassTypeAnnotationNode);
             if (type != nullptr) {
                 baseClassName = type->getFullTypeName();
             }
@@ -155,8 +155,8 @@ namespace vnlc {
         classObj.emplace("baseClass", baseClassName);
 
         std::vector<std::string> implementedInterfaceNames;
-        for (const auto& interfaceTypeReferenceNode : classNode->getImplementedInterfaces()) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(interfaceTypeReferenceNode.get());
+        for (const auto& interfaceTypeAnnotationNode : classNode->getImplementedInterfaces()) {
+            const auto* type = semantic.getTypeByTypeAnnotationNode(interfaceTypeAnnotationNode.get());
             if (type != nullptr) {
                 implementedInterfaceNames.emplace_back(type->getFullTypeName());
             }
@@ -263,7 +263,7 @@ namespace vnlc {
 
         const auto* typeNode = enumValue->getType();
         if (typeNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
+            const auto* type = semantic.getTypeByTypeAnnotationNode(typeNode);
             if (type != nullptr) {
                 enumValueObj.emplace("type", type->getFullTypeName());
             }
@@ -282,7 +282,7 @@ namespace vnlc {
         typeAliasObj.emplace("category", "typealias");
 
         typeAliasObj.emplace("genericParameters", stringifyGenericParameters(typeAliasNode->getGenericParameterNames()));
-        const auto* type = semantic.getTypeByTypeReferenceNode(&typeAliasNode->getOriginalType());
+        const auto* type = semantic.getTypeByTypeAnnotationNode(&typeAliasNode->getOriginalType());
         if (type != nullptr) {
             typeAliasObj.emplace("originalType", type->getFullTypeName());
         }
@@ -303,7 +303,7 @@ namespace vnlc {
 
         const auto* typeNode = property->getType();
         if (typeNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(typeNode);
+            const auto* type = semantic.getTypeByTypeAnnotationNode(typeNode);
             if (type != nullptr) {
                 propertyObj.emplace("type", type->getFullTypeName());
             }
@@ -331,9 +331,9 @@ namespace vnlc {
             methodObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto* returnTypeReferenceNode = method->getReturnType();
-        if (returnTypeReferenceNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
+        const auto* returnTypeAnnotationNode = method->getReturnType();
+        if (returnTypeAnnotationNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeAnnotationNode(returnTypeAnnotationNode);
             if (type != nullptr) {
                 methodObj.emplace("returnType", type->getFullTypeName());
             }
@@ -386,9 +386,9 @@ namespace vnlc {
             operatorObj.emplace("metadata", stringifyMetadata(metadata));
         }
 
-        const auto* returnTypeReferenceNode = operatorNode->getReturnType();
-        if (returnTypeReferenceNode != nullptr) {
-            const auto* type = semantic.getTypeByTypeReferenceNode(returnTypeReferenceNode);
+        const auto* returnTypeAnnotationNode = operatorNode->getReturnType();
+        if (returnTypeAnnotationNode != nullptr) {
+            const auto* type = semantic.getTypeByTypeAnnotationNode(returnTypeAnnotationNode);
             if (type != nullptr) {
                 operatorObj.emplace("returnType", type->getFullTypeName());
             }

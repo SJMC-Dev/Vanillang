@@ -42,10 +42,10 @@
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
 #include "ast/statement/WhileStatementNode.hpp"
-#include "ast/typeref/CustomizedTypeReferenceNode.hpp"
-#include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
-#include "ast/typeref/TypeReferenceNode.hpp"
-#include "ast/typeref/VoidTypeReferenceNode.hpp"
+#include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
+#include "ast/typeannotation/VoidTypeAnnotationNode.hpp"
 #include "fmt/format.h"
 #include "inheritance/ClassInheritanceNode.hpp"
 #include "semantic/ExpressionAnalysisResult.hpp"
@@ -236,7 +236,7 @@ namespace vnlc {
         }
     }
 
-    void SemanticAnalyzer::registerImportedTypeReference(std::string_view fullTypeName) {
+    void SemanticAnalyzer::registerImportedTypeAnnotation(std::string_view fullTypeName) {
         const auto isSpace = [](char character) { return character == ' ' || character == '\t' || character == '\r' || character == '\n'; };
         const auto trim = [&isSpace](std::string_view value) {
             while (!value.empty() && isSpace(value.front())) {
@@ -287,7 +287,7 @@ namespace vnlc {
                     --depth;
                 } else if (fullTypeName[index] == ',' && depth == 0) {
                     const std::string_view argument = trim(fullTypeName.substr(argumentStart, index - argumentStart));
-                    registerImportedTypeReference(argument);
+                    registerImportedTypeAnnotation(argument);
                     const Type* argumentType = context.getTypeByFullTypeName(argument);
                     if (argumentType == nullptr) {
                         return;
@@ -298,7 +298,7 @@ namespace vnlc {
             }
 
             const std::string_view lastArgument = trim(fullTypeName.substr(argumentStart, genericArgumentEnd - argumentStart));
-            registerImportedTypeReference(lastArgument);
+            registerImportedTypeAnnotation(lastArgument);
             const Type* lastArgumentType = context.getTypeByFullTypeName(lastArgument);
             if (lastArgumentType == nullptr) {
                 return;
@@ -308,7 +308,7 @@ namespace vnlc {
 
         const ImportedItem* importedType = context.getImportedItemByFullTypeName(fullTypeName);
 
-        // imported type references should never be type aliases
+        // imported type annotations should never be type aliases
         const auto customizedTypeKind = [&importedType]() -> std::optional<CustomizedTypeKind> {
             if (dynamic_cast<const ImportedClass*>(importedType) != nullptr) return CustomizedTypeKind::CLASS;
             if (dynamic_cast<const ImportedInterface*>(importedType) != nullptr) return CustomizedTypeKind::INTERFACE;
@@ -330,41 +330,41 @@ namespace vnlc {
         return;
     }
 
-    void SemanticAnalyzer::registerImportedTypeReferences(const ImportedItem& importedItem) {
+    void SemanticAnalyzer::registerImportedTypeAnnotations(const ImportedItem& importedItem) {
         const auto registerChildren = [&](const auto& children) {
             for (const auto& [name, child] : children) {
-                registerImportedTypeReferences(*child);
+                registerImportedTypeAnnotations(*child);
             }
         };
         const auto registerParameters = [&](const auto& parameters) {
             for (const auto& [name, parameter] : parameters) {
-                registerImportedTypeReference(parameter->getType());
+                registerImportedTypeAnnotation(parameter->getType());
             }
         };
 
         if (const auto* let = dynamic_cast<const ImportedLet*>(&importedItem)) {
-            registerImportedTypeReference(let->getType());
+            registerImportedTypeAnnotation(let->getType());
         } else if (const auto* function = dynamic_cast<const ImportedFunc*>(&importedItem)) {
-            registerImportedTypeReference(function->getReturnType());
+            registerImportedTypeAnnotation(function->getReturnType());
             registerParameters(function->getParameters());
         } else if (const auto* method = dynamic_cast<const ImportedMethod*>(&importedItem)) {
-            registerImportedTypeReference(method->getReturnType());
+            registerImportedTypeAnnotation(method->getReturnType());
             registerParameters(method->getParameters());
         } else if (const auto* operatorNode = dynamic_cast<const ImportedOperator*>(&importedItem)) {
-            registerImportedTypeReference(operatorNode->getReturnType());
+            registerImportedTypeAnnotation(operatorNode->getReturnType());
             registerParameters(operatorNode->getParameters());
         } else if (const auto* constructor = dynamic_cast<const ImportedConstructor*>(&importedItem)) {
             registerParameters(constructor->getParameters());
         } else if (const auto* property = dynamic_cast<const ImportedProperty*>(&importedItem)) {
-            registerImportedTypeReference(property->getType());
+            registerImportedTypeAnnotation(property->getType());
         } else if (const auto* parameter = dynamic_cast<const ImportedParameter*>(&importedItem)) {
-            registerImportedTypeReference(parameter->getType());
+            registerImportedTypeAnnotation(parameter->getType());
         } else if (const auto* classType = dynamic_cast<const ImportedClass*>(&importedItem)) {
             if (classType->getBaseClass().has_value()) {
-                registerImportedTypeReference(classType->getBaseClass().value());
+                registerImportedTypeAnnotation(classType->getBaseClass().value());
             }
             for (const auto& interfaceName : classType->getImplementedInterfaces()) {
-                registerImportedTypeReference(interfaceName);
+                registerImportedTypeAnnotation(interfaceName);
             }
             registerChildren(classType->getProperties());
             registerChildren(classType->getMethods());
@@ -378,9 +378,9 @@ namespace vnlc {
         } else if (const auto* enumMember = dynamic_cast<const ImportedEnumMember*>(&importedItem)) {
             registerChildren(enumMember->getAssociatedValues());
         } else if (const auto* enumValue = dynamic_cast<const ImportedEnumValue*>(&importedItem)) {
-            registerImportedTypeReference(enumValue->getType());
+            registerImportedTypeAnnotation(enumValue->getType());
         } else if (const auto* typeAlias = dynamic_cast<const ImportedTypeAlias*>(&importedItem)) {
-            registerImportedTypeReference(typeAlias->getOriginalType());
+            registerImportedTypeAnnotation(typeAlias->getOriginalType());
         } else if (const auto* module = dynamic_cast<const ImportedModule*>(&importedItem)) {
             registerChildren(module->getIdentifiers());
         } else if (const auto* package = dynamic_cast<const ImportedPackage*>(&importedItem)) {
@@ -655,27 +655,27 @@ namespace vnlc {
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReference(const TypeReferenceNode& typeRef) {
+    void SemanticAnalyzer::resolveTypeAnnotation(const TypeAnnotationNode& typeAnnotation) {
         using TypeSubstitutionMap = std::unordered_map<std::string, const Type*>;
-        using VisitedSet = std::unordered_set<const TypeReferenceNode*>;
+        using VisitedSet = std::unordered_set<const TypeAnnotationNode*>;
 
-        const auto getPrimitiveType = [](PrimitiveTypeReferenceKind kind) -> const PrimitiveType* {
+        const auto getPrimitiveType = [](PrimitiveTypeAnnotationKind kind) -> const PrimitiveType* {
             switch (kind) {
-                case PrimitiveTypeReferenceKind::BYTE:
+                case PrimitiveTypeAnnotationKind::BYTE:
                     return PrimitiveType::byteType();
-                case PrimitiveTypeReferenceKind::SHORT:
+                case PrimitiveTypeAnnotationKind::SHORT:
                     return PrimitiveType::shortType();
-                case PrimitiveTypeReferenceKind::INT:
+                case PrimitiveTypeAnnotationKind::INT:
                     return PrimitiveType::intType();
-                case PrimitiveTypeReferenceKind::LONG:
+                case PrimitiveTypeAnnotationKind::LONG:
                     return PrimitiveType::longType();
-                case PrimitiveTypeReferenceKind::FLOAT:
+                case PrimitiveTypeAnnotationKind::FLOAT:
                     return PrimitiveType::floatType();
-                case PrimitiveTypeReferenceKind::DOUBLE:
+                case PrimitiveTypeAnnotationKind::DOUBLE:
                     return PrimitiveType::doubleType();
-                case PrimitiveTypeReferenceKind::BOOLEAN:
+                case PrimitiveTypeAnnotationKind::BOOLEAN:
                     return PrimitiveType::booleanType();
-                case PrimitiveTypeReferenceKind::STRING:
+                case PrimitiveTypeAnnotationKind::STRING:
                     return PrimitiveType::stringType();
             }
             return nullptr;
@@ -756,7 +756,7 @@ namespace vnlc {
             return result;
         };
 
-        const auto constructFullTypeName = [&](const CustomizedTypeReferenceNode& type, const std::vector<const Type*>& resolvedGenericArguments) -> std::string {
+        const auto constructFullTypeName = [&](const CustomizedTypeAnnotationNode& type, const std::vector<const Type*>& resolvedGenericArguments) -> std::string {
             const auto& nameParts = type.getNameParts();
             std::stack<std::string> identifiers;
             std::string result;
@@ -854,22 +854,22 @@ namespace vnlc {
             return result;
         };
 
-        std::function<const Type*(const TypeReferenceNode&, const TypeSubstitutionMap&, VisitedSet)> checkType;
-        const auto checkUnwrappedType = [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, const VisitedSet& visited) -> const Type* {
-            if (const auto* primitiveTypeReferenceNode = dynamic_cast<const PrimitiveTypeReferenceNode*>(&type)) {
-                return getPrimitiveType(primitiveTypeReferenceNode->getKind());
+        std::function<const Type*(const TypeAnnotationNode&, const TypeSubstitutionMap&, VisitedSet)> checkType;
+        const auto checkUnwrappedType = [&](const TypeAnnotationNode& type, const TypeSubstitutionMap& substitutions, const VisitedSet& visited) -> const Type* {
+            if (const auto* primitiveTypeAnnotationNode = dynamic_cast<const PrimitiveTypeAnnotationNode*>(&type)) {
+                return getPrimitiveType(primitiveTypeAnnotationNode->getKind());
             }
 
-            if (dynamic_cast<const VoidTypeReferenceNode*>(&type) != nullptr) {
+            if (dynamic_cast<const VoidTypeAnnotationNode*>(&type) != nullptr) {
                 return VoidType::voidType();
             }
 
-            const auto* customizedTypeReferenceNode = dynamic_cast<const CustomizedTypeReferenceNode*>(&type);
-            if (customizedTypeReferenceNode == nullptr) {
+            const auto* customizedTypeAnnotationNode = dynamic_cast<const CustomizedTypeAnnotationNode*>(&type);
+            if (customizedTypeAnnotationNode == nullptr) {
                 return nullptr;
             }
 
-            const auto& nameParts = customizedTypeReferenceNode->getNameParts();
+            const auto& nameParts = customizedTypeAnnotationNode->getNameParts();
             if (nameParts.size() == 1) {
                 const auto substitution = substitutions.find(std::string(nameParts.front()->getIdentifierString()));
                 if (substitution != substitutions.end()) {
@@ -903,7 +903,7 @@ namespace vnlc {
                     break;
                 }
                 if (dynamic_cast<const FunctionSymbol*>(symbol)) {
-                    context.reportError(*namePart, "Using function symbols in a type reference is not allowed");
+                    context.reportError(*namePart, "Using function symbols in a type annotation is not allowed");
                     break;
                 }
 
@@ -929,7 +929,7 @@ namespace vnlc {
                 return nullptr;
             }
 
-            const std::size_t genericArgumentCount = customizedTypeReferenceNode->getGenericArguments().size();
+            const std::size_t genericArgumentCount = customizedTypeAnnotationNode->getGenericArguments().size();
             const std::size_t genericParameterCount = getGenericParameterCount(*typeSymbol);
             if (genericArgumentCount != genericParameterCount) {
                 context.reportError(type, fmt::format("Generic argument count mismatch: expected {}, got {}", genericParameterCount, genericArgumentCount));
@@ -938,7 +938,7 @@ namespace vnlc {
 
             std::vector<const Type*> genericArgumentTypes;
             std::size_t errors = context.getErrors().size();
-            for (const auto& genericArgument : customizedTypeReferenceNode->getGenericArguments()) {
+            for (const auto& genericArgument : customizedTypeAnnotationNode->getGenericArguments()) {
                 const Type* genericArgumentType = checkType(*genericArgument, substitutions, visited);
 
                 if (genericArgumentType == nullptr) {
@@ -977,12 +977,12 @@ namespace vnlc {
                     }
 
                     std::string originalName = substituteImportedTypeParameters(importedTypeAlias->getOriginalType(), aliasSubstitutions);
-                    registerImportedTypeReference(originalName);
+                    registerImportedTypeAnnotation(originalName);
                     return context.getTypeByFullTypeName(originalName);
                 }
             }
 
-            const std::string fullName = constructFullTypeName(dynamic_cast<const CustomizedTypeReferenceNode&>(type), genericArgumentTypes);
+            const std::string fullName = constructFullTypeName(dynamic_cast<const CustomizedTypeAnnotationNode&>(type), genericArgumentTypes);
 
             const auto customizedKind = [&typeSymbol]() -> std::optional<CustomizedTypeKind> {
                 switch (typeSymbol->getKind()) {
@@ -1023,14 +1023,14 @@ namespace vnlc {
             return resolvedType;
         };
 
-        checkType = [&](const TypeReferenceNode& type, const TypeSubstitutionMap& substitutions, VisitedSet visited) -> const Type* {
+        checkType = [&](const TypeAnnotationNode& type, const TypeSubstitutionMap& substitutions, VisitedSet visited) -> const Type* {
             if (!visited.insert(&type).second) {
-                context.reportError(type, "Cyclic type reference detected");
+                context.reportError(type, "Cyclic type annotation detected");
                 return nullptr;
             }
 
             if (substitutions.empty()) {
-                const Type* existedType = context.getTypeByTypeReferenceNode(&type);
+                const Type* existedType = context.getTypeByTypeAnnotationNode(&type);
                 if (existedType) {
                     return existedType; // avoid resolving repeatitively
                 }
@@ -1068,7 +1068,7 @@ namespace vnlc {
                         customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
                     } else {
                         const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "typesystem", "Optional" });
-                        const ImportedEnum* opt = dynamic_cast<const ImportedEnum*>(item);
+                        const auto* opt = dynamic_cast<const ImportedEnum*>(item);
 
                         if (!opt) {
                             context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
@@ -1091,163 +1091,163 @@ namespace vnlc {
             return resolvedType;
         };
 
-        checkType(typeRef, TypeSubstitutionMap{}, {});
+        checkType(typeAnnotation, TypeSubstitutionMap{}, {});
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInModule(const ModuleNode& moduleNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInModule(const ModuleNode& moduleNode) {
         for (const auto& topIdentifierDecl : moduleNode.getTopIdentifierDeclarations()) {
             const DeclarationNode* declNode = topIdentifierDecl.get();
 
             if (const auto* varDecl = dynamic_cast<const ValueDeclarationNode*>(declNode)) {
                 if (varDecl->getType() != nullptr) {
-                    resolveTypeReference(*varDecl->getType());
+                    resolveTypeAnnotation(*varDecl->getType());
                 }
             } else if (const auto* funcDecl = dynamic_cast<const FunctionDeclarationNode*>(declNode)) {
-                resolveTypeReferencesInFunction(*funcDecl);
+                resolveTypeAnnotationsInFunction(*funcDecl);
             } else if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(declNode)) {
-                resolveTypeReferencesInClass(*classDecl);
+                resolveTypeAnnotationsInClass(*classDecl);
             } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(declNode)) {
-                resolveTypeReferencesInInterface(*interfaceDecl);
+                resolveTypeAnnotationsInInterface(*interfaceDecl);
             } else if (const auto* enumDecl = dynamic_cast<const EnumDeclarationNode*>(declNode)) {
-                resolveTypeReferencesInEnum(*enumDecl);
+                resolveTypeAnnotationsInEnum(*enumDecl);
             } else if (const auto* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(declNode)) {
-                resolveTypeReferencesInTypeAlias(*typeAliasDecl);
+                resolveTypeAnnotationsInTypeAlias(*typeAliasDecl);
             }
         }
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInFunction(const FunctionDeclarationNode& functionNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInFunction(const FunctionDeclarationNode& functionNode) {
         if (!context.pushExistingScope(&functionNode)) {
             return;
         }
 
         for (const auto& parameter : functionNode.getParameters()) {
             if (parameter->getType() != nullptr) {
-                resolveTypeReference(*parameter->getType());
+                resolveTypeAnnotation(*parameter->getType());
             }
         }
 
         if (functionNode.getReturnType() != nullptr) {
-            resolveTypeReference(*functionNode.getReturnType());
+            resolveTypeAnnotation(*functionNode.getReturnType());
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInConstructor(const ConstructorDeclarationNode& constructorNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInConstructor(const ConstructorDeclarationNode& constructorNode) {
         if (!context.pushExistingScope(&constructorNode)) {
             return;
         }
 
         for (const auto& parameter : constructorNode.getParameters()) {
             if (parameter->getType() != nullptr) {
-                resolveTypeReference(*parameter->getType());
+                resolveTypeAnnotation(*parameter->getType());
             }
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInOperator(const OperatorDeclarationNode& operatorNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInOperator(const OperatorDeclarationNode& operatorNode) {
         if (!context.pushExistingScope(&operatorNode)) {
             return;
         }
 
         for (const auto& parameter : operatorNode.getParameters()) {
             if (parameter->getType() != nullptr) {
-                resolveTypeReference(*parameter->getType());
+                resolveTypeAnnotation(*parameter->getType());
             }
         }
 
         if (operatorNode.getReturnType() != nullptr) {
-            resolveTypeReference(*operatorNode.getReturnType());
+            resolveTypeAnnotation(*operatorNode.getReturnType());
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInClass(const ClassDeclarationNode& classNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInClass(const ClassDeclarationNode& classNode) {
         if (!context.pushExistingScope(&classNode)) {
             return;
         }
 
         if (classNode.getBaseClass() != nullptr) {
-            resolveTypeReference(*classNode.getBaseClass());
+            resolveTypeAnnotation(*classNode.getBaseClass());
         }
 
-        for (const auto& interfaceRefNode : classNode.getImplementedInterfaces()) {
-            resolveTypeReference(*interfaceRefNode);
+        for (const auto& interfaceAnnoNode : classNode.getImplementedInterfaces()) {
+            resolveTypeAnnotation(*interfaceAnnoNode);
         }
 
         for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
             if (propertyDecl->getType() != nullptr) {
-                resolveTypeReference(*propertyDecl->getType());
+                resolveTypeAnnotation(*propertyDecl->getType());
             }
         }
 
         for (const auto& methodDecl : classNode.getMethodDeclarations()) {
-            resolveTypeReferencesInFunction(*methodDecl);
+            resolveTypeAnnotationsInFunction(*methodDecl);
         }
 
         for (const auto& constructorDecl : classNode.getConstructorDeclarations()) {
-            resolveTypeReferencesInConstructor(*constructorDecl);
+            resolveTypeAnnotationsInConstructor(*constructorDecl);
         }
 
         for (const auto& operatorDecl : classNode.getOperatorDeclarations()) {
-            resolveTypeReferencesInOperator(*operatorDecl);
+            resolveTypeAnnotationsInOperator(*operatorDecl);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInInterface(const InterfaceDeclarationNode& interfaceNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInInterface(const InterfaceDeclarationNode& interfaceNode) {
         if (!context.pushExistingScope(&interfaceNode)) {
             return;
         }
 
         for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
-            resolveTypeReferencesInFunction(*methodDecl);
+            resolveTypeAnnotationsInFunction(*methodDecl);
         }
 
         for (const auto& operatorDecl : interfaceNode.getOperatorDeclarations()) {
-            resolveTypeReferencesInOperator(*operatorDecl);
+            resolveTypeAnnotationsInOperator(*operatorDecl);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInEnum(const EnumDeclarationNode& enumNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInEnum(const EnumDeclarationNode& enumNode) {
         if (!context.pushExistingScope(&enumNode)) {
             return;
         }
 
         for (const auto& member : enumNode.getMemberDeclarations()) {
-            resolveTypeReferencesInEnumMember(*member);
+            resolveTypeAnnotationsInEnumMember(*member);
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode) {
         if (!context.pushExistingScope(&enumMemberNode)) {
             return;
         }
 
         for (const auto& associatedValue : enumMemberNode.getAssociatedValues()) {
             if (associatedValue->getType() != nullptr) {
-                resolveTypeReference(*associatedValue->getType());
+                resolveTypeAnnotation(*associatedValue->getType());
             }
         }
 
         context.popScope();
     }
 
-    void SemanticAnalyzer::resolveTypeReferencesInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
+    void SemanticAnalyzer::resolveTypeAnnotationsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode) {
         if (!context.pushExistingScope(&typeAliasNode)) {
             return;
         }
 
-        resolveTypeReference(typeAliasNode.getOriginalType());
+        resolveTypeAnnotation(typeAliasNode.getOriginalType());
 
         context.popScope();
     }
@@ -1255,12 +1255,12 @@ namespace vnlc {
     void SemanticAnalyzer::generateInternalName(const DeclarationNode& node) {
         std::string name;
 
-        if (const FunctionDeclarationNode* functionNode = dynamic_cast<const FunctionDeclarationNode*>(&node)) {
+        if (const auto* functionNode = dynamic_cast<const FunctionDeclarationNode*>(&node)) {
             name.append("vnl-function-");
             name.append((functionNode->getName().getIdentifierString()));
             name.append("(");
             for (const auto& param : functionNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
+                const Type* semanticType = context.getTypeByTypeAnnotationNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1270,11 +1270,11 @@ namespace vnlc {
             name.append(")");
 
             functionNode->setInternalName(name);
-        } else if (const ConstructorDeclarationNode* constructorNode = dynamic_cast<const ConstructorDeclarationNode*>(&node)) {
+        } else if (const auto* constructorNode = dynamic_cast<const ConstructorDeclarationNode*>(&node)) {
             name.append("vnl-constructor");
             name.append("(");
             for (const auto& param : constructorNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
+                const Type* semanticType = context.getTypeByTypeAnnotationNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1284,12 +1284,12 @@ namespace vnlc {
             name.append(")");
 
             constructorNode->setInternalName(name);
-        } else if (const OperatorDeclarationNode* operatorNode = dynamic_cast<const OperatorDeclarationNode*>(&node)) {
+        } else if (const auto* operatorNode = dynamic_cast<const OperatorDeclarationNode*>(&node)) {
             name.append("vnl-operator-");
             name.append((operatorNode->getOperatorName()));
             name.append("(");
             for (const auto& param : operatorNode->getParameters()) {
-                const Type* semanticType = context.getTypeByTypeReferenceNode(param->getType());
+                const Type* semanticType = context.getTypeByTypeAnnotationNode(param->getType());
                 if (!semanticType) return;
 
                 name.append(semanticType->getFullTypeName());
@@ -1422,7 +1422,7 @@ namespace vnlc {
             ClassInheritanceNode& classNode = context.getOrCreateLocalInheritanceNode(*classDecl);
 
             if (classDecl->getBaseClass() != nullptr) {
-                const auto* baseClassType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(classDecl->getBaseClass()));
+                const auto* baseClassType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(classDecl->getBaseClass()));
                 if (baseClassType && baseClassType->getCustomizedKind() == CustomizedTypeKind::CLASS) {
                     if (const auto* localNode = dynamic_cast<const ClassDeclarationNode*>(baseClassType->getLocalNode())) {
                         classNode.setParent(&context.getOrCreateLocalInheritanceNode(*localNode));
@@ -1433,7 +1433,7 @@ namespace vnlc {
             }
 
             for (const auto& implementedInterface : classDecl->getImplementedInterfaces()) {
-                const auto* interfaceType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeReferenceNode(implementedInterface.get()));
+                const auto* interfaceType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(implementedInterface.get()));
                 if (interfaceType == nullptr) {
                     continue;
                 }
@@ -1497,8 +1497,8 @@ namespace vnlc {
         }
 
         return MetadataInfo{
-            noWarnings,
-            deprecated,
+            .noWarnings = noWarnings,
+            .deprecated = deprecated,
         };
     }
 
@@ -1510,12 +1510,12 @@ namespace vnlc {
         }
 
         collectLocalRegularSymbolsInModule(moduleNode);
-        resolveTypeReferencesInModule(moduleNode);
+        resolveTypeAnnotationsInModule(moduleNode);
         generateInternalNameForOverloadablesInModule(moduleNode);
         collectLocalFunctionSymbolsInModule(moduleNode);
 
         std::function<void(const ImportedItem*, std::vector<const ImportedModule*>&)> collectModuleNode = [&](const ImportedItem* node, std::vector<const ImportedModule*>& importedModules) {
-            if (const ImportedPackage* packageNode = dynamic_cast<const ImportedPackage*>(node)) {
+            if (const auto* packageNode = dynamic_cast<const ImportedPackage*>(node)) {
                 for (const auto& child : packageNode->getSubPackages()) {
                     collectModuleNode(child.second.get(), importedModules);
                 }
@@ -1523,7 +1523,7 @@ namespace vnlc {
                 for (const auto& child : packageNode->getModules()) {
                     collectModuleNode(child.second.get(), importedModules);
                 }
-            } else if (const ImportedModule* moduleNode = dynamic_cast<const ImportedModule*>(node)) {
+            } else if (const auto* moduleNode = dynamic_cast<const ImportedModule*>(node)) {
                 importedModules.emplace_back(moduleNode);
             }
         };
@@ -1743,7 +1743,7 @@ namespace vnlc {
         }
 
         for (const auto* root : importedRoots) {
-            registerImportedTypeReferences(*root);
+            registerImportedTypeAnnotations(*root);
         }
     }
 
@@ -1756,7 +1756,7 @@ namespace vnlc {
             }
         }
 
-        const bool hasTypeReference = varDecl.getType() != nullptr;
+        const bool hasTypeAnnotation = varDecl.getType() != nullptr;
         const bool hasInitializer = varDecl.getInitializer() != nullptr;
         const bool requiresInitializer = kind == ValueDeclarationKind::Kind::LET || kind == ValueDeclarationKind::Kind::STATIC_PROPERTY;
 
@@ -1777,9 +1777,9 @@ namespace vnlc {
                 context.reportError(*varDecl.getInitializer(), "Initializer expression does not have a value");
             }
 
-            if (hasTypeReference) {
+            if (hasTypeAnnotation) {
                 const Type* exprType = exprResult ? exprResult->valueType : nullptr;
-                const Type* declType = context.getTypeByTypeReferenceNode(varDecl.getType());
+                const Type* declType = context.getTypeByTypeAnnotationNode(varDecl.getType());
 
                 if (exprType && declType && !exprType->canConvertTo(*declType)) {
                     context.reportError(varDecl, fmt::format("Cannot convert '{}' to '{}'", exprType->getFullTypeName(), declType->getFullTypeName()));
@@ -1794,7 +1794,7 @@ namespace vnlc {
         }
 
         const StatementNode* body = funcDecl.getBody();
-        const TypeReferenceNode* typeRef = funcDecl.getReturnType();
+        const TypeAnnotationNode* typeAnnotation = funcDecl.getReturnType();
 
         for (const auto& param : funcDecl.getParameters()) {
             checkValueDeclaration(*param);
@@ -1820,7 +1820,7 @@ namespace vnlc {
             }
         }
 
-        if (!typeRef) {
+        if (!typeAnnotation) {
             const Type* inferredType = inferReturnType(funcDecl);
             if (!inferredType) {
                 context.reportError(funcDecl.getName(), "Failed to infer the return type");
@@ -1851,7 +1851,7 @@ namespace vnlc {
         }
 
         const StatementNode* body = operatorDecl.getBody();
-        const TypeReferenceNode* typeRef = operatorDecl.getReturnType();
+        const TypeAnnotationNode* typeAnnotation = operatorDecl.getReturnType();
         OperatorDeclarationKind::Kind kind = operatorDecl.getKind();
 
         static const std::unordered_map<OperatorDeclarationKind::Kind, std::vector<std::size_t>> allowedParameterCounts{
@@ -1896,7 +1896,7 @@ namespace vnlc {
             }
         }
 
-        if (!typeRef) {
+        if (!typeAnnotation) {
             const Type* inferredType = inferReturnType(operatorDecl);
             if (!inferredType) {
                 context.reportError(operatorDecl, "Failed to infer the return type");
@@ -1919,10 +1919,10 @@ namespace vnlc {
         if (requiredReturnTypeName.has_value()) {
             const std::string message = fmt::format("Operator '{}' must return '{}'", operatorDecl.getOperatorName(), requiredReturnTypeName.value());
 
-            if (typeRef != nullptr) {
-                const Type* returnType = context.getTypeByTypeReferenceNode(typeRef);
+            if (typeAnnotation != nullptr) {
+                const Type* returnType = context.getTypeByTypeAnnotationNode(typeAnnotation);
                 if (returnType != nullptr && returnType->getFullTypeName() != requiredReturnTypeName.value()) {
-                    context.reportError(*typeRef, message);
+                    context.reportError(*typeAnnotation, message);
                 }
             } else if (const Type* inferredReturnType = context.getInferredOperatorReturnType(operatorDecl)) {
                 if (inferredReturnType->getFullTypeName() != requiredReturnTypeName.value()) {
@@ -1942,14 +1942,14 @@ namespace vnlc {
         }
 
         if (classDecl.getBaseClass() != nullptr) {
-            const TypeReferenceNode* baseClassRefNode = classDecl.getBaseClass();
-            const Type* resolvedType = context.getTypeByTypeReferenceNode(baseClassRefNode);
+            const TypeAnnotationNode* baseClassAnnoNode = classDecl.getBaseClass();
+            const Type* resolvedType = context.getTypeByTypeAnnotationNode(baseClassAnnoNode);
 
             if (dynamic_cast<const PrimitiveType*>(resolvedType)) {
-                context.reportError(*baseClassRefNode, "Inheritance from primitive types is not allowed");
-            } else if (const CustomizedType* baseClassType = dynamic_cast<const CustomizedType*>(resolvedType)) {
+                context.reportError(*baseClassAnnoNode, "Inheritance from primitive types is not allowed");
+            } else if (const auto* baseClassType = dynamic_cast<const CustomizedType*>(resolvedType)) {
                 if (baseClassType->getCustomizedKind() != CustomizedTypeKind::CLASS) {
-                    context.reportError(*baseClassRefNode, "Inheritance from non-class types is not allowed");
+                    context.reportError(*baseClassAnnoNode, "Inheritance from non-class types is not allowed");
                 } else {
                     bool inheritanceFromFinal = false;
 
@@ -1960,25 +1960,25 @@ namespace vnlc {
                     }
 
                     if (inheritanceFromFinal) {
-                        context.reportError(*baseClassRefNode, "Inheritance from final classes is not allowed");
+                        context.reportError(*baseClassAnnoNode, "Inheritance from final classes is not allowed");
                     }
                 }
             }
 
             const ClassInheritanceNode& inheritanceNode = context.getOrCreateLocalInheritanceNode(classDecl);
             if (inheritanceNode.hasCycle()) {
-                context.reportError(*baseClassRefNode, "Cyclic inheritance detected");
+                context.reportError(*baseClassAnnoNode, "Cyclic inheritance detected");
             }
         }
 
-        for (const auto& interfaceRefNode : classDecl.getImplementedInterfaces()) {
-            const Type* resolvedType = context.getTypeByTypeReferenceNode(interfaceRefNode.get());
+        for (const auto& interfaceAnnoNode : classDecl.getImplementedInterfaces()) {
+            const Type* resolvedType = context.getTypeByTypeAnnotationNode(interfaceAnnoNode.get());
 
             if (dynamic_cast<const PrimitiveType*>(resolvedType)) {
-                context.reportError(*interfaceRefNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName()));
-            } else if (const CustomizedType* interfaceType = dynamic_cast<const CustomizedType*>(resolvedType)) {
+                context.reportError(*interfaceAnnoNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName()));
+            } else if (const auto* interfaceType = dynamic_cast<const CustomizedType*>(resolvedType)) {
                 if (interfaceType->getCustomizedKind() != CustomizedTypeKind::INTERFACE) {
-                    context.reportError(*interfaceRefNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName()));
+                    context.reportError(*interfaceAnnoNode.get(), fmt::format("Type '{}' is not an interface", resolvedType->getFullTypeName()));
                 }
             }
         }
@@ -2135,7 +2135,7 @@ namespace vnlc {
         }
 
         if (loopVariable.getType() != nullptr) {
-            resolveTypeReference(*loopVariable.getType());
+            resolveTypeAnnotation(*loopVariable.getType());
         }
         checkValueDeclaration(forStmt.getLoopVariable());
         checkExpression(forStmt.getIterableExpression());
@@ -2171,7 +2171,7 @@ namespace vnlc {
             }
         } else if (switchStmt.getSwitchKind() == SwitchStatementKind::TYPE_MATCH) {
             for (const auto& item : switchStmt.getTypeMatchItems()) {
-                resolveTypeReference(*item.type);
+                resolveTypeAnnotation(*item.type);
                 checkStatement(*item.body);
             }
         }
@@ -2190,7 +2190,7 @@ namespace vnlc {
             context.reportError(varDecl, fmt::format("Redeclaration of symbol '{}'", varDecl.getName().getIdentifierString()));
         }
         if (varDecl.getType() != nullptr) {
-            resolveTypeReference(*varDecl.getType());
+            resolveTypeAnnotation(*varDecl.getType());
         }
         checkValueDeclaration(varDecl);
     }

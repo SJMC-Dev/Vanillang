@@ -5,7 +5,7 @@
 #include "ast/declaration/OperatorDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/statement/BlockStatementNode.hpp"
-#include "ast/typeref/TypeReferenceNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
 #include <memory>
 #include <string>
 #include <string_view>
@@ -19,7 +19,7 @@ namespace vnlc {
         OperatorDeclarationKind::Context context;
         OperatorDeclarationKind::AccessModifier accessModifier;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
+        std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
         std::unique_ptr<BlockStatementNode> body;      // nullptr if native or declared in an interface
         mutable std::string internalName;
 
@@ -32,7 +32,7 @@ namespace vnlc {
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<TypeAnnotationNode>&& returnType,
             std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken
@@ -44,7 +44,7 @@ namespace vnlc {
             OperatorDeclarationKind::Context context,
             OperatorDeclarationKind::AccessModifier accessModifier,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-            std::unique_ptr<TypeReferenceNode>&& returnType,
+            std::unique_ptr<TypeAnnotationNode>&& returnType,
             std::unique_ptr<BlockStatementNode>&& body,
             const Token& firstToken,
             const Token& lastToken,
@@ -58,7 +58,7 @@ namespace vnlc {
         [[nodiscard]] std::string_view getInternalName() const noexcept;
         [[nodiscard]] std::string_view getOperatorName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
-        [[nodiscard]] const TypeReferenceNode* getReturnType() const noexcept;
+        [[nodiscard]] const TypeAnnotationNode* getReturnType() const noexcept;
         [[nodiscard]] const BlockStatementNode* getBody() const noexcept;
 
         void setInternalName(std::string_view internalName) const;

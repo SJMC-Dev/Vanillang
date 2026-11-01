@@ -8,7 +8,7 @@
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
-#include "ast/typeref/TypeReferenceNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
 #include <memory>
 #include <vector>
 
@@ -18,8 +18,8 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier;
         bool final;
         std::unique_ptr<IdentifierNode> name;
-        std::unique_ptr<TypeReferenceNode> baseClass;                          // nullptr if no base class
-        std::vector<std::unique_ptr<TypeReferenceNode>> implementedInterfaces; // empty if no implemented interfaces
+        std::unique_ptr<TypeAnnotationNode> baseClass;                          // nullptr if no base class
+        std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces; // empty if no implemented interfaces
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<ValueDeclarationNode>> propertyDeclarations; // instance or static properties only
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
@@ -33,8 +33,8 @@ namespace vnlc {
             TypeDeclarationKind::AccessModifier accessModifier,
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
-            std::unique_ptr<TypeReferenceNode>&& baseClass,
-            std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
+            std::unique_ptr<TypeAnnotationNode>&& baseClass,
+            std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -48,8 +48,8 @@ namespace vnlc {
             TypeDeclarationKind::AccessModifier accessModifier,
             bool final,
             std::unique_ptr<IdentifierNode>&& name,
-            std::unique_ptr<TypeReferenceNode>&& baseClass,
-            std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
+            std::unique_ptr<TypeAnnotationNode>&& baseClass,
+            std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
             std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -63,8 +63,8 @@ namespace vnlc {
         [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] bool isFinal() const noexcept;
         [[nodiscard]] const IdentifierNode& getName() const noexcept;
-        [[nodiscard]] const TypeReferenceNode* getBaseClass() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<TypeReferenceNode>>& getImplementedInterfaces() const noexcept;
+        [[nodiscard]] const TypeAnnotationNode* getBaseClass() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getImplementedInterfaces() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getPropertyDeclarations() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethodDeclarations() const noexcept;
