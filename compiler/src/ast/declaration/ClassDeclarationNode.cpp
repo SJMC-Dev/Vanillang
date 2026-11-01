@@ -5,8 +5,8 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier,
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
-        std::unique_ptr<TypeReferenceNode>&& baseClass,
-        std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
+        std::unique_ptr<TypeAnnotationNode>&& baseClass,
+        std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
         std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -31,8 +31,8 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier,
         bool final,
         std::unique_ptr<IdentifierNode>&& name,
-        std::unique_ptr<TypeReferenceNode>&& baseClass,
-        std::vector<std::unique_ptr<TypeReferenceNode>>&& implementedInterfaces,
+        std::unique_ptr<TypeAnnotationNode>&& baseClass,
+        std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
         std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
@@ -66,11 +66,11 @@ namespace vnlc {
         return *name;
     }
 
-    const TypeReferenceNode* ClassDeclarationNode::getBaseClass() const noexcept {
+    const TypeAnnotationNode* ClassDeclarationNode::getBaseClass() const noexcept {
         return baseClass.get();
     }
 
-    const std::vector<std::unique_ptr<TypeReferenceNode>>& ClassDeclarationNode::getImplementedInterfaces() const noexcept {
+    const std::vector<std::unique_ptr<TypeAnnotationNode>>& ClassDeclarationNode::getImplementedInterfaces() const noexcept {
         return implementedInterfaces;
     }
 

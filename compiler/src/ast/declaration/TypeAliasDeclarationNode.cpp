@@ -5,7 +5,7 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& aliasName,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-        std::unique_ptr<TypeReferenceNode>&& originalType,
+        std::unique_ptr<TypeAnnotationNode>&& originalType,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -19,7 +19,7 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& aliasName,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-        std::unique_ptr<TypeReferenceNode>&& originalType,
+        std::unique_ptr<TypeAnnotationNode>&& originalType,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -42,7 +42,7 @@ namespace vnlc {
         return genericParameterNames;
     }
 
-    const TypeReferenceNode& TypeAliasDeclarationNode::getOriginalType() const noexcept {
+    const TypeAnnotationNode& TypeAliasDeclarationNode::getOriginalType() const noexcept {
         return *originalType;
     }
 } // namespace vnlc

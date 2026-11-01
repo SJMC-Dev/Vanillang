@@ -3,7 +3,7 @@
 
 #include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
-#include "ast/typeref/TypeReferenceNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
 #include <memory>
 #include <vector>
 
@@ -13,7 +13,7 @@ namespace vnlc {
         TypeDeclarationKind::AccessModifier accessModifier;
         std::unique_ptr<IdentifierNode> aliasName;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
-        std::unique_ptr<TypeReferenceNode> originalType;
+        std::unique_ptr<TypeAnnotationNode> originalType;
 
     public:
         TypeAliasDeclarationNode() = delete;
@@ -22,7 +22,7 @@ namespace vnlc {
             TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& aliasName,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-            std::unique_ptr<TypeReferenceNode>&& originalType,
+            std::unique_ptr<TypeAnnotationNode>&& originalType,
             const Token& firstToken,
             const Token& lastToken
         ) noexcept;
@@ -31,7 +31,7 @@ namespace vnlc {
             TypeDeclarationKind::AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& aliasName,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-            std::unique_ptr<TypeReferenceNode>&& originalType,
+            std::unique_ptr<TypeAnnotationNode>&& originalType,
             const Token& firstToken,
             const Token& lastToken,
             std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -40,7 +40,7 @@ namespace vnlc {
         [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] const IdentifierNode& getAliasName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
-        [[nodiscard]] const TypeReferenceNode& getOriginalType() const noexcept;
+        [[nodiscard]] const TypeAnnotationNode& getOriginalType() const noexcept;
     };
 } // namespace vnlc
 

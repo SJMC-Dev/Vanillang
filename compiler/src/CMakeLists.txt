@@ -56,9 +56,9 @@ add_executable(
     ast/statement/ContinueStatementNode.cpp
     ast/statement/ReloadStatementNode.cpp
     ast/statement/SwitchStatementNode.cpp
-    ast/typeref/CustomizedTypeReferenceNode.cpp
-    ast/typeref/PrimitiveTypeReferenceNode.cpp
-    ast/typeref/TypeReferenceNode.cpp
+    ast/typeannotation/CustomizedTypeAnnotationNode.cpp
+    ast/typeannotation/PrimitiveTypeAnnotationNode.cpp
+    ast/typeannotation/TypeAnnotationNode.cpp
     ast/identifier/IdentifierNode.cpp
     outline/DeclarationOutline.cpp
     outline/ModuleOutline.cpp
@@ -110,7 +110,7 @@ add_executable(
     utils/Utils.cpp
     vni/import/ImportedRootPackageMap.cpp
     token/TokenStream.cpp
-    ast/typeref/VoidTypeReferenceNode.cpp
+    ast/typeannotation/VoidTypeAnnotationNode.cpp
     type/VoidType.cpp
 )
 

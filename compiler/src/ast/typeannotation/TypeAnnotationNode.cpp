@@ -1,22 +1,22 @@
-#include "TypeReferenceNode.hpp"
-#include "ast/typeref/CustomizedTypeReferenceNode.hpp"
-#include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
+#include "TypeAnnotationNode.hpp"
+#include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
 
 namespace vnlc {
-    TypeReferenceNode::TypeReferenceNode(bool questionMarkSuffix, const Token& firstToken, const Token& lastToken) noexcept
+    TypeAnnotationNode::TypeAnnotationNode(bool questionMarkSuffix, const Token& firstToken, const Token& lastToken) noexcept
         : AstNode(firstToken, lastToken),
           questionMarkSuffix(questionMarkSuffix) {}
 
-    bool TypeReferenceNode::hasQuestionMarkSuffix() const noexcept {
+    bool TypeAnnotationNode::hasQuestionMarkSuffix() const noexcept {
         return questionMarkSuffix;
     }
 
-    std::string TypeReferenceNode::generateInternalNamePart() const {
-        if (const auto* primitiveType = dynamic_cast<const PrimitiveTypeReferenceNode*>(this)) {
+    std::string TypeAnnotationNode::generateInternalNamePart() const {
+        if (const auto* primitiveType = dynamic_cast<const PrimitiveTypeAnnotationNode*>(this)) {
             return std::string(primitiveType->getPrimitiveTypeName());
         }
 
-        const auto* customizedType = dynamic_cast<const CustomizedTypeReferenceNode*>(this);
+        const auto* customizedType = dynamic_cast<const CustomizedTypeAnnotationNode*>(this);
         if (customizedType == nullptr) {
             return {};
         }

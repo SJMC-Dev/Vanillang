@@ -43,7 +43,7 @@
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
 #include "ast/statement/WhileStatementNode.hpp"
-#include "ast/typeref/TypeReferenceNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
 #include "config/Config.hpp"
 #include "metadata/MetadataInfo.hpp"
 #include "semantic/SemanticContext.hpp"
@@ -68,8 +68,8 @@ namespace vnlc {
 
         void declareFunctionOverloading(const FunctionDeclarationNode& funcDecl, RegularSymbolKind kind, std::string_view declarationKind);
 
-        void registerImportedTypeReference(std::string_view fullTypeName);
-        void registerImportedTypeReferences(const ImportedItem& importedItem);
+        void registerImportedTypeAnnotation(std::string_view fullTypeName);
+        void registerImportedTypeAnnotations(const ImportedItem& importedItem);
         void registerImportedScopes(const ImportedItem& item, const Scope* parent);
 
         void collectLocalRegularSymbolsInModule(const ModuleNode& moduleNode);
@@ -82,16 +82,16 @@ namespace vnlc {
         void collectLocalRegularSymbolsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
         void collectLocalRegularSymbolsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
 
-        void resolveTypeReference(const TypeReferenceNode& typeRef);
-        void resolveTypeReferencesInModule(const ModuleNode& moduleNode);
-        void resolveTypeReferencesInFunction(const FunctionDeclarationNode& functionNode);
-        void resolveTypeReferencesInConstructor(const ConstructorDeclarationNode& constructorNode);
-        void resolveTypeReferencesInOperator(const OperatorDeclarationNode& operatorNode);
-        void resolveTypeReferencesInClass(const ClassDeclarationNode& classNode);
-        void resolveTypeReferencesInInterface(const InterfaceDeclarationNode& interfaceNode);
-        void resolveTypeReferencesInEnum(const EnumDeclarationNode& enumNode);
-        void resolveTypeReferencesInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
-        void resolveTypeReferencesInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
+        void resolveTypeAnnotation(const TypeAnnotationNode& typeAnnotation);
+        void resolveTypeAnnotationsInModule(const ModuleNode& moduleNode);
+        void resolveTypeAnnotationsInFunction(const FunctionDeclarationNode& functionNode);
+        void resolveTypeAnnotationsInConstructor(const ConstructorDeclarationNode& constructorNode);
+        void resolveTypeAnnotationsInOperator(const OperatorDeclarationNode& operatorNode);
+        void resolveTypeAnnotationsInClass(const ClassDeclarationNode& classNode);
+        void resolveTypeAnnotationsInInterface(const InterfaceDeclarationNode& interfaceNode);
+        void resolveTypeAnnotationsInEnum(const EnumDeclarationNode& enumNode);
+        void resolveTypeAnnotationsInEnumMember(const EnumMemberDeclarationNode& enumMemberNode);
+        void resolveTypeAnnotationsInTypeAlias(const TypeAliasDeclarationNode& typeAliasNode);
 
         void generateInternalName(const DeclarationNode& node);
         void generateInternalNameForOverloadablesInModule(const ModuleNode& moduleNode);

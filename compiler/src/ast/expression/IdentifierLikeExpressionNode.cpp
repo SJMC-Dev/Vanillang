@@ -7,7 +7,7 @@ namespace vnlc {
 
     IdentifierLikeExpressionNode::IdentifierLikeExpressionNode(
         std::unique_ptr<IdentifierNode>&& name,
-        std::vector<std::unique_ptr<TypeReferenceNode>>&& genericArguments,
+        std::vector<std::unique_ptr<TypeAnnotationNode>>&& genericArguments,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -19,7 +19,7 @@ namespace vnlc {
         return *name;
     }
 
-    const std::vector<std::unique_ptr<TypeReferenceNode>>& IdentifierLikeExpressionNode::getGenericArguments() const noexcept {
+    const std::vector<std::unique_ptr<TypeAnnotationNode>>& IdentifierLikeExpressionNode::getGenericArguments() const noexcept {
         return genericArguments;
     }
 } // namespace vnlc

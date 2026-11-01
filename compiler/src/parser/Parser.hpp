@@ -2,7 +2,7 @@
 #define VNLC_PARSER_HPP
 
 #include "ast/expression/PrimitiveTypeExpressionKind.hpp"
-#include "ast/typeref/PrimitiveTypeReferenceKind.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
 #include "collector/CollectionResult.hpp"
 #include "config/Config.hpp"
 #include "lexer/Lexer.hpp"
@@ -38,7 +38,7 @@ namespace vnlc {
 
         [[nodiscard]] std::unique_ptr<IdentifierNode> constructCurrentIdentifierNode();
 
-        [[nodiscard]] static std::optional<PrimitiveTypeReferenceKind> getPrimitiveTypeReferenceKind(TokenKind kind);
+        [[nodiscard]] static std::optional<PrimitiveTypeAnnotationKind> getPrimitiveTypeAnnotationKind(TokenKind kind);
         [[nodiscard]] static std::optional<PrimitiveTypeExpressionKind> getPrimitiveTypeExpressionKind(TokenKind kind);
 
         [[nodiscard]] ModuleParsingResult parseModule(ModuleParsingContext context);

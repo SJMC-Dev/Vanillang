@@ -31,9 +31,9 @@
 #include "ast/statement/SwitchStatementItem.hpp"
 #include "ast/statement/SwitchStatementKind.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
-#include "ast/typeref/CustomizedTypeReferenceNode.hpp"
-#include "ast/typeref/PrimitiveTypeReferenceNode.hpp"
-#include "ast/typeref/VoidTypeReferenceNode.hpp"
+#include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
+#include "ast/typeannotation/VoidTypeAnnotationNode.hpp"
 #include "error/IllegalModuleOrPackageNameError.hpp"
 #include "error/SyntaxError.hpp"
 #include "outline/ClassDeclarationOutline.hpp"
@@ -122,24 +122,24 @@ namespace vnlc {
         return std::make_unique<IdentifierNode>(std::move(nameValue), firstToken, lastToken);
     }
 
-    std::optional<PrimitiveTypeReferenceKind> Parser::getPrimitiveTypeReferenceKind(TokenKind kind) {
+    std::optional<PrimitiveTypeAnnotationKind> Parser::getPrimitiveTypeAnnotationKind(TokenKind kind) {
         switch (kind) {
             case TokenKind::BYTE_TYPE:
-                return PrimitiveTypeReferenceKind::BYTE;
+                return PrimitiveTypeAnnotationKind::BYTE;
             case TokenKind::SHORT_TYPE:
-                return PrimitiveTypeReferenceKind::SHORT;
+                return PrimitiveTypeAnnotationKind::SHORT;
             case TokenKind::INT_TYPE:
-                return PrimitiveTypeReferenceKind::INT;
+                return PrimitiveTypeAnnotationKind::INT;
             case TokenKind::LONG_TYPE:
-                return PrimitiveTypeReferenceKind::LONG;
+                return PrimitiveTypeAnnotationKind::LONG;
             case TokenKind::FLOAT_TYPE:
-                return PrimitiveTypeReferenceKind::FLOAT;
+                return PrimitiveTypeAnnotationKind::FLOAT;
             case TokenKind::DOUBLE_TYPE:
-                return PrimitiveTypeReferenceKind::DOUBLE;
+                return PrimitiveTypeAnnotationKind::DOUBLE;
             case TokenKind::BOOL_TYPE:
-                return PrimitiveTypeReferenceKind::BOOLEAN;
+                return PrimitiveTypeAnnotationKind::BOOLEAN;
             case TokenKind::STRING_TYPE:
-                return PrimitiveTypeReferenceKind::STRING;
+                return PrimitiveTypeAnnotationKind::STRING;
             default:
                 return std::nullopt;
         }
@@ -740,7 +740,7 @@ namespace vnlc {
 
     VariableDeclarationPrimaryParsingResult Parser::parseVariableDeclarationPrimary(VariableDeclarationPrimaryParsingContext context) {
         std::unique_ptr<IdentifierNode> name;
-        std::unique_ptr<TypeReferenceNode> type; // nullptr if no type annotation
+        std::unique_ptr<TypeAnnotationNode> type; // nullptr if no type annotation
 
         if (!match(TokenKind::LET)) {
             throw SyntaxError("Expected 'var', 'let' or 'const' keyword", peek().getLine(), peek().getColumn());
@@ -826,12 +826,12 @@ namespace vnlc {
             throw SyntaxError("Expected ')' after parameter list", peek().getLine(), peek().getColumn());
         }
 
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
+        std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
         if (match(TokenKind::ARROW)) {
             if (check(TokenKind::VOID_KEYWORD)) {
                 Token voidToken = peek();
                 advance();
-                returnType = std::make_unique<VoidTypeReferenceNode>(voidToken, peek());
+                returnType = std::make_unique<VoidTypeAnnotationNode>(voidToken, peek());
             } else {
                 auto typeResult = parseType();
                 returnType = std::move(typeResult.type);
@@ -894,8 +894,8 @@ namespace vnlc {
     ClassDeclarationParsingResult Parser::parseClassDeclaration(ClassDeclarationParsingContext context) {
         bool final = false;
         std::unique_ptr<IdentifierNode> name;
-        std::unique_ptr<TypeReferenceNode> baseClass; // nullptr if no base class
-        std::vector<std::unique_ptr<TypeReferenceNode>> implementedInterfaces;
+        std::unique_ptr<TypeAnnotationNode> baseClass; // nullptr if no base class
+        std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
         std::vector<std::unique_ptr<ValueDeclarationNode>> propertyDeclarations;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
@@ -1115,7 +1115,7 @@ namespace vnlc {
     TypeAliasDeclarationParsingResult Parser::parseTypeAliasDeclaration(TypeAliasDeclarationParsingContext context) {
         std::unique_ptr<IdentifierNode> aliasName;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
-        std::unique_ptr<TypeReferenceNode> originalType;
+        std::unique_ptr<TypeAnnotationNode> originalType;
 
         Token firstToken = peek();
 
@@ -1199,7 +1199,7 @@ namespace vnlc {
     FunctionSignatureParsingResult Parser::parseFunctionSignature() {
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
-        std::unique_ptr<TypeReferenceNode> returnType; // nullptr if the return type is omitted
+        std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
 
         if (!match(TokenKind::FUNC)) {
             throw SyntaxError("Expected 'func' keyword", peek().getLine(), peek().getColumn());
@@ -1231,7 +1231,7 @@ namespace vnlc {
             if (check(TokenKind::VOID_KEYWORD)) {
                 Token voidToken = peek();
                 advance();
-                returnType = std::make_unique<VoidTypeReferenceNode>(voidToken, peek());
+                returnType = std::make_unique<VoidTypeAnnotationNode>(voidToken, peek());
             } else {
                 auto typeResult = parseType();
                 returnType = std::move(typeResult.type);
@@ -1333,9 +1333,9 @@ namespace vnlc {
         Token firstToken = peek();
 
         bool questionMarkSuffix = false;
-        const auto primitiveKind = getPrimitiveTypeReferenceKind(peek().getKind());
+        const auto primitiveKind = getPrimitiveTypeAnnotationKind(peek().getKind());
         std::vector<std::unique_ptr<IdentifierNode>> nameParts;
-        std::vector<std::unique_ptr<TypeReferenceNode>> genericArguments;
+        std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
 
         if (primitiveKind.has_value()) {
             advance();
@@ -1364,11 +1364,11 @@ namespace vnlc {
 
         Token lastToken = peek();
 
-        std::unique_ptr<TypeReferenceNode> type;
+        std::unique_ptr<TypeAnnotationNode> type;
         if (primitiveKind.has_value()) {
-            type = std::make_unique<PrimitiveTypeReferenceNode>(primitiveKind.value(), questionMarkSuffix, firstToken, lastToken);
+            type = std::make_unique<PrimitiveTypeAnnotationNode>(primitiveKind.value(), questionMarkSuffix, firstToken, lastToken);
         } else {
-            type = std::make_unique<CustomizedTypeReferenceNode>(questionMarkSuffix, std::move(nameParts), std::move(genericArguments), firstToken, lastToken);
+            type = std::make_unique<CustomizedTypeAnnotationNode>(questionMarkSuffix, std::move(nameParts), std::move(genericArguments), firstToken, lastToken);
         }
 
         return TypeParsingResult{
@@ -1378,7 +1378,7 @@ namespace vnlc {
 
     ParameterParsingResult Parser::parseParameter() {
         std::unique_ptr<IdentifierNode> name;
-        std::unique_ptr<TypeReferenceNode> type;
+        std::unique_ptr<TypeAnnotationNode> type;
 
         Token firstToken = peek();
 
@@ -1428,7 +1428,7 @@ namespace vnlc {
     }
 
     GenericArgumentListParsingResult Parser::parseGenericArgumentList() {
-        std::vector<std::unique_ptr<TypeReferenceNode>> arguments;
+        std::vector<std::unique_ptr<TypeAnnotationNode>> arguments;
 
         do {
             auto typeResult = parseType();
@@ -1887,7 +1887,7 @@ namespace vnlc {
 
     EnumAssociatedValueParsingResult Parser::parseEnumAssociatedValue() {
         std::unique_ptr<IdentifierNode> name;
-        std::unique_ptr<TypeReferenceNode> type;
+        std::unique_ptr<TypeAnnotationNode> type;
 
         Token firstToken = peek();
 
@@ -2505,7 +2505,7 @@ namespace vnlc {
 
         context.prefix.emplace_back(name->getIdentifierString());
 
-        std::vector<std::unique_ptr<TypeReferenceNode>> genericArguments;
+        std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
         if (check(TokenKind::LEFT_ANGLE)) {
             std::string_view identifierName = name->getIdentifierString();
 

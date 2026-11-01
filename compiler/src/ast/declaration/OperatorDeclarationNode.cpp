@@ -7,7 +7,7 @@ namespace vnlc {
         OperatorDeclarationKind::Context context,
         OperatorDeclarationKind::AccessModifier accessModifier,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-        std::unique_ptr<TypeReferenceNode>&& returnType,
+        std::unique_ptr<TypeAnnotationNode>&& returnType,
         std::unique_ptr<BlockStatementNode>&& body,
         const Token& firstToken,
         const Token& lastToken
@@ -28,7 +28,7 @@ namespace vnlc {
         OperatorDeclarationKind::Context context,
         OperatorDeclarationKind::AccessModifier accessModifier,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
-        std::unique_ptr<TypeReferenceNode>&& returnType,
+        std::unique_ptr<TypeAnnotationNode>&& returnType,
         std::unique_ptr<BlockStatementNode>&& body,
         const Token& firstToken,
         const Token& lastToken,
@@ -112,7 +112,7 @@ namespace vnlc {
         return parameters;
     }
 
-    const TypeReferenceNode* OperatorDeclarationNode::getReturnType() const noexcept {
+    const TypeAnnotationNode* OperatorDeclarationNode::getReturnType() const noexcept {
         return returnType.get();
     }
 
