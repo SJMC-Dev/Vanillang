@@ -14,6 +14,7 @@ namespace vnlc {
         TYPE_ALIAS,
         FUNCTION,
         BLOCK,
+        CONDITIONAL,
         LOOP,
         SWITCH,
     };

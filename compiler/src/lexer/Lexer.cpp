@@ -2,6 +2,7 @@
 #include "error/OutOfRangeError.hpp"
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace vnlc {
     const std::unordered_map<std::string_view, TokenKind>& Lexer::getKeywords() {
@@ -219,38 +220,73 @@ namespace vnlc {
     }
 
     Token Lexer::processStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
-        constexpr unsigned char BIN = 0b001;
-        constexpr unsigned char OCT = 0b010;
-        constexpr unsigned char HEX = 0b100;
+        enum class Base : std::uint8_t {
+            DEC,
+            BIN,
+            OCT,
+            HEX,
+        };
+
+        static const std::unordered_map<char, Base> baseFlags{
+            { 'b', Base::BIN }, { 'B', Base::BIN }, { 'o', Base::OCT }, { 'O', Base::OCT }, { 'x', Base::HEX }, { 'X', Base::HEX },
+        };
 
         bool existE = false;
         bool existDot = mode == LexerMode::NUMBER_STARTS_WITH_DOT;
         bool nonDecimal = false;
-        unsigned char baseFlags = 0;
+        Base base = Base::DEC;
 
         mode = LexerMode::DEFAULT;
 
         std::string_view hexDigits = "0123456789abcdefABCDEF";
         std::string_view octalDigits = "01234567";
         std::string_view binaryDigits = "01";
-        std::string_view nonDecimalFlags = "xob";
+        std::string_view nonDecimalFlags = "xobXOB";
         std::string_view exponentFlags = "eE";
-        std::string_view integerSuffixes = "bBsSlL";
+        std::string_view signSuffixes = "sSuU";
+        std::string_view integerSuffixes = "bBsSiIlL";
         std::string_view floatSuffixes = "fFdD";
+
+        const auto lexicalError = [&]() -> Token {
+            while (!separator()) {
+                collect(tokenValue);
+            }
+
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        };
+
+        const auto digit = [&]() {
+            switch (base) {
+                case Base::BIN:
+                    return binaryDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::OCT:
+                    return octalDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::HEX:
+                    return hexDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::DEC:
+                    return number();
+            }
+
+            return false;
+        };
 
         while (true) {
             if (peek() != '.' && separator()) {
                 break;
             }
 
-            if (peek() == '0' && nonDecimalFlags.find(static_cast<char>(peek(1))) != std::string_view::npos) {
+            if (tokenValue.empty() && peek() == '0' && nonDecimalFlags.find(static_cast<char>(peek(1))) != std::string_view::npos) {
                 nonDecimal = true;
                 collect(tokenValue);
-                baseFlags = peek() == 'b' ? BIN : peek() == 'o' ? OCT : peek() == 'x' ? HEX : 0;
+                base = baseFlags.at(static_cast<char>(peek()));
                 collect(tokenValue);
 
-                if (separator() && peek() != '.') {
-                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                if (base == Base::BIN && separator()) {
+                    break;
+                }
+
+                if (!digit()) {
+                    return lexicalError();
                 }
 
                 continue;
@@ -264,59 +300,26 @@ namespace vnlc {
                 collect(tokenValue);
 
                 if (nonDecimal || existE || existDot) {
-                    while (!separator()) {
-                        collect(tokenValue);
-                    }
-
-                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    return lexicalError();
                 }
 
                 existDot = true;
                 continue;
             }
 
-            if (nonDecimal) {
-                bool error = false;
-                error |= baseFlags == BIN && binaryDigits.find(static_cast<char>(peek())) == std::string_view::npos;
-                error |= baseFlags == OCT && octalDigits.find(static_cast<char>(peek())) == std::string_view::npos;
-                error |= baseFlags == HEX && hexDigits.find(static_cast<char>(peek())) == std::string_view::npos;
-
-                if (error) {
-                    while (!separator()) {
-                        collect(tokenValue);
-                    }
-
-                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
-                }
-            };
-
             if (!nonDecimal && exponentFlags.find(static_cast<char>(peek())) != std::string_view::npos) {
                 collect(tokenValue);
 
                 if (existE) {
-                    while (!separator()) {
-                        collect(tokenValue);
-                    }
-
-                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    return lexicalError();
                 }
 
                 if (peek() == '+' || peek() == '-') {
                     collect(tokenValue);
+                }
 
-                    if (!number()) {
-                        while (!separator()) {
-                            collect(tokenValue);
-                        }
-
-                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
-                    }
-                } else if (!number()) {
-                    while (!separator()) {
-                        collect(tokenValue);
-                    }
-
-                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                if (!number()) {
+                    return lexicalError();
                 }
 
                 collect(tokenValue);
@@ -324,30 +327,28 @@ namespace vnlc {
                 continue;
             }
 
-            if (!nonDecimal && !number()) {
+            if (!digit()) {
                 if (existDot || existE) {
-                    if (floatSuffixes.find(static_cast<char>(peek())) != std::string_view::npos) {
-                        collect(tokenValue);
-                        break;
-                    } else {
-                        while (!separator()) {
-                            collect(tokenValue);
-                        }
-
-                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    if (floatSuffixes.find(static_cast<char>(peek())) == std::string_view::npos) {
+                        return lexicalError();
                     }
                 } else {
-                    if (integerSuffixes.find(static_cast<char>(peek())) != std::string_view::npos) {
+                    if (signSuffixes.find(static_cast<char>(peek())) != std::string_view::npos && integerSuffixes.find(static_cast<char>(peek(1))) != std::string_view::npos) {
                         collect(tokenValue);
-                        break;
-                    } else {
-                        while (!separator()) {
-                            collect(tokenValue);
-                        }
+                    }
 
-                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    if (integerSuffixes.find(static_cast<char>(peek())) == std::string_view::npos) {
+                        return lexicalError();
                     }
                 }
+
+                collect(tokenValue);
+
+                if (!separator()) {
+                    return lexicalError();
+                }
+
+                break;
             }
 
             collect(tokenValue);

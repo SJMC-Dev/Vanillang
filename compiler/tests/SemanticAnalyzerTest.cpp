@@ -216,6 +216,50 @@ type Text = string
         EXPECT_EQ(result.getErrors().front().getMessage(), "Use of undeclared type 'string'");
     }
 
+    TEST(SemanticAnalyzerTest, ScopesIfConditionDeclarationsToTheThenBranch) {
+        constexpr std::string_view source = R"(
+func test() {
+    if (let value = 1) {
+        let inner = value
+    } else {
+        let other = 2
+    }
+}
+)";
+        const auto config = makeConfig("if_condition_declarations.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+        const auto* ifStatement = dynamic_cast<const IfStatementNode*>(function->getBody()->getStatements().front().get());
+        ASSERT_NE(ifStatement, nullptr);
+        ASSERT_NE(ifStatement->getConditionDeclaration(), nullptr);
+        ASSERT_NE(ifStatement->getElseBranch(), nullptr);
+
+        const auto* ifScope = result.getScopeByAstNode(*ifStatement);
+        ASSERT_NE(ifScope, nullptr);
+        const auto* valueSymbol = asRegularSymbol(ifScope->lookupLocal("value"));
+        ASSERT_NE(valueSymbol, nullptr);
+        EXPECT_EQ(valueSymbol->getKind(), RegularSymbolKind::VARIABLE);
+        EXPECT_EQ(valueSymbol->getLocalNode(), ifStatement->getConditionDeclaration());
+
+        const auto* thenScope = result.getScopeByAstNode(ifStatement->getThenBranch());
+        ASSERT_NE(thenScope, nullptr);
+        EXPECT_EQ(thenScope->findParent(), ifScope);
+        EXPECT_EQ(thenScope->lookup("value"), valueSymbol);
+
+        const auto* elseScope = result.getScopeByAstNode(*ifStatement->getElseBranch());
+        ASSERT_NE(elseScope, nullptr);
+        EXPECT_NE(elseScope->findParent(), ifScope);
+        EXPECT_EQ(elseScope->lookup("value"), nullptr);
+    }
+
     TEST(SemanticAnalyzerTest, AcceptsPrimitiveTypeExpressions) {
         constexpr std::string_view source = R"(
 func test() {

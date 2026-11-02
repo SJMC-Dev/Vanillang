@@ -1,6 +1,7 @@
 #ifndef VNLC_PARSER_HPP
 #define VNLC_PARSER_HPP
 
+#include "ast/expression/SimpleLiteralExpressionKind.hpp"
 #include "collector/CollectionResult.hpp"
 #include "config/Config.hpp"
 #include "lexer/Lexer.hpp"
@@ -12,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -38,6 +40,7 @@ namespace vnlc {
 
         template <typename PrimitiveKind>
         [[nodiscard]] static std::optional<PrimitiveKind> getPrimitiveKind(TokenKind kind);
+        [[nodiscard]] static SimpleLiteralExpressionKind getNumberLiteralKind(std::string_view literal);
 
         [[nodiscard]] ModuleParsingResult parseModule(ModuleParsingContext context);
         [[nodiscard]] TopIdentifierDeclarationParsingResult parseTopIdentifierDeclaration();

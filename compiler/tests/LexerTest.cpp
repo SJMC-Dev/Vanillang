@@ -496,6 +496,37 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, NumberSuffixes) {
+        for (const auto literal : { "9i",   "16si",   "10000ui", "1b",     "255ub", "1SB",    "256s",   "65535us", "7Ss",  "3l",   "2147483648sl", "7Ul", "0b",
+                                    "0XFF", "0B1010", "0O17",    "0xFFub", "0x1b",  "0xFFsi", "0b101b", "0o17L",   "1.5D", "1E3F", "3e-4",         ".1f", "2.e1d" }) {
+            SCOPED_TRACE(literal);
+            std::istringstream input(literal);
+            Lexer lexer(input);
+
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            EXPECT_EQ(token.getKind(), TokenKind::NUMBER);
+            EXPECT_EQ(token.getValue(), literal);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        }
+    }
+
+    TEST(LexerTest, InvalidNumberSuffixes) {
+        for (const auto literal : { "1u", "1bx", "1sbb", "1ub2", "0x", "0xui", "0b2", "1.5u", "1.0i", "1f", "1d" }) {
+            SCOPED_TRACE(literal);
+            std::istringstream input(literal);
+            Lexer lexer(input);
+
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            EXPECT_EQ(token.getKind(), TokenKind::LEXICAL_ERROR);
+            EXPECT_EQ(token.getValue(), literal);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        }
+    }
+
     TEST(LexerTest, Comments) {
         std::istringstream input("# This is a single-line comment\n#* This is a \nmulti-line comment *#\n#* This is an unterminated multi-line comment\n");
         Lexer lexer(input);

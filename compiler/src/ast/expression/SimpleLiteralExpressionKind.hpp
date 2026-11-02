@@ -5,16 +5,16 @@
 
 namespace vnlc {
     enum class SimpleLiteralExpressionKind : std::uint8_t {
-        DECIMAL_BYTE,
-        DECIMAL_SHORT,
-        DECIMAL_INTEGER,
-        DECIMAL_LONG,
-        DECIMAL_FLOAT,
-        DECIMAL_DOUBLE,
-
-        BINARY,
-        OCTAL,
-        HEXADECIMAL,
+        BYTE,
+        UNSIGNED_BYTE,
+        SHORT,
+        UNSIGNED_SHORT,
+        INT,
+        UNSIGNED_INT,
+        LONG,
+        UNSIGNED_LONG,
+        FLOAT,
+        DOUBLE,
 
         CHARACTER,
 

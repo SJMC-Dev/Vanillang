@@ -2151,8 +2151,30 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::checkIfStatement(const IfStatementNode& ifStmt) {
-        checkExpression(ifStmt.getCondition());
-        checkStatement(ifStmt.getThenBranch());
+        if (const auto* conditionDecl = ifStmt.getConditionDeclaration()) {
+            context.pushScope(std::make_unique<Scope>(ScopeKind::CONDITIONAL, &context.currentScope(), &ifStmt));
+
+            RegularSymbol variableSymbol(
+                RegularSymbolKind::VARIABLE,
+                static_cast<RegularSymbolAccessModifier>(conditionDecl->getAccessModifier()),
+                conditionDecl->getName().getIdentifierString(),
+                conditionDecl
+            );
+            if (!context.currentScope().declare(std::move(variableSymbol))) {
+                context.reportError(*conditionDecl, fmt::format("Redeclaration of symbol '{}'", conditionDecl->getName().getIdentifierString()));
+            }
+            if (conditionDecl->getType() != nullptr) {
+                resolveTypeAnnotation(*conditionDecl->getType());
+            }
+            checkValueDeclaration(*conditionDecl);
+            checkStatement(ifStmt.getThenBranch());
+
+            context.popScope();
+        } else {
+            checkExpression(*ifStmt.getCondition());
+            checkStatement(ifStmt.getThenBranch());
+        }
+
         if (ifStmt.getElseBranch() != nullptr) {
             checkStatement(*ifStmt.getElseBranch());
         }
@@ -2321,7 +2343,7 @@ namespace vnlc {
     void SemanticAnalyzer::checkSelectorLiteralExpression(const SelectorLiteralExpressionNode& selectorLiteralExpr) {
         // TODO: Implement selector literal expression checking
         for (const auto& argument : selectorLiteralExpr.getArguments()) {
-            checkExpression(*argument.second);
+            checkExpression(*argument.value);
         }
     }
 
