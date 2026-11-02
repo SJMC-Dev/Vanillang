@@ -663,12 +663,20 @@ namespace vnlc {
             switch (kind) {
                 case PrimitiveTypeAnnotationKind::BYTE:
                     return PrimitiveType::byteType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_BYTE:
+                    return PrimitiveType::unsignedByteType();
                 case PrimitiveTypeAnnotationKind::SHORT:
                     return PrimitiveType::shortType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_SHORT:
+                    return PrimitiveType::unsignedShortType();
                 case PrimitiveTypeAnnotationKind::INT:
                     return PrimitiveType::intType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_INT:
+                    return PrimitiveType::unsignedIntType();
                 case PrimitiveTypeAnnotationKind::LONG:
                     return PrimitiveType::longType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_LONG:
+                    return PrimitiveType::unsignedLongType();
                 case PrimitiveTypeAnnotationKind::FLOAT:
                     return PrimitiveType::floatType();
                 case PrimitiveTypeAnnotationKind::DOUBLE:

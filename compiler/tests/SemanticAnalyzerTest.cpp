@@ -1138,6 +1138,28 @@ class Visible {}
         EXPECT_EQ(localScopes.at(module.get()).get(), localScope);
     }
 
+    TEST(SemanticContextTest, ResolvesEveryPrimitiveTypeByFullTypeName) {
+        const auto config = makeConfig("primitive_type_names.vnl");
+        const auto module = parseModule("", config);
+        const ImportedRootPackageMap imports;
+        const SemanticContext context(*module, imports);
+
+        for (const auto* primitiveType : { PrimitiveType::byteType(),
+                                           PrimitiveType::unsignedByteType(),
+                                           PrimitiveType::shortType(),
+                                           PrimitiveType::unsignedShortType(),
+                                           PrimitiveType::intType(),
+                                           PrimitiveType::unsignedIntType(),
+                                           PrimitiveType::longType(),
+                                           PrimitiveType::unsignedLongType(),
+                                           PrimitiveType::floatType(),
+                                           PrimitiveType::doubleType(),
+                                           PrimitiveType::booleanType() }) {
+            SCOPED_TRACE(primitiveType->getFullTypeName());
+            EXPECT_EQ(context.getTypeByFullTypeName(primitiveType->getFullTypeName()), primitiveType);
+        }
+    }
+
     class SemanticAnalyzerImportTest : public testing::Test {
     protected:
         std::filesystem::path testDirectory;
@@ -1316,9 +1338,13 @@ class Visible {}
 
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalPrimitiveTypesWithTheirOriginalArguments) {
         for (const auto* primitiveType : { PrimitiveType::byteType(),
+                                           PrimitiveType::unsignedByteType(),
                                            PrimitiveType::shortType(),
+                                           PrimitiveType::unsignedShortType(),
                                            PrimitiveType::intType(),
+                                           PrimitiveType::unsignedIntType(),
                                            PrimitiveType::longType(),
+                                           PrimitiveType::unsignedLongType(),
                                            PrimitiveType::floatType(),
                                            PrimitiveType::doubleType(),
                                            PrimitiveType::booleanType() }) {

@@ -21,9 +21,13 @@ namespace vnlc {
         [[nodiscard]] bool canConvertTo(const Type& other) const noexcept override;
 
         [[nodiscard]] static const PrimitiveType* byteType();
+        [[nodiscard]] static const PrimitiveType* unsignedByteType();
         [[nodiscard]] static const PrimitiveType* shortType();
+        [[nodiscard]] static const PrimitiveType* unsignedShortType();
         [[nodiscard]] static const PrimitiveType* intType();
+        [[nodiscard]] static const PrimitiveType* unsignedIntType();
         [[nodiscard]] static const PrimitiveType* longType();
+        [[nodiscard]] static const PrimitiveType* unsignedLongType();
         [[nodiscard]] static const PrimitiveType* floatType();
         [[nodiscard]] static const PrimitiveType* doubleType();
         [[nodiscard]] static const PrimitiveType* booleanType();

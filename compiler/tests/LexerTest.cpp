@@ -92,6 +92,29 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, UnsignedPrimitiveTypeKeywords) {
+        std::istringstream input("ubyte ushort uint ulong");
+        Lexer lexer(input);
+
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::UBYTE_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::USHORT_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::UINT_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::ULONG_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
     TEST(LexerTest, StringTypeNamesAreIdentifiers) {
         std::istringstream input("string String");
         Lexer lexer(input);

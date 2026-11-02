@@ -129,12 +129,20 @@ namespace vnlc {
         switch (kind) {
             case TokenKind::BYTE_TYPE:
                 return PrimitiveKind::BYTE;
+            case TokenKind::UBYTE_TYPE:
+                return PrimitiveKind::UNSIGNED_BYTE;
             case TokenKind::SHORT_TYPE:
                 return PrimitiveKind::SHORT;
+            case TokenKind::USHORT_TYPE:
+                return PrimitiveKind::UNSIGNED_SHORT;
             case TokenKind::INT_TYPE:
                 return PrimitiveKind::INT;
+            case TokenKind::UINT_TYPE:
+                return PrimitiveKind::UNSIGNED_INT;
             case TokenKind::LONG_TYPE:
                 return PrimitiveKind::LONG;
+            case TokenKind::ULONG_TYPE:
+                return PrimitiveKind::UNSIGNED_LONG;
             case TokenKind::FLOAT_TYPE:
                 return PrimitiveKind::FLOAT;
             case TokenKind::DOUBLE_TYPE:

@@ -21,12 +21,20 @@ namespace vnlc {
                 return "vnlc::TokenKind::CONST";
             case TokenKind::BYTE_TYPE:
                 return "vnlc::TokenKind::BYTE_TYPE";
+            case TokenKind::UBYTE_TYPE:
+                return "vnlc::TokenKind::UBYTE_TYPE";
             case TokenKind::SHORT_TYPE:
                 return "vnlc::TokenKind::SHORT_TYPE";
+            case TokenKind::USHORT_TYPE:
+                return "vnlc::TokenKind::USHORT_TYPE";
             case TokenKind::INT_TYPE:
                 return "vnlc::TokenKind::INT_TYPE";
+            case TokenKind::UINT_TYPE:
+                return "vnlc::TokenKind::UINT_TYPE";
             case TokenKind::LONG_TYPE:
                 return "vnlc::TokenKind::LONG_TYPE";
+            case TokenKind::ULONG_TYPE:
+                return "vnlc::TokenKind::ULONG_TYPE";
             case TokenKind::FLOAT_TYPE:
                 return "vnlc::TokenKind::FLOAT_TYPE";
             case TokenKind::DOUBLE_TYPE:

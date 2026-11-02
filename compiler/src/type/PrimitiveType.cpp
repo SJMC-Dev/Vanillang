@@ -14,12 +14,20 @@ namespace vnlc {
         switch (primitiveKind) {
             case PrimitiveTypeKind::BYTE:
                 return PrimitiveTypeNames::Byte;
+            case PrimitiveTypeKind::UNSIGNED_BYTE:
+                return PrimitiveTypeNames::UnsignedByte;
             case PrimitiveTypeKind::SHORT:
                 return PrimitiveTypeNames::Short;
+            case PrimitiveTypeKind::UNSIGNED_SHORT:
+                return PrimitiveTypeNames::UnsignedShort;
             case PrimitiveTypeKind::INT:
                 return PrimitiveTypeNames::Int;
+            case PrimitiveTypeKind::UNSIGNED_INT:
+                return PrimitiveTypeNames::UnsignedInt;
             case PrimitiveTypeKind::LONG:
                 return PrimitiveTypeNames::Long;
+            case PrimitiveTypeKind::UNSIGNED_LONG:
+                return PrimitiveTypeNames::UnsignedLong;
             case PrimitiveTypeKind::FLOAT:
                 return PrimitiveTypeNames::Float;
             case PrimitiveTypeKind::DOUBLE:
@@ -42,10 +50,18 @@ namespace vnlc {
         switch (primitiveKind) {
             case PrimitiveTypeKind::BYTE:
                 return targetKind == PrimitiveTypeKind::SHORT || targetKind == PrimitiveTypeKind::INT || targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::UNSIGNED_BYTE:
+                return targetKind == PrimitiveTypeKind::SHORT || targetKind == PrimitiveTypeKind::UNSIGNED_SHORT || targetKind == PrimitiveTypeKind::INT ||
+                       targetKind == PrimitiveTypeKind::UNSIGNED_INT || targetKind == PrimitiveTypeKind::LONG || targetKind == PrimitiveTypeKind::UNSIGNED_LONG;
             case PrimitiveTypeKind::SHORT:
                 return targetKind == PrimitiveTypeKind::INT || targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::UNSIGNED_SHORT:
+                return targetKind == PrimitiveTypeKind::INT || targetKind == PrimitiveTypeKind::UNSIGNED_INT || targetKind == PrimitiveTypeKind::LONG ||
+                       targetKind == PrimitiveTypeKind::UNSIGNED_LONG;
             case PrimitiveTypeKind::INT:
                 return targetKind == PrimitiveTypeKind::LONG;
+            case PrimitiveTypeKind::UNSIGNED_INT:
+                return targetKind == PrimitiveTypeKind::LONG || targetKind == PrimitiveTypeKind::UNSIGNED_LONG;
             case PrimitiveTypeKind::FLOAT:
                 return targetKind == PrimitiveTypeKind::DOUBLE;
             default:
@@ -58,9 +74,19 @@ namespace vnlc {
         return &resolvedByteType;
     }
 
+    const PrimitiveType* PrimitiveType::unsignedByteType() {
+        static const PrimitiveType resolvedUnsignedByteType{ PrimitiveTypeKind::UNSIGNED_BYTE };
+        return &resolvedUnsignedByteType;
+    }
+
     const PrimitiveType* PrimitiveType::shortType() {
         static const PrimitiveType resolvedShortType{ PrimitiveTypeKind::SHORT };
         return &resolvedShortType;
+    }
+
+    const PrimitiveType* PrimitiveType::unsignedShortType() {
+        static const PrimitiveType resolvedUnsignedShortType{ PrimitiveTypeKind::UNSIGNED_SHORT };
+        return &resolvedUnsignedShortType;
     }
 
     const PrimitiveType* PrimitiveType::intType() {
@@ -68,9 +94,19 @@ namespace vnlc {
         return &resolvedIntType;
     }
 
+    const PrimitiveType* PrimitiveType::unsignedIntType() {
+        static const PrimitiveType resolvedUnsignedIntType{ PrimitiveTypeKind::UNSIGNED_INT };
+        return &resolvedUnsignedIntType;
+    }
+
     const PrimitiveType* PrimitiveType::longType() {
         static const PrimitiveType resolvedLongType{ PrimitiveTypeKind::LONG };
         return &resolvedLongType;
+    }
+
+    const PrimitiveType* PrimitiveType::unsignedLongType() {
+        static const PrimitiveType resolvedUnsignedLongType{ PrimitiveTypeKind::UNSIGNED_LONG };
+        return &resolvedUnsignedLongType;
     }
 
     const PrimitiveType* PrimitiveType::floatType() {

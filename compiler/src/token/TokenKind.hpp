@@ -16,9 +16,13 @@ namespace vnlc {
         CONST_KEYWORD,
 
         BYTE_TYPE,
+        UBYTE_TYPE,
         SHORT_TYPE,
+        USHORT_TYPE,
         INT_TYPE,
+        UINT_TYPE,
         LONG_TYPE,
+        ULONG_TYPE,
         FLOAT_TYPE,
         DOUBLE_TYPE,
         BOOL_TYPE,

@@ -783,6 +783,61 @@ namespace vnlc {
         EXPECT_TRUE(customizedReference->getGenericArguments().empty());
     }
 
+    TEST(ParserTest, ParsesUnsignedPrimitiveTypeAnnotationsAndExpressions) {
+        struct UnsignedPrimitiveType {
+            std::string_view name;
+            PrimitiveTypeAnnotationKind annotationKind;
+            PrimitiveTypeExpressionKind expressionKind;
+        };
+        constexpr UnsignedPrimitiveType types[] = {
+            { "ubyte", PrimitiveTypeAnnotationKind::UNSIGNED_BYTE, PrimitiveTypeExpressionKind::UNSIGNED_BYTE },
+            { "ushort", PrimitiveTypeAnnotationKind::UNSIGNED_SHORT, PrimitiveTypeExpressionKind::UNSIGNED_SHORT },
+            { "uint", PrimitiveTypeAnnotationKind::UNSIGNED_INT, PrimitiveTypeExpressionKind::UNSIGNED_INT },
+            { "ulong", PrimitiveTypeAnnotationKind::UNSIGNED_LONG, PrimitiveTypeExpressionKind::UNSIGNED_LONG },
+        };
+
+        for (const auto& [name, annotationKind, expressionKind] : types) {
+            SCOPED_TRACE(name);
+            std::stringstream input("func test() {\n    let primitiveType = " + std::string(name) + "\n    let primitiveValue: " + std::string(name) + "? = none\n}\n");
+
+            Config config{
+                .mode = RunningMode::COMPILE,
+                .vanillangVersion = "1.0",
+                .minecraftVersion = "26.1.2",
+                .packageRootPath = testPackageRootPath(),
+                .inputFilePath = testPackageRootPath() / "test.vnl",
+                .outputDirectory = {},
+                .dependencyPackageRootPaths = {},
+                .optimizationLevel = std::nullopt,
+            };
+
+            auto result = parseModule(input, config);
+            const auto& module = result.getModuleNode();
+            ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+            const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+            ASSERT_NE(function, nullptr);
+            ASSERT_NE(function->getBody(), nullptr);
+
+            const auto& statements = function->getBody()->getStatements();
+            ASSERT_EQ(statements.size(), 2);
+
+            const auto* primitiveExpressionStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
+            ASSERT_NE(primitiveExpressionStatement, nullptr);
+            const auto* primitiveExpression = dynamic_cast<const PrimitiveTypeExpressionNode*>(primitiveExpressionStatement->getVariableDeclaration().getInitializer());
+            ASSERT_NE(primitiveExpression, nullptr);
+            EXPECT_EQ(primitiveExpression->getKind(), expressionKind);
+
+            const auto* primitiveValueStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
+            ASSERT_NE(primitiveValueStatement, nullptr);
+            const auto* primitiveReference = dynamic_cast<const PrimitiveTypeAnnotationNode*>(primitiveValueStatement->getVariableDeclaration().getType());
+            ASSERT_NE(primitiveReference, nullptr);
+            EXPECT_EQ(primitiveReference->getKind(), annotationKind);
+            EXPECT_EQ(primitiveReference->getPrimitiveTypeName(), name);
+            EXPECT_TRUE(primitiveReference->hasQuestionMarkSuffix());
+        }
+    }
+
     TEST(ParserTest, ParsesGenericArgumentsForLocalTypeDeclarationsOnly) {
         std::stringstream input(
             "class Box {}\n"
