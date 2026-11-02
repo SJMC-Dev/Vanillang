@@ -43,13 +43,12 @@ namespace vnlc {
         [[nodiscard]] int peek() const;
         [[nodiscard]] int peek(std::size_t offset) const;
 
-        [[nodiscard]] Token processStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-        [[nodiscard]] Token processStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
-
+        [[nodiscard]] Token scanTokenStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanTokenStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanTokenStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanTokenStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanTokenStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
+        [[nodiscard]] Token scanTokenStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
         [[nodiscard]] Token scanStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
         [[nodiscard]] Token scanFormatStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);
         [[nodiscard]] Token scanRawStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset);

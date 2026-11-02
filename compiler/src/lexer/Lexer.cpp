@@ -207,7 +207,7 @@ namespace vnlc {
         return !exhausted;
     }
 
-    Token Lexer::processStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         while (blank()) {
             if (peek() != '\r') {
                 collect(tokenValue);
@@ -219,7 +219,7 @@ namespace vnlc {
         return { TokenKind::BLANK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         enum class Base : std::uint8_t {
             DEC,
             BIN,
@@ -357,7 +357,7 @@ namespace vnlc {
         return { TokenKind::NUMBER, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         if (peek() == '+') {
             collect(tokenValue);
 
@@ -582,7 +582,7 @@ namespace vnlc {
                 }
             } else if (number()) {
                 mode = LexerMode::NUMBER_STARTS_WITH_DOT;
-                return processStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
             } else {
                 return { TokenKind::DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
             }
@@ -760,17 +760,17 @@ namespace vnlc {
         }
     }
 
-    Token Lexer::processStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         collect(tokenValue);
         return { TokenKind::NEWLINE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         advance();
         return { TokenKind::END_OF_FILE, "", currentLine, currentColumn, currentOffset };
     }
 
-    Token Lexer::processStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+    Token Lexer::scanTokenStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
         bool error = false;
 
         if ((peek() == 'f' || peek() == 'F') && peek(1) == '"') {
@@ -932,17 +932,17 @@ namespace vnlc {
             return scanFormatStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
         } else {
             if (eof()) {
-                return processStartsWithEof(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithEof(tokenValue, currentLine, currentColumn, currentOffset);
             } else if (blank()) {
-                return processStartsWithBlank(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithBlank(tokenValue, currentLine, currentColumn, currentOffset);
             } else if (newline()) {
-                return processStartsWithNewline(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithNewline(tokenValue, currentLine, currentColumn, currentOffset);
             } else if (special()) {
-                return processStartsWithSpecial(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithSpecial(tokenValue, currentLine, currentColumn, currentOffset);
             } else if (number()) {
-                return processStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
             } else {
-                return processStartsWithIdentifier(tokenValue, currentLine, currentColumn, currentOffset);
+                return scanTokenStartsWithIdentifier(tokenValue, currentLine, currentColumn, currentOffset);
             }
         }
 
