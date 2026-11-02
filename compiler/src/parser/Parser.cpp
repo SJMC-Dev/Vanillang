@@ -342,7 +342,7 @@ namespace vnlc {
             accessModifier = AccessModifier::PRIVATE;
         }
 
-        if (check(TokenKind::VAR) || check(TokenKind::LET) || check(TokenKind::CONST_KEYWORD)) {
+        if (check(TokenKind::LET)) {
             VariableDeclarationParsingContext context{
                 .position = VariableDeclarationParsingContext::Position::TOP_LEVEL,
                 .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
@@ -3038,12 +3038,6 @@ namespace vnlc {
             TokenKind::SELECTOR_PREFIX,
         };
 
-        static const std::unordered_set<TokenKind> variableDeclarationStarters = {
-            TokenKind::VAR,
-            TokenKind::LET,
-            TokenKind::CONST_KEYWORD,
-        };
-
         static const std::unordered_set<TokenKind> controlFlowStarters = {
             TokenKind::IF, TokenKind::SWITCH, TokenKind::LABEL, TokenKind::WHILE, TokenKind::FOR, TokenKind::RETURN, TokenKind::BREAK, TokenKind::CONTINUE, TokenKind::RELOAD,
         };
@@ -3054,7 +3048,7 @@ namespace vnlc {
             auto result = parseExpressionStatement();
 
             statement = std::move(result.statement);
-        } else if (checkAny(variableDeclarationStarters)) {
+        } else if (check(TokenKind::LET)) {
             auto result = parseVariableDeclarationStatement();
 
             statement = std::move(result.statement);
