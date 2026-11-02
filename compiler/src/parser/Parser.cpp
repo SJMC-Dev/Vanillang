@@ -15,6 +15,7 @@
 #include "ast/expression/MemberAccessExpressionKind.hpp"
 #include "ast/expression/MemberAccessExpressionNode.hpp"
 #include "ast/expression/NoneExpressionNode.hpp"
+#include "ast/expression/PrimitiveTypeExpressionKind.hpp"
 #include "ast/expression/PrimitiveTypeExpressionNode.hpp"
 #include "ast/expression/RangeExpressionNode.hpp"
 #include "ast/expression/SelectorLiteralExpressionKind.hpp"
@@ -32,6 +33,7 @@
 #include "ast/statement/SwitchStatementKind.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
 #include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
 #include "ast/typeannotation/VoidTypeAnnotationNode.hpp"
 #include "error/IllegalModuleOrPackageNameError.hpp"
@@ -122,43 +124,23 @@ namespace vnlc {
         return std::make_unique<IdentifierNode>(std::move(nameValue), firstToken, lastToken);
     }
 
-    std::optional<PrimitiveTypeAnnotationKind> Parser::getPrimitiveTypeAnnotationKind(TokenKind kind) {
+    template <typename PrimitiveKind>
+    std::optional<PrimitiveKind> Parser::getPrimitiveKind(TokenKind kind) {
         switch (kind) {
             case TokenKind::BYTE_TYPE:
-                return PrimitiveTypeAnnotationKind::BYTE;
+                return PrimitiveKind::BYTE;
             case TokenKind::SHORT_TYPE:
-                return PrimitiveTypeAnnotationKind::SHORT;
+                return PrimitiveKind::SHORT;
             case TokenKind::INT_TYPE:
-                return PrimitiveTypeAnnotationKind::INT;
+                return PrimitiveKind::INT;
             case TokenKind::LONG_TYPE:
-                return PrimitiveTypeAnnotationKind::LONG;
+                return PrimitiveKind::LONG;
             case TokenKind::FLOAT_TYPE:
-                return PrimitiveTypeAnnotationKind::FLOAT;
+                return PrimitiveKind::FLOAT;
             case TokenKind::DOUBLE_TYPE:
-                return PrimitiveTypeAnnotationKind::DOUBLE;
+                return PrimitiveKind::DOUBLE;
             case TokenKind::BOOL_TYPE:
-                return PrimitiveTypeAnnotationKind::BOOLEAN;
-            default:
-                return std::nullopt;
-        }
-    }
-
-    std::optional<PrimitiveTypeExpressionKind> Parser::getPrimitiveTypeExpressionKind(TokenKind kind) {
-        switch (kind) {
-            case TokenKind::BYTE_TYPE:
-                return PrimitiveTypeExpressionKind::BYTE;
-            case TokenKind::SHORT_TYPE:
-                return PrimitiveTypeExpressionKind::SHORT;
-            case TokenKind::INT_TYPE:
-                return PrimitiveTypeExpressionKind::INT;
-            case TokenKind::LONG_TYPE:
-                return PrimitiveTypeExpressionKind::LONG;
-            case TokenKind::FLOAT_TYPE:
-                return PrimitiveTypeExpressionKind::FLOAT;
-            case TokenKind::DOUBLE_TYPE:
-                return PrimitiveTypeExpressionKind::DOUBLE;
-            case TokenKind::BOOL_TYPE:
-                return PrimitiveTypeExpressionKind::BOOLEAN;
+                return PrimitiveKind::BOOLEAN;
             default:
                 return std::nullopt;
         }
@@ -1329,7 +1311,7 @@ namespace vnlc {
         Token firstToken = peek();
 
         bool questionMarkSuffix = false;
-        const auto primitiveKind = getPrimitiveTypeAnnotationKind(peek().getKind());
+        auto primitiveKind = getPrimitiveKind<PrimitiveTypeAnnotationKind>(peek().getKind());
         std::vector<std::unique_ptr<IdentifierNode>> nameParts;
         std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
 
@@ -2602,7 +2584,7 @@ namespace vnlc {
             return PrimaryExpressionParsingResult{
                 .expression = std::make_unique<NoneExpressionNode>(firstToken, lastToken),
             };
-        } else if (const auto primitiveKind = getPrimitiveTypeExpressionKind(peek().getKind())) {
+        } else if (auto primitiveKind = getPrimitiveKind<PrimitiveTypeExpressionKind>(peek().getKind())) {
             advance();
 
             Token lastToken = peek();

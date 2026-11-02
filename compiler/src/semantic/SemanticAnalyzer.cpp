@@ -782,17 +782,17 @@ namespace vnlc {
                 const Scope* localScope = context.getScopeByRegularSymbol(*firstSymbol);
                 if (localScope != nullptr) {
                     while (localScope->findParent() && localScope->getKind() != ScopeKind::MODULE) {
-                        const TypeDeclarationNode* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
-                        if (const ClassDeclarationNode* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
-                            identifiers.push(std::string(classDecl->getName().getIdentifierString()));
-                        } else if (const InterfaceDeclarationNode* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
-                            identifiers.push(std::string(interfaceDecl->getName().getIdentifierString()));
-                        } else if (const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumDecl->getName().getIdentifierString()));
-                        } else if (const EnumMemberDeclarationNode* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumMemberDecl->getName().getIdentifierString()));
-                        } else if (const TypeAliasDeclarationNode* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
-                            identifiers.push(std::string(typeAliasDecl->getAliasName().getIdentifierString()));
+                        const auto* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
+                        if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
+                            identifiers.emplace(classDecl->getName().getIdentifierString());
+                        } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
+                            identifiers.emplace(interfaceDecl->getName().getIdentifierString());
+                        } else if (const auto* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
+                            identifiers.emplace(enumDecl->getName().getIdentifierString());
+                        } else if (const auto* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
+                            identifiers.emplace(enumMemberDecl->getName().getIdentifierString());
+                        } else if (const auto* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
+                            identifiers.emplace(typeAliasDecl->getAliasName().getIdentifierString());
                         }
 
                         localScope = localScope->findParent();
