@@ -92,6 +92,21 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, StringTypeNamesAreIdentifiers) {
+        std::istringstream input("string String");
+        Lexer lexer(input);
+
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::IDENTIFIER);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::IDENTIFIER);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
     TEST(LexerTest, IdentifiersWithDigitsAndUnderscores) {
         std::istringstream input("_ _private snake_case value2 __init__ Camel9Case");
         Lexer lexer(input);

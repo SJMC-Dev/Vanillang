@@ -20,17 +20,17 @@ namespace vnlc {
         std::size_t parameterCount;
     };
 
-    static std::array<const PrimitiveType*, 8> primitiveTypes() {
-        return { PrimitiveType::byteType(),  PrimitiveType::shortType(),  PrimitiveType::intType(),     PrimitiveType::longType(),
-                 PrimitiveType::floatType(), PrimitiveType::doubleType(), PrimitiveType::booleanType(), PrimitiveType::stringType() };
+    static std::array<const PrimitiveType*, 7> primitiveTypes() {
+        return { PrimitiveType::byteType(),  PrimitiveType::shortType(),  PrimitiveType::intType(),    PrimitiveType::longType(),
+                 PrimitiveType::floatType(), PrimitiveType::doubleType(), PrimitiveType::booleanType() };
     }
 
     TEST(TypeConversionTest, PrimitiveConversionMatrix) {
         const auto types = primitiveTypes();
-        constexpr bool expected[8][8] = { { true, true, true, true, false, false, true, false },   { false, true, true, true, false, false, true, false },
-                                          { false, false, true, true, false, false, true, false }, { false, false, false, true, false, false, true, false },
-                                          { false, false, false, false, true, true, true, false }, { false, false, false, false, false, true, true, false },
-                                          { true, true, true, true, true, true, true, false },     { false, false, false, false, false, false, false, true } };
+        constexpr bool expected[7][7] = { { true, true, true, true, false, false, true },   { false, true, true, true, false, false, true },
+                                          { false, false, true, true, false, false, true }, { false, false, false, true, false, false, true },
+                                          { false, false, false, false, true, true, true }, { false, false, false, false, false, true, true },
+                                          { true, true, true, true, true, true, true } };
 
         for (std::size_t source = 0; source < types.size(); ++source) {
             for (std::size_t target = 0; target < types.size(); ++target) {

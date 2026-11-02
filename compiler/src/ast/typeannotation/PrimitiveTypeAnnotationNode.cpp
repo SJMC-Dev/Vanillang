@@ -26,8 +26,6 @@ namespace vnlc {
                 return PrimitiveTypeNames::Double;
             case PrimitiveTypeAnnotationKind::BOOLEAN:
                 return PrimitiveTypeNames::Boolean;
-            case PrimitiveTypeAnnotationKind::STRING:
-                return PrimitiveTypeNames::String;
         }
         return {};
     }

@@ -25,6 +25,7 @@ namespace vnlc {
         constexpr std::string Array(std::string_view T) {
             return fmt::format(FMT_COMPILE("vanillang.typesystem.Array<{}>"), T);
         }
+        constexpr std::string_view String = "vanillang.typesystem.String";
         constexpr std::string_view List = "vanillang.typesystem.List";
         constexpr std::string_view Dict = "vanillang.typesystem.Dict";
         constexpr std::string_view Selector = "vanillang.typesystem.Selector";

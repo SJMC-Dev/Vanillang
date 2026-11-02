@@ -135,7 +135,7 @@ namespace vnlc {
     }
 
     TEST(ParserTest, PropertyDeclarationsUseValueDeclarationNode) {
-        std::stringstream input("class Example {\n    private value: string\n    static count: int = 0\n}\n");
+        std::stringstream input("class Example {\n    private value: String\n    static count: int = 0\n}\n");
 
         Config config{
             .mode = RunningMode::COMPILE,
@@ -172,7 +172,7 @@ namespace vnlc {
     }
 
     TEST(ParserTest, ConstructorDeclarationsUseConstructorDeclarationNode) {
-        std::stringstream input("class Example {\n    protected init(value: string) {\n        let copy = value\n    }\n}\n");
+        std::stringstream input("class Example {\n    protected init(value: String) {\n        let copy = value\n    }\n}\n");
 
         Config config{
             .mode = RunningMode::COMPILE,
@@ -273,7 +273,7 @@ namespace vnlc {
 
     TEST(ParserTest, ParsesNativeOperatorDeclarationsAlongsideNativeFunctions) {
         std::stringstream input(
-            "native func log(message: string)\n"
+            "native func log(message: String)\n"
             "class Vec3 {\n"
             "    native op +(other: Vec3) -> Vec3\n"
             "    private native op [](index: int) -> int\n"

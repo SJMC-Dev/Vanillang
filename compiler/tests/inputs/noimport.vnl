@@ -1,7 +1,7 @@
 class Foo {
-    private bar: string
+    private bar: String
 
-    init(bar: string) {
+    init(bar: String) {
         this.bar = bar
     }
 

@@ -22,7 +22,6 @@ namespace vnlc {
         FLOAT_TYPE,
         DOUBLE_TYPE,
         BOOL_TYPE,
-        STRING_TYPE,
 
         FUNC,
         INIT,

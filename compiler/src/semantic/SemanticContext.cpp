@@ -182,9 +182,9 @@ namespace vnlc {
     }
 
     const Type* SemanticContext::getTypeByFullTypeName(std::string_view fullTypeName) const {
-        static const std::array<std::string_view, 8> primitiveTypes = {
+        static const std::array<std::string_view, 7> primitiveTypes = {
             PrimitiveTypeNames::Byte,  PrimitiveTypeNames::Short,  PrimitiveTypeNames::Int,     PrimitiveTypeNames::Long,
-            PrimitiveTypeNames::Float, PrimitiveTypeNames::Double, PrimitiveTypeNames::Boolean, PrimitiveTypeNames::String,
+            PrimitiveTypeNames::Float, PrimitiveTypeNames::Double, PrimitiveTypeNames::Boolean,
         };
         const auto getPrimitiveTypeByFullTypeName = [](std::string_view name) -> const PrimitiveType* {
             if (name == PrimitiveTypeNames::Byte) return PrimitiveType::byteType();
@@ -194,7 +194,6 @@ namespace vnlc {
             if (name == PrimitiveTypeNames::Float) return PrimitiveType::floatType();
             if (name == PrimitiveTypeNames::Double) return PrimitiveType::doubleType();
             if (name == PrimitiveTypeNames::Boolean) return PrimitiveType::booleanType();
-            if (name == PrimitiveTypeNames::String) return PrimitiveType::stringType();
             return nullptr;
         };
 

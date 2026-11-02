@@ -26,8 +26,6 @@ namespace vnlc {
                 return PrimitiveTypeNames::Double;
             case PrimitiveTypeKind::BOOLEAN:
                 return PrimitiveTypeNames::Boolean;
-            case PrimitiveTypeKind::STRING:
-                return PrimitiveTypeNames::String;
         }
 
         return "unknown"; // should never reach here
@@ -39,7 +37,6 @@ namespace vnlc {
 
         const PrimitiveTypeKind targetKind = primitiveType->primitiveKind;
         if (primitiveKind == targetKind) return true;
-        if (primitiveKind == PrimitiveTypeKind::STRING || targetKind == PrimitiveTypeKind::STRING) return false;
         if (primitiveKind == PrimitiveTypeKind::BOOLEAN || targetKind == PrimitiveTypeKind::BOOLEAN) return true;
 
         switch (primitiveKind) {
@@ -89,10 +86,5 @@ namespace vnlc {
     const PrimitiveType* PrimitiveType::booleanType() {
         static const PrimitiveType resolvedBooleanType{ PrimitiveTypeKind::BOOLEAN };
         return &resolvedBooleanType;
-    }
-
-    const PrimitiveType* PrimitiveType::stringType() {
-        static const PrimitiveType resolvedStringType{ PrimitiveTypeKind::STRING };
-        return &resolvedStringType;
     }
 } // namespace vnlc

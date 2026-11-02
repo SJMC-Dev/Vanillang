@@ -12,7 +12,6 @@ namespace vnlc {
         FLOAT,
         DOUBLE,
         BOOLEAN,
-        STRING,
     };
 } // namespace vnlc
 

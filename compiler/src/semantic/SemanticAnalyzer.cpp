@@ -675,8 +675,6 @@ namespace vnlc {
                     return PrimitiveType::doubleType();
                 case PrimitiveTypeAnnotationKind::BOOLEAN:
                     return PrimitiveType::booleanType();
-                case PrimitiveTypeAnnotationKind::STRING:
-                    return PrimitiveType::stringType();
             }
             return nullptr;
         };

@@ -16,7 +16,6 @@ namespace vnlc {
             { "float", TokenKind::FLOAT_TYPE },
             { "double", TokenKind::DOUBLE_TYPE },
             { "bool", TokenKind::BOOL_TYPE },
-            { "string", TokenKind::STRING_TYPE },
             { "func", TokenKind::FUNC },
             { "init", TokenKind::INIT },
             { "op", TokenKind::OP },

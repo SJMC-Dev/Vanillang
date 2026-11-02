@@ -138,8 +138,6 @@ namespace vnlc {
                 return PrimitiveTypeAnnotationKind::DOUBLE;
             case TokenKind::BOOL_TYPE:
                 return PrimitiveTypeAnnotationKind::BOOLEAN;
-            case TokenKind::STRING_TYPE:
-                return PrimitiveTypeAnnotationKind::STRING;
             default:
                 return std::nullopt;
         }
@@ -161,8 +159,6 @@ namespace vnlc {
                 return PrimitiveTypeExpressionKind::DOUBLE;
             case TokenKind::BOOL_TYPE:
                 return PrimitiveTypeExpressionKind::BOOLEAN;
-            case TokenKind::STRING_TYPE:
-                return PrimitiveTypeExpressionKind::STRING;
             default:
                 return std::nullopt;
         }

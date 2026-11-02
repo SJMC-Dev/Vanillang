@@ -12,7 +12,6 @@ namespace vnlc {
         constexpr std::string_view Float = "float";
         constexpr std::string_view Double = "double";
         constexpr std::string_view Boolean = "bool";
-        constexpr std::string_view String = "string";
     }; // namespace PrimitiveTypeNames
 } // namespace vnlc
 

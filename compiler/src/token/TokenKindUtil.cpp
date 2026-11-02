@@ -33,8 +33,6 @@ namespace vnlc {
                 return "vnlc::TokenKind::DOUBLE_TYPE";
             case TokenKind::BOOL_TYPE:
                 return "vnlc::TokenKind::BOOL_TYPE";
-            case TokenKind::STRING_TYPE:
-                return "vnlc::TokenKind::STRING_TYPE";
             case TokenKind::FUNC:
                 return "vnlc::TokenKind::FUNC";
             case TokenKind::INIT:

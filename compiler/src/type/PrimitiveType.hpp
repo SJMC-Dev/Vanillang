@@ -27,7 +27,6 @@ namespace vnlc {
         [[nodiscard]] static const PrimitiveType* floatType();
         [[nodiscard]] static const PrimitiveType* doubleType();
         [[nodiscard]] static const PrimitiveType* booleanType();
-        [[nodiscard]] static const PrimitiveType* stringType();
     };
 } // namespace vnlc
 
