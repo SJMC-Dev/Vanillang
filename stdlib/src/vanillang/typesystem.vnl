@@ -17,16 +17,30 @@ enum Optional<T> {
 }
 
 #**
- * Represents the outcome of an operation that may succeed or fail.
+ * Represents the outcome of an operation that may succeed or fail and returns a value on success.
  *
  * @generic T - The type of the value produced on success.
+ * @generic E - The type of the message produced on failure.
  *#
-enum Result<T> {
+enum Result<T, E> {
     #** The operation succeeded and produced a value. *#
     Ok(value: T)
 
     #** The operation failed; the message describes the error. *#
-    Error(message: String)
+    Error(message: E)
+}
+
+#**
+ * Represents the status of an operation that may succeed or fail without a return value on success.
+ *
+ * @generic E - The type of the message produced on failure.
+ *#
+enum Status<E> {
+    #** The operation succeeded. *#
+    Ok
+
+    #** The operation failed; the message describes the error. *#
+    Error(message: E)
 }
 
 #**
