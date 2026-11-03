@@ -1,9 +1,4 @@
 #**
- * Represents any type in Vanillang, including primitive types.
- *#
-class Any {}
-
-#**
  * Represents a value that may be present or absent.
  *
  * @generic T - The type of the wrapped value.
