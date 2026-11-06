@@ -9,6 +9,30 @@ enum Optional<T> {
 
     #** Represents the absence of a value. *#
     None
+
+    #**
+     * Checks whether a value is present.
+     *
+     * @return true if this is Some, otherwise false.
+     *#
+    func hasValue() -> bool {
+        return this instanceof Some
+    }
+
+    #**
+     * Gets the contained value, or the given default value if it is absent.
+     *
+     * @param defaultValue - The value to return if this is None.
+     *
+     * @return The contained value if this is Some, otherwise defaultValue.
+     *#
+    func valueOr(defaultValue: T) -> T {
+        if (let value = this) {
+            return value
+        }
+
+        return defaultValue
+    }
 }
 
 #**
@@ -23,6 +47,15 @@ enum Result<T, E> {
 
     #** The operation failed; the message describes the error. *#
     Error(message: E)
+
+    #**
+     * Checks whether the operation succeeded.
+     *
+     * @return true if this is Ok, otherwise false.
+     *#
+    func isOk() -> bool {
+        return this instanceof Ok
+    }
 }
 
 #**
@@ -36,6 +69,15 @@ enum Status<E> {
 
     #** The operation failed; the message describes the error. *#
     Error(message: E)
+
+    #**
+     * Checks whether the operation succeeded.
+     *
+     * @return true if this is Ok, otherwise false.
+     *#
+    func isOk() -> bool {
+        return this instanceof Ok
+    }
 }
 
 #**
