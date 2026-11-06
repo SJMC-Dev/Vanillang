@@ -352,3 +352,29 @@ enum Ordering {
     #** The left operand is greater than the right operand. *#
     Greater
 }
+
+#**
+ * Represents a type whose instances can be copied.
+ *
+ * @generic T - The type of the copy produced by clone.
+ *#
+interface Cloneable<T> {
+    #**
+     * Creates a copy of this value.
+     *
+     * @return A new value with the same content as this value.
+     *#
+    func clone() -> T
+}
+
+#**
+ * Represents a type whose instances can be converted to a string.
+ *#
+interface Stringable {
+    #**
+     * Converts this value to a string.
+     *
+     * @return A string that represents this value.
+     *#
+    func toString() -> String
+}
