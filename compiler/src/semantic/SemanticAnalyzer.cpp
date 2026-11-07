@@ -1055,7 +1055,7 @@ namespace vnlc {
                     std::unique_ptr<CustomizedType> customizedType = nullptr;
                     const auto* currModule = &context.getModule();
 
-                    if (currModule->getFullName() == "vanillang.typesystem") {
+                    if (currModule->getFullName() == "vanillang.types") {
                         const EnumDeclarationNode* opt = nullptr;
                         for (const auto& decl : currModule->getTopIdentifierDeclarations()) {
                             const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(decl.get());
@@ -1067,17 +1067,17 @@ namespace vnlc {
                         }
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            context.reportError(type, "Could not find the declaration of 'vanillang.types.Optional'");
                             return nullptr;
                         }
 
                         customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
                     } else {
-                        const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "typesystem", "Optional" });
+                        const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "types", "Optional" });
                         const auto* opt = dynamic_cast<const ImportedEnum*>(item);
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            context.reportError(type, "Could not find the declaration of 'vanillang.types.Optional'");
                             return nullptr;
                         }
 
