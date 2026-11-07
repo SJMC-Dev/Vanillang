@@ -5,7 +5,7 @@
 namespace vnlc {
 
     TEST(LexerTest, Keywords) {
-        std::istringstream input("let func if case class this public\nreadonly none true false \n import lambda command op");
+        std::istringstream input("let func if case class this public\n none true false \n import lambda command op");
         Lexer lexer(input);
 
         ASSERT_TRUE(lexer.hasNext());
@@ -36,8 +36,6 @@ namespace vnlc {
         ASSERT_EQ(lexer.next().getKind(), TokenKind::PUBLIC);
         ASSERT_TRUE(lexer.hasNext());
         ASSERT_EQ(lexer.next().getKind(), TokenKind::NEWLINE);
-        ASSERT_TRUE(lexer.hasNext());
-        ASSERT_EQ(lexer.next().getKind(), TokenKind::READONLY);
         ASSERT_TRUE(lexer.hasNext());
         ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
         ASSERT_TRUE(lexer.hasNext());

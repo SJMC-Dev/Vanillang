@@ -62,7 +62,6 @@ namespace vnlc {
         PRIVATE,
         PROTECTED,
         PUBLIC,
-        READONLY,
         STATIC,
         INSTANCEOF,
         FINAL,
