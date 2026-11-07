@@ -60,7 +60,7 @@ namespace vnlc {
         [[nodiscard]] TypeAliasDeclarationParsingResult parseTypeAliasDeclaration(TypeAliasDeclarationParsingContext context);
         [[nodiscard]] ImportPathParsingResult parseImportPath();
         [[nodiscard]] MetadataTermParsingResult parseMetadataTerm();
-        [[nodiscard]] FunctionSignatureParsingResult parseFunctionSignature();
+        [[nodiscard]] FunctionHeaderParsingResult parseFunctionHeader();
         [[nodiscard]] TypeParsingResult parseType();
         [[nodiscard]] ParameterParsingResult parseParameter();
         [[nodiscard]] GenericParameterListParsingResult parseGenericParameterList();

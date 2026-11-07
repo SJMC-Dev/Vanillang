@@ -484,7 +484,7 @@ namespace vnlc {
     FunctionDeclarationParsingResult Parser::parseFunctionDeclaration(FunctionDeclarationParsingContext context) {
         Token firstToken = peek();
 
-        auto signatureResult = parseFunctionSignature();
+        auto signatureResult = parseFunctionHeader();
 
         std::unique_ptr<BlockStatementNode> body; // nullptr if native or declared in an interface
         if (context.context != FunctionDeclarationKind::Context::INTERFACE && context.implementation == FunctionDeclarationKind::Implementation::REGULAR) {
@@ -1214,7 +1214,7 @@ namespace vnlc {
         };
     }
 
-    FunctionSignatureParsingResult Parser::parseFunctionSignature() {
+    FunctionHeaderParsingResult Parser::parseFunctionHeader() {
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
         std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
@@ -1256,7 +1256,7 @@ namespace vnlc {
             }
         }
 
-        return FunctionSignatureParsingResult{
+        return FunctionHeaderParsingResult{
             .name = std::move(name),
             .parameters = std::move(parameters),
             .returnType = std::move(returnType),

@@ -631,7 +631,7 @@ func value(input: int) {}
         EXPECT_EQ(result.getErrors()[0].getMessage(), "Redeclaration of symbol 'value'");
     }
 
-    TEST(SemanticAnalyzerTest, RejectsDuplicateFunctionSignaturesAfterResolvingAliases) {
+    TEST(SemanticAnalyzerTest, RejectsDuplicateFunctionHeadersAfterResolvingAliases) {
         struct TestCase {
             std::string_view source;
             std::string_view expectedMessage;

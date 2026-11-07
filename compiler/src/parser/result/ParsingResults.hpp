@@ -31,7 +31,7 @@
 #include "parser/result/ForStatementParsingResult.hpp"                 // IWYU pragma: export
 #include "parser/result/FunctionBodyParsingResult.hpp"                 // IWYU pragma: export
 #include "parser/result/FunctionDeclarationParsingResult.hpp"          // IWYU pragma: export
-#include "parser/result/FunctionSignatureParsingResult.hpp"            // IWYU pragma: export
+#include "parser/result/FunctionHeaderParsingResult.hpp"               // IWYU pragma: export
 #include "parser/result/GenericArgumentListParsingResult.hpp"          // IWYU pragma: export
 #include "parser/result/GenericParameterListParsingResult.hpp"         // IWYU pragma: export
 #include "parser/result/IdentifierLikeParsingResult.hpp"               // IWYU pragma: export
