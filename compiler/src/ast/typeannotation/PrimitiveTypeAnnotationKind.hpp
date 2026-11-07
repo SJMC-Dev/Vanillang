@@ -6,13 +6,16 @@
 namespace vnlc {
     enum class PrimitiveTypeAnnotationKind : std::uint8_t {
         BYTE,
+        UNSIGNED_BYTE,
         SHORT,
+        UNSIGNED_SHORT,
         INT,
+        UNSIGNED_INT,
         LONG,
+        UNSIGNED_LONG,
         FLOAT,
         DOUBLE,
         BOOLEAN,
-        STRING,
     };
 } // namespace vnlc
 

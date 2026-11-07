@@ -1,19 +1,19 @@
 #ifndef VNLC_PARSER_HPP
 #define VNLC_PARSER_HPP
 
-#include "ast/expression/PrimitiveTypeExpressionKind.hpp"
-#include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
+#include "ast/expression/SimpleLiteralExpressionKind.hpp"
 #include "collector/CollectionResult.hpp"
 #include "config/Config.hpp"
 #include "lexer/Lexer.hpp"
 #include "parser/ParseResult.hpp"
-#include "parser/inherited/ParsingContexts.hpp"
-#include "parser/synthesized/ParsingResults.hpp"
+#include "parser/context/ParsingContexts.hpp"
+#include "parser/result/ParsingResults.hpp"
 #include "token/Token.hpp"
 #include "token/TokenStream.hpp"
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -38,8 +38,9 @@ namespace vnlc {
 
         [[nodiscard]] std::unique_ptr<IdentifierNode> constructCurrentIdentifierNode();
 
-        [[nodiscard]] static std::optional<PrimitiveTypeAnnotationKind> getPrimitiveTypeAnnotationKind(TokenKind kind);
-        [[nodiscard]] static std::optional<PrimitiveTypeExpressionKind> getPrimitiveTypeExpressionKind(TokenKind kind);
+        template <typename PrimitiveKind>
+        [[nodiscard]] static std::optional<PrimitiveKind> getPrimitiveKind(TokenKind kind);
+        [[nodiscard]] static SimpleLiteralExpressionKind getNumberLiteralKind(std::string_view literal);
 
         [[nodiscard]] ModuleParsingResult parseModule(ModuleParsingContext context);
         [[nodiscard]] TopIdentifierDeclarationParsingResult parseTopIdentifierDeclaration();

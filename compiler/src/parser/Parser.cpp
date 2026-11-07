@@ -15,8 +15,10 @@
 #include "ast/expression/MemberAccessExpressionKind.hpp"
 #include "ast/expression/MemberAccessExpressionNode.hpp"
 #include "ast/expression/NoneExpressionNode.hpp"
+#include "ast/expression/PrimitiveTypeExpressionKind.hpp"
 #include "ast/expression/PrimitiveTypeExpressionNode.hpp"
 #include "ast/expression/RangeExpressionNode.hpp"
+#include "ast/expression/SelectorLiteralExpressionItem.hpp"
 #include "ast/expression/SelectorLiteralExpressionKind.hpp"
 #include "ast/expression/SelectorLiteralExpressionNode.hpp"
 #include "ast/expression/SimpleLiteralExpressionNode.hpp"
@@ -32,6 +34,7 @@
 #include "ast/statement/SwitchStatementKind.hpp"
 #include "ast/statement/SwitchStatementNode.hpp"
 #include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
 #include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
 #include "ast/typeannotation/VoidTypeAnnotationNode.hpp"
 #include "error/IllegalModuleOrPackageNameError.hpp"
@@ -49,10 +52,13 @@
 #include "vni/import/ImportedEnum.hpp"
 #include "vni/import/ImportedInterface.hpp"
 #include "vni/import/ImportedTypeAlias.hpp"
+#include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -122,49 +128,61 @@ namespace vnlc {
         return std::make_unique<IdentifierNode>(std::move(nameValue), firstToken, lastToken);
     }
 
-    std::optional<PrimitiveTypeAnnotationKind> Parser::getPrimitiveTypeAnnotationKind(TokenKind kind) {
+    template <typename PrimitiveKind>
+    std::optional<PrimitiveKind> Parser::getPrimitiveKind(TokenKind kind) {
         switch (kind) {
             case TokenKind::BYTE_TYPE:
-                return PrimitiveTypeAnnotationKind::BYTE;
+                return PrimitiveKind::BYTE;
+            case TokenKind::UBYTE_TYPE:
+                return PrimitiveKind::UNSIGNED_BYTE;
             case TokenKind::SHORT_TYPE:
-                return PrimitiveTypeAnnotationKind::SHORT;
+                return PrimitiveKind::SHORT;
+            case TokenKind::USHORT_TYPE:
+                return PrimitiveKind::UNSIGNED_SHORT;
             case TokenKind::INT_TYPE:
-                return PrimitiveTypeAnnotationKind::INT;
+                return PrimitiveKind::INT;
+            case TokenKind::UINT_TYPE:
+                return PrimitiveKind::UNSIGNED_INT;
             case TokenKind::LONG_TYPE:
-                return PrimitiveTypeAnnotationKind::LONG;
+                return PrimitiveKind::LONG;
+            case TokenKind::ULONG_TYPE:
+                return PrimitiveKind::UNSIGNED_LONG;
             case TokenKind::FLOAT_TYPE:
-                return PrimitiveTypeAnnotationKind::FLOAT;
+                return PrimitiveKind::FLOAT;
             case TokenKind::DOUBLE_TYPE:
-                return PrimitiveTypeAnnotationKind::DOUBLE;
+                return PrimitiveKind::DOUBLE;
             case TokenKind::BOOL_TYPE:
-                return PrimitiveTypeAnnotationKind::BOOLEAN;
-            case TokenKind::STRING_TYPE:
-                return PrimitiveTypeAnnotationKind::STRING;
+                return PrimitiveKind::BOOLEAN;
             default:
                 return std::nullopt;
         }
     }
 
-    std::optional<PrimitiveTypeExpressionKind> Parser::getPrimitiveTypeExpressionKind(TokenKind kind) {
-        switch (kind) {
-            case TokenKind::BYTE_TYPE:
-                return PrimitiveTypeExpressionKind::BYTE;
-            case TokenKind::SHORT_TYPE:
-                return PrimitiveTypeExpressionKind::SHORT;
-            case TokenKind::INT_TYPE:
-                return PrimitiveTypeExpressionKind::INT;
-            case TokenKind::LONG_TYPE:
-                return PrimitiveTypeExpressionKind::LONG;
-            case TokenKind::FLOAT_TYPE:
-                return PrimitiveTypeExpressionKind::FLOAT;
-            case TokenKind::DOUBLE_TYPE:
-                return PrimitiveTypeExpressionKind::DOUBLE;
-            case TokenKind::BOOL_TYPE:
-                return PrimitiveTypeExpressionKind::BOOLEAN;
-            case TokenKind::STRING_TYPE:
-                return PrimitiveTypeExpressionKind::STRING;
+    SimpleLiteralExpressionKind Parser::getNumberLiteralKind(std::string_view literal) {
+        std::string lowercaseLiteral(literal);
+        std::ranges::transform(lowercaseLiteral, lowercaseLiteral.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+
+        const bool hexadecimal = lowercaseLiteral.starts_with("0x");
+        const bool nonDecimal = hexadecimal || lowercaseLiteral.starts_with("0o") || (lowercaseLiteral.starts_with("0b") && lowercaseLiteral.length() > 2);
+
+        if (!nonDecimal && lowercaseLiteral.find_first_of(".e") != std::string::npos) {
+            return lowercaseLiteral.ends_with('d') ? SimpleLiteralExpressionKind::DOUBLE : SimpleLiteralExpressionKind::FLOAT;
+        }
+
+        const std::string_view digitsAndSuffix = std::string_view(lowercaseLiteral).substr(nonDecimal ? 2 : 0);
+        const std::size_t suffixStart = digitsAndSuffix.find_first_not_of(hexadecimal ? "0123456789abcdef" : "0123456789");
+        const std::string_view suffix = suffixStart == std::string_view::npos ? "i" : digitsAndSuffix.substr(suffixStart);
+        const bool isUnsigned = suffix.length() == 2 ? suffix.front() == 'u' : nonDecimal;
+
+        switch (suffix.back()) {
+            case 'b':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_BYTE : SimpleLiteralExpressionKind::BYTE;
+            case 's':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_SHORT : SimpleLiteralExpressionKind::SHORT;
+            case 'l':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_LONG : SimpleLiteralExpressionKind::LONG;
             default:
-                return std::nullopt;
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_INT : SimpleLiteralExpressionKind::INT;
         }
     }
 
@@ -324,7 +342,7 @@ namespace vnlc {
             accessModifier = AccessModifier::PRIVATE;
         }
 
-        if (check(TokenKind::VAR) || check(TokenKind::LET) || check(TokenKind::CONST_KEYWORD)) {
+        if (check(TokenKind::LET)) {
             VariableDeclarationParsingContext context{
                 .position = VariableDeclarationParsingContext::Position::TOP_LEVEL,
                 .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
@@ -1333,7 +1351,7 @@ namespace vnlc {
         Token firstToken = peek();
 
         bool questionMarkSuffix = false;
-        const auto primitiveKind = getPrimitiveTypeAnnotationKind(peek().getKind());
+        auto primitiveKind = getPrimitiveKind<PrimitiveTypeAnnotationKind>(peek().getKind());
         std::vector<std::unique_ptr<IdentifierNode>> nameParts;
         std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
 
@@ -2606,7 +2624,7 @@ namespace vnlc {
             return PrimaryExpressionParsingResult{
                 .expression = std::make_unique<NoneExpressionNode>(firstToken, lastToken),
             };
-        } else if (const auto primitiveKind = getPrimitiveTypeExpressionKind(peek().getKind())) {
+        } else if (auto primitiveKind = getPrimitiveKind<PrimitiveTypeExpressionKind>(peek().getKind())) {
             advance();
 
             Token lastToken = peek();
@@ -2637,30 +2655,8 @@ namespace vnlc {
         if (match(TokenKind::NUMBER)) {
             Token lastToken = peek();
 
-            SimpleLiteralExpressionKind literalKind = SimpleLiteralExpressionKind::DECIMAL_INTEGER;
-
-            if (firstToken.getValue().find('.') != std::string::npos || firstToken.getValue().find('e') != std::string::npos || firstToken.getValue().find('E') != std::string::npos) {
-                if (firstToken.getValue().ends_with('f') || firstToken.getValue().ends_with('F')) {
-                    literalKind = SimpleLiteralExpressionKind::DECIMAL_FLOAT;
-                } else {
-                    literalKind = SimpleLiteralExpressionKind::DECIMAL_DOUBLE;
-                }
-            } else if (firstToken.getValue().starts_with("0x")) {
-                literalKind = SimpleLiteralExpressionKind::HEXADECIMAL;
-            } else if (firstToken.getValue().starts_with("0b")) {
-                literalKind = SimpleLiteralExpressionKind::BINARY;
-            } else if (firstToken.getValue().starts_with("0o")) {
-                literalKind = SimpleLiteralExpressionKind::OCTAL;
-            } else if (firstToken.getValue().ends_with(('b')) || firstToken.getValue().ends_with(('B'))) {
-                literalKind = SimpleLiteralExpressionKind::DECIMAL_BYTE;
-            } else if (firstToken.getValue().ends_with(('s')) || firstToken.getValue().ends_with(('S'))) {
-                literalKind = SimpleLiteralExpressionKind::DECIMAL_SHORT;
-            } else if (firstToken.getValue().ends_with(('l')) || firstToken.getValue().ends_with(('L'))) {
-                literalKind = SimpleLiteralExpressionKind::DECIMAL_LONG;
-            }
-
             return LiteralParsingResult{
-                .expression = std::make_unique<SimpleLiteralExpressionNode>(literalKind, firstToken.getValue(), firstToken, lastToken),
+                .expression = std::make_unique<SimpleLiteralExpressionNode>(getNumberLiteralKind(firstToken.getValue()), firstToken.getValue(), firstToken, lastToken),
             };
         } else if (match(TokenKind::CHAR)) {
             Token lastToken = peek();
@@ -2726,7 +2722,7 @@ namespace vnlc {
             return StringParsingResult{
                 .expression = std::make_unique<StringLiteralExpressionNode>(StringLiteralExpressionKind::STRING, std::move(parts), firstToken, lastToken),
             };
-        } else if (peek().getValue().starts_with("f\"")) {
+        } else if (peek().getValue().starts_with("f\"") || peek().getValue().starts_with("F\"")) {
             std::string value(peek().getValue().substr(2));
             if (value.ends_with('\"') && !value.ends_with("\\\"")) {
                 value.pop_back();
@@ -2756,7 +2752,7 @@ namespace vnlc {
                 .expression = std::make_unique<StringLiteralExpressionNode>(StringLiteralExpressionKind::FORMAT_STRING, std::move(parts), firstToken, lastToken),
             };
 
-        } else if (peek().getValue().starts_with("r\"")) {
+        } else if (peek().getValue().starts_with("r\"") || peek().getValue().starts_with("R\"")) {
             std::string value(peek().getValue().substr(2, peek().getValue().length() - 3)); // Remove the r" prefix and the surrounding quotes
             parts.emplace_back(std::move(value));
             advance();
@@ -2870,7 +2866,7 @@ namespace vnlc {
         Token firstToken = peek();
 
         SelectorLiteralExpressionKind literalKind = SelectorLiteralExpressionKind::NEAREST_PLAYER;
-        std::unordered_map<std::string, std::unique_ptr<ExpressionNode>> arguments;
+        std::vector<SelectorLiteralExpressionItem::Argument> arguments;
 
         if (!check(TokenKind::SELECTOR_PREFIX)) {
             throw SyntaxError("Expected '@' to start selector", peek().getLine(), peek().getColumn());
@@ -2922,7 +2918,11 @@ namespace vnlc {
                     throw SyntaxError("Expected '=' after 'context'", peek().getLine(), peek().getColumn());
                 }
 
-                auto contextResult = parseExpression();
+                if (!check(TokenKind::LEFT_BRACE)) {
+                    throw SyntaxError("Expected dict literal after 'context='", peek().getLine(), peek().getColumn());
+                }
+
+                auto contextResult = parseDictLiteral();
                 context = std::move(contextResult.expression);
 
                 return ArgumentListParsingResult{
@@ -2986,11 +2986,17 @@ namespace vnlc {
     }
 
     SelectorArgumentListParsingResult Parser::parseSelectorArgumentList() {
-        std::unordered_map<std::string, std::unique_ptr<ExpressionNode>> arguments;
+        std::vector<SelectorLiteralExpressionItem::Argument> arguments;
 
         do {
             auto argumentResult = parseSelectorArgument();
-            arguments.emplace(std::move(argumentResult.key), std::move(argumentResult.value));
+            arguments.push_back(
+                {
+                    .key = std::move(argumentResult.key),
+                    .negated = argumentResult.negated,
+                    .value = std::move(argumentResult.value),
+                }
+            );
         } while (match(TokenKind::COMMA));
 
         return SelectorArgumentListParsingResult{
@@ -3008,14 +3014,18 @@ namespace vnlc {
             advance();
         }
 
-        if (!match(TokenKind::EQUAL)) {
-            throw SyntaxError("Expected '=' after selector argument key", peek().getLine(), peek().getColumn());
+        bool negated = false;
+        if (match(TokenKind::EXCLAMATION_EQUAL)) {
+            negated = true;
+        } else if (!match(TokenKind::EQUAL)) {
+            throw SyntaxError("Expected '=' or '!=' after selector argument key", peek().getLine(), peek().getColumn());
         }
 
         auto valueResult = parseExpression();
 
         return SelectorArgumentParsingResult{
             .key = std::move(key),
+            .negated = negated,
             .value = std::move(valueResult.expression),
         };
     }
@@ -3028,12 +3038,6 @@ namespace vnlc {
             TokenKind::SELECTOR_PREFIX,
         };
 
-        static const std::unordered_set<TokenKind> variableDeclarationStarters = {
-            TokenKind::VAR,
-            TokenKind::LET,
-            TokenKind::CONST_KEYWORD,
-        };
-
         static const std::unordered_set<TokenKind> controlFlowStarters = {
             TokenKind::IF, TokenKind::SWITCH, TokenKind::LABEL, TokenKind::WHILE, TokenKind::FOR, TokenKind::RETURN, TokenKind::BREAK, TokenKind::CONTINUE, TokenKind::RELOAD,
         };
@@ -3044,7 +3048,7 @@ namespace vnlc {
             auto result = parseExpressionStatement();
 
             statement = std::move(result.statement);
-        } else if (checkAny(variableDeclarationStarters)) {
+        } else if (check(TokenKind::LET)) {
             auto result = parseVariableDeclarationStatement();
 
             statement = std::move(result.statement);
@@ -3060,7 +3064,7 @@ namespace vnlc {
             throw SyntaxError("Expected statement", peek().getLine(), peek().getColumn());
         }
 
-        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE || peek().getKind() == TokenKind::ELSE)) {
             throw SyntaxError("Expected newline after statement", peek().getLine(), peek().getColumn());
         }
 
@@ -3220,7 +3224,23 @@ namespace vnlc {
             throw SyntaxError("Expected '(' after 'if'", peek().getLine(), peek().getColumn());
         }
 
-        auto conditionResult = parseExpression();
+        std::unique_ptr<ExpressionNode> condition;                  // nullptr if the condition is a variable declaration
+        std::unique_ptr<ValueDeclarationNode> conditionDeclaration; // nullptr if the condition is an expression
+
+        if (check(TokenKind::LET)) {
+            VariableDeclarationParsingContext context{
+                .position = VariableDeclarationParsingContext::Position::STATEMENT,
+                .accessModifier = ValueDeclarationKind::AccessModifier::PUBLIC,
+                .hasMetadata = false,
+                .metadataTerms = {},
+            };
+
+            auto declarationResult = parseVariableDeclaration(std::move(context));
+            conditionDeclaration = std::move(declarationResult.declaration);
+        } else {
+            auto conditionResult = parseExpression();
+            condition = std::move(conditionResult.expression);
+        }
 
         if (!match(TokenKind::RIGHT_PARENTHESIS)) {
             throw SyntaxError("Expected ')' after if condition", peek().getLine(), peek().getColumn());
@@ -3237,8 +3257,14 @@ namespace vnlc {
 
         Token lastToken = peek();
 
+        if (conditionDeclaration != nullptr) {
+            return IfStatementParsingResult{
+                .statement = std::make_unique<IfStatementNode>(std::move(conditionDeclaration), std::move(thenBranchResult.statement), std::move(elseBranch), firstToken, lastToken),
+            };
+        }
+
         return IfStatementParsingResult{
-            .statement = std::make_unique<IfStatementNode>(std::move(conditionResult.expression), std::move(thenBranchResult.statement), std::move(elseBranch), firstToken, lastToken),
+            .statement = std::make_unique<IfStatementNode>(std::move(condition), std::move(thenBranchResult.statement), std::move(elseBranch), firstToken, lastToken),
         };
     }
 

@@ -92,6 +92,44 @@ namespace vnlc {
         ASSERT_FALSE(lexer.hasNext());
     }
 
+    TEST(LexerTest, UnsignedPrimitiveTypeKeywords) {
+        std::istringstream input("ubyte ushort uint ulong");
+        Lexer lexer(input);
+
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::UBYTE_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::USHORT_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::UINT_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::ULONG_TYPE);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
+    TEST(LexerTest, StringTypeNamesAreIdentifiers) {
+        std::istringstream input("string String");
+        Lexer lexer(input);
+
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::IDENTIFIER);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::BLANK);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::IDENTIFIER);
+        ASSERT_TRUE(lexer.hasNext());
+        ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        ASSERT_FALSE(lexer.hasNext());
+    }
+
     TEST(LexerTest, IdentifiersWithDigitsAndUnderscores) {
         std::istringstream input("_ _private snake_case value2 __init__ Camel9Case");
         Lexer lexer(input);
@@ -456,6 +494,37 @@ namespace vnlc {
         ASSERT_TRUE(lexer.hasNext());
         ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
         ASSERT_FALSE(lexer.hasNext());
+    }
+
+    TEST(LexerTest, NumberSuffixes) {
+        for (const auto literal : { "9i",   "16si",   "10000ui", "1b",     "255ub", "1SB",    "256s",   "65535us", "7Ss",  "3l",   "2147483648sl", "7Ul", "0b",
+                                    "0XFF", "0B1010", "0O17",    "0xFFub", "0x1b",  "0xFFsi", "0b101b", "0o17L",   "1.5D", "1E3F", "3e-4",         ".1f", "2.e1d" }) {
+            SCOPED_TRACE(literal);
+            std::istringstream input(literal);
+            Lexer lexer(input);
+
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            EXPECT_EQ(token.getKind(), TokenKind::NUMBER);
+            EXPECT_EQ(token.getValue(), literal);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        }
+    }
+
+    TEST(LexerTest, InvalidNumberSuffixes) {
+        for (const auto literal : { "1u", "1bx", "1sbb", "1ub2", "0x", "0xui", "0b2", "1.5u", "1.0i", "1f", "1d" }) {
+            SCOPED_TRACE(literal);
+            std::istringstream input(literal);
+            Lexer lexer(input);
+
+            ASSERT_TRUE(lexer.hasNext());
+            const auto token = lexer.next();
+            EXPECT_EQ(token.getKind(), TokenKind::LEXICAL_ERROR);
+            EXPECT_EQ(token.getValue(), literal);
+            ASSERT_TRUE(lexer.hasNext());
+            ASSERT_EQ(lexer.next().getKind(), TokenKind::END_OF_FILE);
+        }
     }
 
     TEST(LexerTest, Comments) {

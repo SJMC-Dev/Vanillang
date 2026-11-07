@@ -9,13 +9,23 @@
 #include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/BinaryExpressionNode.hpp"
+#include "ast/expression/DictLiteralExpressionNode.hpp"
+#include "ast/expression/FunctionCallExpressionNode.hpp"
 #include "ast/expression/IdentifierLikeExpressionNode.hpp"
 #include "ast/expression/MemberAccessExpressionNode.hpp"
 #include "ast/expression/NoneExpressionNode.hpp"
 #include "ast/expression/PrimitiveTypeExpressionKind.hpp"
 #include "ast/expression/PrimitiveTypeExpressionNode.hpp"
 #include "ast/expression/RangeExpressionNode.hpp"
+#include "ast/expression/SelectorLiteralExpressionKind.hpp"
+#include "ast/expression/SelectorLiteralExpressionNode.hpp"
+#include "ast/expression/SimpleLiteralExpressionKind.hpp"
+#include "ast/expression/SimpleLiteralExpressionNode.hpp"
+#include "ast/expression/StringLiteralExpressionKind.hpp"
+#include "ast/expression/StringLiteralExpressionNode.hpp"
+#include "ast/statement/ExpressionStatementNode.hpp"
 #include "ast/statement/ForStatementNode.hpp"
+#include "ast/statement/IfStatementNode.hpp"
 #include "ast/statement/VariableDeclarationStatementNode.hpp"
 #include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
 #include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
@@ -135,7 +145,7 @@ namespace vnlc {
     }
 
     TEST(ParserTest, PropertyDeclarationsUseValueDeclarationNode) {
-        std::stringstream input("class Example {\n    private value: string\n    static count: int = 0\n}\n");
+        std::stringstream input("class Example {\n    private value: String\n    static count: int = 0\n}\n");
 
         Config config{
             .mode = RunningMode::COMPILE,
@@ -172,7 +182,7 @@ namespace vnlc {
     }
 
     TEST(ParserTest, ConstructorDeclarationsUseConstructorDeclarationNode) {
-        std::stringstream input("class Example {\n    protected init(value: string) {\n        let copy = value\n    }\n}\n");
+        std::stringstream input("class Example {\n    protected init(value: String) {\n        let copy = value\n    }\n}\n");
 
         Config config{
             .mode = RunningMode::COMPILE,
@@ -273,7 +283,7 @@ namespace vnlc {
 
     TEST(ParserTest, ParsesNativeOperatorDeclarationsAlongsideNativeFunctions) {
         std::stringstream input(
-            "native func log(message: string)\n"
+            "native func log(message: String)\n"
             "class Vec3 {\n"
             "    native op +(other: Vec3) -> Vec3\n"
             "    private native op [](index: int) -> int\n"
@@ -781,6 +791,344 @@ namespace vnlc {
         EXPECT_EQ(customizedReference->getNameParts().front()->getIdentifierString(), "Example");
         EXPECT_FALSE(customizedReference->hasQuestionMarkSuffix());
         EXPECT_TRUE(customizedReference->getGenericArguments().empty());
+    }
+
+    TEST(ParserTest, ParsesUnsignedPrimitiveTypeAnnotationsAndExpressions) {
+        struct UnsignedPrimitiveType {
+            std::string_view name;
+            PrimitiveTypeAnnotationKind annotationKind;
+            PrimitiveTypeExpressionKind expressionKind;
+        };
+        constexpr UnsignedPrimitiveType types[] = {
+            { "ubyte", PrimitiveTypeAnnotationKind::UNSIGNED_BYTE, PrimitiveTypeExpressionKind::UNSIGNED_BYTE },
+            { "ushort", PrimitiveTypeAnnotationKind::UNSIGNED_SHORT, PrimitiveTypeExpressionKind::UNSIGNED_SHORT },
+            { "uint", PrimitiveTypeAnnotationKind::UNSIGNED_INT, PrimitiveTypeExpressionKind::UNSIGNED_INT },
+            { "ulong", PrimitiveTypeAnnotationKind::UNSIGNED_LONG, PrimitiveTypeExpressionKind::UNSIGNED_LONG },
+        };
+
+        for (const auto& [name, annotationKind, expressionKind] : types) {
+            SCOPED_TRACE(name);
+            std::stringstream input("func test() {\n    let primitiveType = " + std::string(name) + "\n    let primitiveValue: " + std::string(name) + "? = none\n}\n");
+
+            Config config{
+                .mode = RunningMode::COMPILE,
+                .vanillangVersion = "1.0",
+                .minecraftVersion = "26.1.2",
+                .packageRootPath = testPackageRootPath(),
+                .inputFilePath = testPackageRootPath() / "test.vnl",
+                .outputDirectory = {},
+                .dependencyPackageRootPaths = {},
+                .optimizationLevel = std::nullopt,
+            };
+
+            auto result = parseModule(input, config);
+            const auto& module = result.getModuleNode();
+            ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+            const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+            ASSERT_NE(function, nullptr);
+            ASSERT_NE(function->getBody(), nullptr);
+
+            const auto& statements = function->getBody()->getStatements();
+            ASSERT_EQ(statements.size(), 2);
+
+            const auto* primitiveExpressionStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
+            ASSERT_NE(primitiveExpressionStatement, nullptr);
+            const auto* primitiveExpression = dynamic_cast<const PrimitiveTypeExpressionNode*>(primitiveExpressionStatement->getVariableDeclaration().getInitializer());
+            ASSERT_NE(primitiveExpression, nullptr);
+            EXPECT_EQ(primitiveExpression->getKind(), expressionKind);
+
+            const auto* primitiveValueStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
+            ASSERT_NE(primitiveValueStatement, nullptr);
+            const auto* primitiveReference = dynamic_cast<const PrimitiveTypeAnnotationNode*>(primitiveValueStatement->getVariableDeclaration().getType());
+            ASSERT_NE(primitiveReference, nullptr);
+            EXPECT_EQ(primitiveReference->getKind(), annotationKind);
+            EXPECT_EQ(primitiveReference->getPrimitiveTypeName(), name);
+            EXPECT_TRUE(primitiveReference->hasQuestionMarkSuffix());
+        }
+    }
+
+    TEST(ParserTest, ParsesNumberLiteralKindsFromBasesAndSuffixes) {
+        struct NumberLiteral {
+            std::string_view literal;
+            SimpleLiteralExpressionKind kind;
+        };
+        constexpr NumberLiteral literals[] = {
+            { "5", SimpleLiteralExpressionKind::INT },
+            { "9i", SimpleLiteralExpressionKind::INT },
+            { "16si", SimpleLiteralExpressionKind::INT },
+            { "10000ui", SimpleLiteralExpressionKind::UNSIGNED_INT },
+            { "1b", SimpleLiteralExpressionKind::BYTE },
+            { "255ub", SimpleLiteralExpressionKind::UNSIGNED_BYTE },
+            { "1sb", SimpleLiteralExpressionKind::BYTE },
+            { "256s", SimpleLiteralExpressionKind::SHORT },
+            { "65535us", SimpleLiteralExpressionKind::UNSIGNED_SHORT },
+            { "1ss", SimpleLiteralExpressionKind::SHORT },
+            { "3l", SimpleLiteralExpressionKind::LONG },
+            { "2147483648sl", SimpleLiteralExpressionKind::LONG },
+            { "7UL", SimpleLiteralExpressionKind::UNSIGNED_LONG },
+            { "0b", SimpleLiteralExpressionKind::BYTE },
+            { "0x1F", SimpleLiteralExpressionKind::UNSIGNED_INT },
+            { "0x1b", SimpleLiteralExpressionKind::UNSIGNED_INT },
+            { "0x1e", SimpleLiteralExpressionKind::UNSIGNED_INT },
+            { "0XFFsi", SimpleLiteralExpressionKind::INT },
+            { "0xFFub", SimpleLiteralExpressionKind::UNSIGNED_BYTE },
+            { "0b101", SimpleLiteralExpressionKind::UNSIGNED_INT },
+            { "0b101b", SimpleLiteralExpressionKind::UNSIGNED_BYTE },
+            { "0o17s", SimpleLiteralExpressionKind::UNSIGNED_SHORT },
+            { "0O17SL", SimpleLiteralExpressionKind::LONG },
+            { "0B11L", SimpleLiteralExpressionKind::UNSIGNED_LONG },
+            { "1.5", SimpleLiteralExpressionKind::FLOAT },
+            { "1.5d", SimpleLiteralExpressionKind::DOUBLE },
+            { "1E3", SimpleLiteralExpressionKind::FLOAT },
+            { "2.e1D", SimpleLiteralExpressionKind::DOUBLE },
+            { ".1f", SimpleLiteralExpressionKind::FLOAT },
+        };
+
+        for (const auto& [literal, kind] : literals) {
+            SCOPED_TRACE(literal);
+            std::stringstream input("func test() {\n    let value = " + std::string(literal) + "\n}\n");
+
+            Config config{
+                .mode = RunningMode::COMPILE,
+                .vanillangVersion = "1.0",
+                .minecraftVersion = "26.1.2",
+                .packageRootPath = testPackageRootPath(),
+                .inputFilePath = testPackageRootPath() / "test.vnl",
+                .outputDirectory = {},
+                .dependencyPackageRootPaths = {},
+                .optimizationLevel = std::nullopt,
+            };
+
+            auto result = parseModule(input, config);
+            const auto& module = result.getModuleNode();
+            ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+            const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+            ASSERT_NE(function, nullptr);
+            ASSERT_NE(function->getBody(), nullptr);
+            ASSERT_EQ(function->getBody()->getStatements().size(), 1);
+
+            const auto* statement = dynamic_cast<const VariableDeclarationStatementNode*>(function->getBody()->getStatements().front().get());
+            ASSERT_NE(statement, nullptr);
+            const auto* literalExpression = dynamic_cast<const SimpleLiteralExpressionNode*>(statement->getVariableDeclaration().getInitializer());
+            ASSERT_NE(literalExpression, nullptr);
+            EXPECT_EQ(literalExpression->getKind(), kind);
+            EXPECT_EQ(literalExpression->getLiteral(), literal);
+        }
+    }
+
+    TEST(ParserTest, ParsesUppercaseStringPrefixes) {
+        std::stringstream input("func test() {\n    let formatted = F\"value $(1)\"\n    let raw = R\"raw\"\n}\n");
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+
+        const auto& statements = function->getBody()->getStatements();
+        ASSERT_EQ(statements.size(), 2);
+
+        const auto* formattedStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[0].get());
+        ASSERT_NE(formattedStatement, nullptr);
+        const auto* formatted = dynamic_cast<const StringLiteralExpressionNode*>(formattedStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(formatted, nullptr);
+        EXPECT_EQ(formatted->getKind(), StringLiteralExpressionKind::FORMAT_STRING);
+
+        const auto* rawStatement = dynamic_cast<const VariableDeclarationStatementNode*>(statements[1].get());
+        ASSERT_NE(rawStatement, nullptr);
+        const auto* raw = dynamic_cast<const StringLiteralExpressionNode*>(rawStatement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(raw, nullptr);
+        EXPECT_EQ(raw->getKind(), StringLiteralExpressionKind::RAW_STRING);
+    }
+
+    TEST(ParserTest, ParsesNegatedAndRepeatedSelectorArguments) {
+        std::stringstream input("func test() {\n    let selected = @a[tag!=\"hider\", tag!=\"seeker\", team=none, limit=2]\n}\n");
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+        ASSERT_EQ(function->getBody()->getStatements().size(), 1);
+
+        const auto* statement = dynamic_cast<const VariableDeclarationStatementNode*>(function->getBody()->getStatements().front().get());
+        ASSERT_NE(statement, nullptr);
+        const auto* selector = dynamic_cast<const SelectorLiteralExpressionNode*>(statement->getVariableDeclaration().getInitializer());
+        ASSERT_NE(selector, nullptr);
+        EXPECT_EQ(selector->getKind(), SelectorLiteralExpressionKind::ALL_PLAYERS);
+
+        const auto& arguments = selector->getArguments();
+        ASSERT_EQ(arguments.size(), 4);
+        EXPECT_EQ(arguments[0].key, "tag");
+        EXPECT_TRUE(arguments[0].negated);
+        EXPECT_EQ(arguments[1].key, "tag");
+        EXPECT_TRUE(arguments[1].negated);
+        EXPECT_EQ(arguments[2].key, "team");
+        EXPECT_FALSE(arguments[2].negated);
+        EXPECT_NE(dynamic_cast<const NoneExpressionNode*>(arguments[2].value.get()), nullptr);
+        EXPECT_EQ(arguments[3].key, "limit");
+        EXPECT_FALSE(arguments[3].negated);
+    }
+
+    TEST(ParserTest, RequiresDictLiteralsForContextArguments) {
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        std::stringstream input("func test() {\n    run(context={ as: @r })\n    run(1, context={ as: @r })\n}\n");
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+
+        const auto& statements = function->getBody()->getStatements();
+        ASSERT_EQ(statements.size(), 2);
+        for (std::size_t index = 0; index < statements.size(); ++index) {
+            SCOPED_TRACE(index);
+            const auto* statement = dynamic_cast<const ExpressionStatementNode*>(statements[index].get());
+            ASSERT_NE(statement, nullptr);
+            const auto* call = dynamic_cast<const FunctionCallExpressionNode*>(&statement->getExpression());
+            ASSERT_NE(call, nullptr);
+            EXPECT_EQ(call->getArguments().size(), index);
+            EXPECT_NE(dynamic_cast<const DictLiteralExpressionNode*>(call->getContext()), nullptr);
+        }
+
+        for (const auto* source : { "func test() {\n    run(context=ctx)\n}\n", "func test() {\n    run(1, context=ctx)\n}\n" }) {
+            SCOPED_TRACE(source);
+            std::stringstream invalidInput(source);
+            EXPECT_THROW(static_cast<void>(parseModule(invalidInput, config)), SyntaxError);
+        }
+    }
+
+    TEST(ParserTest, ParsesElseOnTheSameLineAsTheThenBranch) {
+        std::stringstream input(
+            "func test() {\n"
+            "    if (ready) {\n"
+            "        start()\n"
+            "    } else {\n"
+            "        stop()\n"
+            "    }\n"
+            "    if (ready) start() else stop()\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+
+        const auto& statements = function->getBody()->getStatements();
+        ASSERT_EQ(statements.size(), 2);
+        for (const auto& statement : statements) {
+            const auto* ifStatement = dynamic_cast<const IfStatementNode*>(statement.get());
+            ASSERT_NE(ifStatement, nullptr);
+            EXPECT_NE(ifStatement->getElseBranch(), nullptr);
+        }
+    }
+
+    TEST(ParserTest, ParsesVariableDeclarationsAsIfConditions) {
+        std::stringstream input(
+            "func test() {\n"
+            "    if (let player: Player = findPlayer()) {\n"
+            "        player.kill()\n"
+            "    } else {\n"
+            "        reload\n"
+            "    }\n"
+            "    if (ready) {}\n"
+            "}\n"
+        );
+
+        Config config{
+            .mode = RunningMode::COMPILE,
+            .vanillangVersion = "1.0",
+            .minecraftVersion = "26.1.2",
+            .packageRootPath = testPackageRootPath(),
+            .inputFilePath = testPackageRootPath() / "test.vnl",
+            .outputDirectory = {},
+            .dependencyPackageRootPaths = {},
+            .optimizationLevel = std::nullopt,
+        };
+
+        auto result = parseModule(input, config);
+        const auto& module = result.getModuleNode();
+        ASSERT_EQ(module.getTopIdentifierDeclarations().size(), 1);
+
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+
+        const auto& statements = function->getBody()->getStatements();
+        ASSERT_EQ(statements.size(), 2);
+
+        const auto* bindingIf = dynamic_cast<const IfStatementNode*>(statements[0].get());
+        ASSERT_NE(bindingIf, nullptr);
+        EXPECT_EQ(bindingIf->getCondition(), nullptr);
+        const auto* declaration = bindingIf->getConditionDeclaration();
+        ASSERT_NE(declaration, nullptr);
+        EXPECT_EQ(declaration->getName().getIdentifierString(), "player");
+        EXPECT_EQ(declaration->getKind(), ValueDeclarationKind::Kind::LET);
+        EXPECT_EQ(declaration->getContext(), ValueDeclarationKind::Context::BLOCK);
+        EXPECT_NE(declaration->getType(), nullptr);
+        EXPECT_NE(declaration->getInitializer(), nullptr);
+        EXPECT_NE(bindingIf->getElseBranch(), nullptr);
+
+        const auto* expressionIf = dynamic_cast<const IfStatementNode*>(statements[1].get());
+        ASSERT_NE(expressionIf, nullptr);
+        EXPECT_NE(expressionIf->getCondition(), nullptr);
+        EXPECT_EQ(expressionIf->getConditionDeclaration(), nullptr);
+        EXPECT_EQ(expressionIf->getElseBranch(), nullptr);
     }
 
     TEST(ParserTest, ParsesGenericArgumentsForLocalTypeDeclarationsOnly) {

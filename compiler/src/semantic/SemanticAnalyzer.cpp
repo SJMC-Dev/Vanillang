@@ -663,20 +663,26 @@ namespace vnlc {
             switch (kind) {
                 case PrimitiveTypeAnnotationKind::BYTE:
                     return PrimitiveType::byteType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_BYTE:
+                    return PrimitiveType::unsignedByteType();
                 case PrimitiveTypeAnnotationKind::SHORT:
                     return PrimitiveType::shortType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_SHORT:
+                    return PrimitiveType::unsignedShortType();
                 case PrimitiveTypeAnnotationKind::INT:
                     return PrimitiveType::intType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_INT:
+                    return PrimitiveType::unsignedIntType();
                 case PrimitiveTypeAnnotationKind::LONG:
                     return PrimitiveType::longType();
+                case PrimitiveTypeAnnotationKind::UNSIGNED_LONG:
+                    return PrimitiveType::unsignedLongType();
                 case PrimitiveTypeAnnotationKind::FLOAT:
                     return PrimitiveType::floatType();
                 case PrimitiveTypeAnnotationKind::DOUBLE:
                     return PrimitiveType::doubleType();
                 case PrimitiveTypeAnnotationKind::BOOLEAN:
                     return PrimitiveType::booleanType();
-                case PrimitiveTypeAnnotationKind::STRING:
-                    return PrimitiveType::stringType();
             }
             return nullptr;
         };
@@ -784,17 +790,17 @@ namespace vnlc {
                 const Scope* localScope = context.getScopeByRegularSymbol(*firstSymbol);
                 if (localScope != nullptr) {
                     while (localScope->findParent() && localScope->getKind() != ScopeKind::MODULE) {
-                        const TypeDeclarationNode* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
-                        if (const ClassDeclarationNode* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
-                            identifiers.push(std::string(classDecl->getName().getIdentifierString()));
-                        } else if (const InterfaceDeclarationNode* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
-                            identifiers.push(std::string(interfaceDecl->getName().getIdentifierString()));
-                        } else if (const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumDecl->getName().getIdentifierString()));
-                        } else if (const EnumMemberDeclarationNode* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
-                            identifiers.push(std::string(enumMemberDecl->getName().getIdentifierString()));
-                        } else if (const TypeAliasDeclarationNode* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
-                            identifiers.push(std::string(typeAliasDecl->getAliasName().getIdentifierString()));
+                        const auto* node = dynamic_cast<const TypeDeclarationNode*>(localScope->getLocalNode());
+                        if (const auto* classDecl = dynamic_cast<const ClassDeclarationNode*>(node)) {
+                            identifiers.emplace(classDecl->getName().getIdentifierString());
+                        } else if (const auto* interfaceDecl = dynamic_cast<const InterfaceDeclarationNode*>(node)) {
+                            identifiers.emplace(interfaceDecl->getName().getIdentifierString());
+                        } else if (const auto* enumDecl = dynamic_cast<const EnumDeclarationNode*>(node)) {
+                            identifiers.emplace(enumDecl->getName().getIdentifierString());
+                        } else if (const auto* enumMemberDecl = dynamic_cast<const EnumMemberDeclarationNode*>(node)) {
+                            identifiers.emplace(enumMemberDecl->getName().getIdentifierString());
+                        } else if (const auto* typeAliasDecl = dynamic_cast<const TypeAliasDeclarationNode*>(node)) {
+                            identifiers.emplace(typeAliasDecl->getAliasName().getIdentifierString());
                         }
 
                         localScope = localScope->findParent();
@@ -1049,7 +1055,7 @@ namespace vnlc {
                     std::unique_ptr<CustomizedType> customizedType = nullptr;
                     const auto* currModule = &context.getModule();
 
-                    if (currModule->getFullName() == "vanillang.typesystem") {
+                    if (currModule->getFullName() == "vanillang.types") {
                         const EnumDeclarationNode* opt = nullptr;
                         for (const auto& decl : currModule->getTopIdentifierDeclarations()) {
                             const EnumDeclarationNode* enumDecl = dynamic_cast<const EnumDeclarationNode*>(decl.get());
@@ -1061,17 +1067,17 @@ namespace vnlc {
                         }
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            context.reportError(type, "Could not find the declaration of 'vanillang.types.Optional'");
                             return nullptr;
                         }
 
                         customizedType = std::make_unique<CustomizedType>(CustomizedTypeKind::ENUM, fullName, std::vector<const Type*>{ resolvedType }, opt);
                     } else {
-                        const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "typesystem", "Optional" });
+                        const ImportedItem* item = context.getImportedItemByFullPath({ "vanillang", "types", "Optional" });
                         const auto* opt = dynamic_cast<const ImportedEnum*>(item);
 
                         if (!opt) {
-                            context.reportError(type, "Could not find the declaration of 'vanillang.typesystem.Optional'");
+                            context.reportError(type, "Could not find the declaration of 'vanillang.types.Optional'");
                             return nullptr;
                         }
 
@@ -2145,8 +2151,30 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::checkIfStatement(const IfStatementNode& ifStmt) {
-        checkExpression(ifStmt.getCondition());
-        checkStatement(ifStmt.getThenBranch());
+        if (const auto* conditionDecl = ifStmt.getConditionDeclaration()) {
+            context.pushScope(std::make_unique<Scope>(ScopeKind::CONDITIONAL, &context.currentScope(), &ifStmt));
+
+            RegularSymbol variableSymbol(
+                RegularSymbolKind::VARIABLE,
+                static_cast<RegularSymbolAccessModifier>(conditionDecl->getAccessModifier()),
+                conditionDecl->getName().getIdentifierString(),
+                conditionDecl
+            );
+            if (!context.currentScope().declare(std::move(variableSymbol))) {
+                context.reportError(*conditionDecl, fmt::format("Redeclaration of symbol '{}'", conditionDecl->getName().getIdentifierString()));
+            }
+            if (conditionDecl->getType() != nullptr) {
+                resolveTypeAnnotation(*conditionDecl->getType());
+            }
+            checkValueDeclaration(*conditionDecl);
+            checkStatement(ifStmt.getThenBranch());
+
+            context.popScope();
+        } else {
+            checkExpression(*ifStmt.getCondition());
+            checkStatement(ifStmt.getThenBranch());
+        }
+
         if (ifStmt.getElseBranch() != nullptr) {
             checkStatement(*ifStmt.getElseBranch());
         }
@@ -2315,7 +2343,7 @@ namespace vnlc {
     void SemanticAnalyzer::checkSelectorLiteralExpression(const SelectorLiteralExpressionNode& selectorLiteralExpr) {
         // TODO: Implement selector literal expression checking
         for (const auto& argument : selectorLiteralExpr.getArguments()) {
-            checkExpression(*argument.second);
+            checkExpression(*argument.value);
         }
     }
 

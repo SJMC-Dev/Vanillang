@@ -1,9 +1,4 @@
 #**
- * Represents any type in Vanillang, including primitive types.
- *#
-class Any {}
-
-#**
  * Represents a value that may be present or absent.
  *
  * @generic T - The type of the wrapped value.
@@ -14,19 +9,87 @@ enum Optional<T> {
 
     #** Represents the absence of a value. *#
     None
+
+    #**
+     * Checks whether a value is present.
+     *
+     * @return true if this is Some, otherwise false.
+     *#
+    func hasValue() -> bool {
+        return this instanceof Some
+    }
+
+    #**
+     * Gets the contained value, or the given default value if it is absent.
+     *
+     * @param defaultValue - The value to return if this is None.
+     *
+     * @return The contained value if this is Some, otherwise defaultValue.
+     *#
+    func valueOr(defaultValue: T) -> T {
+        if (let value = this) {
+            return value
+        }
+
+        return defaultValue
+    }
 }
 
 #**
- * Represents the outcome of an operation that may succeed or fail.
+ * Represents the outcome of an operation that may succeed or fail and returns a value on success.
  *
  * @generic T - The type of the value produced on success.
+ * @generic E - The type of the message produced on failure.
  *#
-enum Result<T> {
+enum Result<T, E> {
     #** The operation succeeded and produced a value. *#
     Ok(value: T)
 
     #** The operation failed; the message describes the error. *#
-    Error(message: string)
+    Error(message: E)
+
+    #**
+     * Checks whether the operation succeeded.
+     *
+     * @return true if this is Ok, otherwise false.
+     *#
+    func isOk() -> bool {
+        return this instanceof Ok
+    }
+
+    #**
+     * Gets the value produced on success, discarding the error message on failure.
+     *
+     * @return The value if this is Ok, otherwise None.
+     *#
+    func value() -> T? {
+        switch (this) {
+            case Ok -> return this
+            case Error -> return none
+        }
+    }
+}
+
+#**
+ * Represents the status of an operation that may succeed or fail without a return value on success.
+ *
+ * @generic E - The type of the message produced on failure.
+ *#
+enum Status<E> {
+    #** The operation succeeded. *#
+    Ok
+
+    #** The operation failed; the message describes the error. *#
+    Error(message: E)
+
+    #**
+     * Checks whether the operation succeeded.
+     *
+     * @return true if this is Ok, otherwise false.
+     *#
+    func isOk() -> bool {
+        return this instanceof Ok
+    }
 }
 
 #**
@@ -106,6 +169,47 @@ class Range<T> implements Iterable<T>, Iterator<T> {
 
         return ret
     }
+}
+
+#**
+ * Represents a string, written as "...", f"..." or r"...".
+ *#
+class String {
+    #**
+     * Concatenates two strings.
+     *
+     * @param other - The string to append.
+     *
+     * @return A new string consisting of this string followed by other.
+     *#
+    native op +(other: String) -> String
+
+    #**
+     * Checks whether two strings have the same content.
+     *
+     * @param other - The string to compare with.
+     *
+     * @return true if both strings contain the same characters, otherwise false.
+     *#
+    native op ==(other: String) -> bool
+
+    #**
+     * Gets the character at the given index.
+     *
+     * @param index - The zero-based position of the character.
+     *
+     * @return A string containing only that character, or None if index is out of bounds.
+     *#
+    native op [](index: int) -> String?
+
+    #**
+     * Gets the substring covered by the given range.
+     *
+     * @param range - The zero-based positions of the first and last characters (inclusive).
+     *
+     * @return The substring, or None if range is out of bounds.
+     *#
+    native op [](range: Range<int>) -> String?
 }
 
 #**
@@ -244,7 +348,7 @@ class Dict {
      *
      * @return The value, or None if the key is absent.
      *#
-    native op [](key: string) -> Any?
+    native op [](key: String) -> Any?
 
     #**
      * Associates a value with the given key, replacing any existing value.
@@ -252,7 +356,7 @@ class Dict {
      * @param key - The key to associate the value with.
      * @param value - The value to store.
      *#
-    native func set(key: string, value: Any) -> void
+    native func set(key: String, value: Any) -> void
 
     #**
      * Checks whether the given key is present.
@@ -260,14 +364,14 @@ class Dict {
      * @param key - The key to look up.
      * @return true if the key is present, otherwise false.
      *#
-    native func contains(key: string) -> bool
+    native func contains(key: String) -> bool
 
     #**
      * Removes the entry with the given key if it is present.
      *
      * @param key - The key of the entry to remove.
      *#
-    native func remove(key: string) -> void
+    native func remove(key: String) -> void
 }
 
 #**
@@ -301,4 +405,30 @@ enum Ordering {
 
     #** The left operand is greater than the right operand. *#
     Greater
+}
+
+#**
+ * Represents a type whose instances can be copied.
+ *
+ * @generic T - The type of the copy produced by clone.
+ *#
+interface Cloneable<T> {
+    #**
+     * Creates a copy of this value.
+     *
+     * @return A new value with the same content as this value.
+     *#
+    func clone() -> T
+}
+
+#**
+ * Represents a type whose instances can be converted to a string.
+ *#
+interface Stringable {
+    #**
+     * Converts this value to a string.
+     *
+     * @return A string that represents this value.
+     *#
+    func toString() -> String
 }

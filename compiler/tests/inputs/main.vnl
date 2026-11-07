@@ -24,17 +24,17 @@ interface Movable<T> {
 # the class of player
 metadata(gameversion "1.20.4..26.1.2")
 class VnlPlayer extends Entity implements Movable<Entity> {
-    private name: string
+    private name: String
     private health: int
 
-    static entityType: string = "player"
+    static entityType: String = "player"
 
     init() {
         super.init()
         # implement the letructor
     }
 
-    func getName() -> string {
+    func getName() -> String {
         return this.name
     }
 

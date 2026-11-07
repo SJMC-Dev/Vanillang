@@ -10,11 +10,29 @@ namespace vnlc {
     ) noexcept
         : ControlFlowStatementNode(firstToken, lastToken),
           condition(std::move(condition)),
+          conditionDeclaration(nullptr),
           thenBranch(std::move(thenBranch)),
           elseBranch(std::move(elseBranch)) {}
 
-    const ExpressionNode& IfStatementNode::getCondition() const noexcept {
-        return *condition;
+    IfStatementNode::IfStatementNode(
+        std::unique_ptr<ValueDeclarationNode>&& conditionDeclaration,
+        std::unique_ptr<StatementNode>&& thenBranch,
+        std::unique_ptr<StatementNode>&& elseBranch,
+        const Token& firstToken,
+        const Token& lastToken
+    ) noexcept
+        : ControlFlowStatementNode(firstToken, lastToken),
+          condition(nullptr),
+          conditionDeclaration(std::move(conditionDeclaration)),
+          thenBranch(std::move(thenBranch)),
+          elseBranch(std::move(elseBranch)) {}
+
+    const ExpressionNode* IfStatementNode::getCondition() const noexcept {
+        return condition.get();
+    }
+
+    const ValueDeclarationNode* IfStatementNode::getConditionDeclaration() const noexcept {
+        return conditionDeclaration.get();
     }
 
     const StatementNode& IfStatementNode::getThenBranch() const noexcept {

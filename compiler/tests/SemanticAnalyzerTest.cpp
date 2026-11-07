@@ -201,6 +201,65 @@ type Invalid = Missing<Unknown>
         EXPECT_EQ(result.getErrors().front().getMessage(), "Use of undeclared type 'Missing'");
     }
 
+    TEST(SemanticAnalyzerTest, ReportsLowercaseStringAsAnUndeclaredType) {
+        constexpr std::string_view source = R"(
+type Text = string
+)";
+        const auto config = makeConfig("lowercase_string_type.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_EQ(result.getErrors().size(), 1);
+        EXPECT_EQ(result.getErrors().front().getMessage(), "Use of undeclared type 'string'");
+    }
+
+    TEST(SemanticAnalyzerTest, ScopesIfConditionDeclarationsToTheThenBranch) {
+        constexpr std::string_view source = R"(
+func test() {
+    if (let value = 1) {
+        let inner = value
+    } else {
+        let other = 2
+    }
+}
+)";
+        const auto config = makeConfig("if_condition_declarations.vnl");
+        auto module = parseModule(source, config);
+
+        const ImportedRootPackageMap imports;
+        SemanticAnalyzer analyzer(*module, imports);
+        const auto result = analyzer.analyze(config);
+
+        ASSERT_FALSE(result.hasErrors());
+        const auto* function = dynamic_cast<const FunctionDeclarationNode*>(module->getTopIdentifierDeclarations().front().get());
+        ASSERT_NE(function, nullptr);
+        ASSERT_NE(function->getBody(), nullptr);
+        const auto* ifStatement = dynamic_cast<const IfStatementNode*>(function->getBody()->getStatements().front().get());
+        ASSERT_NE(ifStatement, nullptr);
+        ASSERT_NE(ifStatement->getConditionDeclaration(), nullptr);
+        ASSERT_NE(ifStatement->getElseBranch(), nullptr);
+
+        const auto* ifScope = result.getScopeByAstNode(*ifStatement);
+        ASSERT_NE(ifScope, nullptr);
+        const auto* valueSymbol = asRegularSymbol(ifScope->lookupLocal("value"));
+        ASSERT_NE(valueSymbol, nullptr);
+        EXPECT_EQ(valueSymbol->getKind(), RegularSymbolKind::VARIABLE);
+        EXPECT_EQ(valueSymbol->getLocalNode(), ifStatement->getConditionDeclaration());
+
+        const auto* thenScope = result.getScopeByAstNode(ifStatement->getThenBranch());
+        ASSERT_NE(thenScope, nullptr);
+        EXPECT_EQ(thenScope->findParent(), ifScope);
+        EXPECT_EQ(thenScope->lookup("value"), valueSymbol);
+
+        const auto* elseScope = result.getScopeByAstNode(*ifStatement->getElseBranch());
+        ASSERT_NE(elseScope, nullptr);
+        EXPECT_NE(elseScope->findParent(), ifScope);
+        EXPECT_EQ(elseScope->lookup("value"), nullptr);
+    }
+
     TEST(SemanticAnalyzerTest, AcceptsPrimitiveTypeExpressions) {
         constexpr std::string_view source = R"(
 func test() {
@@ -283,15 +342,15 @@ interface Resettable {
 
     TEST(SemanticAnalyzerTest, GeneratesInternalNamesFromResolvedParameterTypes) {
         constexpr std::string_view source = R"(
-func combine(first: Alias, second: Box<int>, third: string) {}
+func combine(first: Alias, second: Box<int>, third: bool) {}
 class Holder {
-    func combine(first: Alias, second: Box<int>, third: string) {}
-    init(first: Alias, second: Box<int>, third: string) {}
-    op ()(first: Alias, second: Box<int>, third: string) -> int { return 0 }
+    func combine(first: Alias, second: Box<int>, third: bool) {}
+    init(first: Alias, second: Box<int>, third: bool) {}
+    op ()(first: Alias, second: Box<int>, third: bool) -> int { return 0 }
 }
 interface Combiner {
-    func combine(first: Alias, second: Box<int>, third: string)
-    op ()(first: Alias, second: Box<int>, third: string) -> int
+    func combine(first: Alias, second: Box<int>, third: bool)
+    op ()(first: Alias, second: Box<int>, third: bool) -> int
 }
 type Alias = Later
 class Box<T> {}
@@ -307,7 +366,7 @@ class Later {}
         ASSERT_FALSE(result.hasErrors());
         const auto& declarations = module->getTopIdentifierDeclarations();
         ASSERT_EQ(declarations.size(), 6);
-        const std::string signature = "(" + std::string(module->getFullName()) + ".Later, " + std::string(module->getFullName()) + ".Box<int>, string)";
+        const std::string signature = "(" + std::string(module->getFullName()) + ".Later, " + std::string(module->getFullName()) + ".Box<int>, bool)";
         const auto* functionDeclaration = dynamic_cast<const FunctionDeclarationNode*>(declarations[0].get());
         ASSERT_NE(functionDeclaration, nullptr);
         EXPECT_EQ(functionDeclaration->getInternalName(), "vnl-function-combine" + signature);
@@ -333,9 +392,9 @@ class Later {}
         constexpr std::string_view source = R"(
 func convert() {}
 func convert(value: int) {}
-func convert(value: string) {}
-func convert(first: int, second: string) {}
-func convert(first: string, second: int) {}
+func convert(value: bool) {}
+func convert(first: int, second: bool) {}
+func convert(first: bool, second: int) {}
 )";
         const auto config = makeConfig("function_overload_signatures.vnl");
         auto module = parseModule(source, config);
@@ -350,7 +409,7 @@ func convert(first: string, second: int) {}
         const auto* functionSymbol = dynamic_cast<const FunctionSymbol*>(moduleScope->lookupLocal("convert"));
         ASSERT_NE(functionSymbol, nullptr);
         const std::vector<std::string_view> expectedNames = {
-            "vnl-function-convert()", "vnl-function-convert(int)", "vnl-function-convert(string)", "vnl-function-convert(int, string)", "vnl-function-convert(string, int)",
+            "vnl-function-convert()", "vnl-function-convert(int)", "vnl-function-convert(bool)", "vnl-function-convert(int, bool)", "vnl-function-convert(bool, int)",
         };
         const auto& declarations = module->getTopIdentifierDeclarations();
         ASSERT_EQ(declarations.size(), expectedNames.size());
@@ -371,14 +430,14 @@ func convert(first: string, second: int) {}
 type T = int
 class Box<T> {
     func read(input: T) -> T { return input }
-    func read(input: string) -> string { return input }
+    func read(input: bool) -> bool { return input }
     init(input: T) {}
     op +(input: T) -> T { return input }
 }
 func afterClass(input: T) {}
 interface Readable<R> {
     func read(input: R) -> R
-    func read(input: string) -> string
+    func read(input: bool) -> bool
     op +(input: R) -> R
 }
 func afterInterface(input: T) {}
@@ -399,7 +458,7 @@ func afterInterface(input: T) {}
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
         EXPECT_EQ(classDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(T)");
-        EXPECT_EQ(classDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(string)");
+        EXPECT_EQ(classDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(bool)");
         EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor(T)");
         EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(T)");
 
@@ -408,7 +467,7 @@ func afterInterface(input: T) {}
         ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 2);
         ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
         EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(R)");
-        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(string)");
+        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(bool)");
         EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(R)");
 
         const auto* moduleScope = result.getScopeByAstNode(*module);
@@ -582,7 +641,7 @@ func value(input: int) {}
                 R"(
 type Count = int
 func read(first: Count) -> int { return 0 }
-func read(second: int) -> string { return "value" }
+func read(second: int) -> bool { return true }
 )",
                 "Redeclaration of symbol 'vnl-function-read(int)'",
             },
@@ -591,7 +650,7 @@ func read(second: int) -> string { return "value" }
 type Count = int
 class Reader {
     func read(first: Count) -> int { return 0 }
-    func read(second: int) -> string { return "value" }
+    func read(second: int) -> bool { return true }
 }
 )",
                 "Redeclaration of class member 'vnl-function-read(int)'",
@@ -601,7 +660,7 @@ class Reader {
 type Count = int
 interface Reader {
     func read(first: Count) -> int
-    func read(second: int) -> string
+    func read(second: int) -> bool
 }
 )",
                 "Redeclaration of interface method 'vnl-function-read(int)'",
@@ -675,7 +734,7 @@ class Value {
                 R"(
 class Callable {
     op ()() -> int { return 0 }
-    op ()() -> string { return "value" }
+    op ()() -> bool { return true }
 }
 )",
                 "Redeclaration of class member 'vnl-operator-call()'",
@@ -684,7 +743,7 @@ class Callable {
                 R"(
 interface Callable {
     op ()() -> int
-    op ()() -> string
+    op ()() -> bool
 }
 )",
                 "Redeclaration of interface operator 'vnl-operator-call()'",
@@ -694,7 +753,7 @@ interface Callable {
 type Count = int
 class Addable {
     op +(first: Count) -> int { return 0 }
-    op +(second: int) -> string { return "value" }
+    op +(second: int) -> bool { return true }
 }
 )",
                 "Redeclaration of class member 'vnl-operator-addition(int)'",
@@ -704,7 +763,7 @@ class Addable {
 type Count = int
 interface Addable {
     op +(first: Count) -> int
-    op +(second: int) -> string
+    op +(second: int) -> bool
 }
 )",
                 "Redeclaration of interface operator 'vnl-operator-addition(int)'",
@@ -731,15 +790,15 @@ interface Addable {
 class Callable {
     init() {}
     init(value: int) {}
-    init(value: string) {}
+    init(value: bool) {}
     op ()() -> int { return 0 }
     op ()(value: int) -> int { return value }
-    op ()(value: string) -> string { return value }
+    op ()(value: bool) -> bool { return value }
 }
 interface Invocable {
     op ()() -> int
     op ()(value: int) -> int
-    op ()(value: string) -> string
+    op ()(value: bool) -> bool
 }
 )";
         const auto config = makeConfig("distinct_constructor_operator_signatures.vnl");
@@ -763,12 +822,12 @@ interface Invocable {
         constexpr std::string_view constructorNames[] = {
             "vnl-constructor()",
             "vnl-constructor(int)",
-            "vnl-constructor(string)",
+            "vnl-constructor(bool)",
         };
         constexpr std::string_view operatorNames[] = {
             "vnl-operator-call()",
             "vnl-operator-call(int)",
-            "vnl-operator-call(string)",
+            "vnl-operator-call(bool)",
         };
         for (std::size_t index = 0; index < 3; ++index) {
             SCOPED_TRACE(index);
@@ -808,8 +867,8 @@ class Vec3 {
         constexpr std::string_view source = R"(
 class Vec3 {
     op ==(other: Vec3) -> int { return 0 }
-    op ==(other: int) -> string { return "" }
-    native op ==(other: string)
+    op ==(other: int) -> long { return 0 }
+    native op ==(other: long)
 }
 interface Equatable {
     op ==(other: Equatable) -> Equatable
@@ -980,7 +1039,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
 
     TEST(SemanticAnalyzerTest, ReportsEveryNonInterfaceTypeInImplementationLists) {
         const auto config = makeConfig("mixed_implementations.vnl");
-        auto module = parseModule("interface Readable {}\nclass Derived implements Readable, int, string {}", config);
+        auto module = parseModule("interface Readable {}\nclass Derived implements Readable, int, bool {}", config);
 
         const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
@@ -988,7 +1047,7 @@ class Aliased extends BaseAlias implements ReadableAlias {}
 
         ASSERT_EQ(result.getErrors().size(), 2);
         EXPECT_EQ(result.getErrors()[0].getMessage(), "Type 'int' is not an interface");
-        EXPECT_EQ(result.getErrors()[1].getMessage(), "Type 'string' is not an interface");
+        EXPECT_EQ(result.getErrors()[1].getMessage(), "Type 'bool' is not an interface");
     }
 
     TEST(SemanticAnalyzerTest, ReportsUndeclaredBaseClassesAndInterfacesOnce) {
@@ -1123,6 +1182,28 @@ class Visible {}
         EXPECT_EQ(localScopes.at(module.get()).get(), localScope);
     }
 
+    TEST(SemanticContextTest, ResolvesEveryPrimitiveTypeByFullTypeName) {
+        const auto config = makeConfig("primitive_type_names.vnl");
+        const auto module = parseModule("", config);
+        const ImportedRootPackageMap imports;
+        const SemanticContext context(*module, imports);
+
+        for (const auto* primitiveType : { PrimitiveType::byteType(),
+                                           PrimitiveType::unsignedByteType(),
+                                           PrimitiveType::shortType(),
+                                           PrimitiveType::unsignedShortType(),
+                                           PrimitiveType::intType(),
+                                           PrimitiveType::unsignedIntType(),
+                                           PrimitiveType::longType(),
+                                           PrimitiveType::unsignedLongType(),
+                                           PrimitiveType::floatType(),
+                                           PrimitiveType::doubleType(),
+                                           PrimitiveType::booleanType() }) {
+            SCOPED_TRACE(primitiveType->getFullTypeName());
+            EXPECT_EQ(context.getTypeByFullTypeName(primitiveType->getFullTypeName()), primitiveType);
+        }
+    }
+
     class SemanticAnalyzerImportTest : public testing::Test {
     protected:
         std::filesystem::path testDirectory;
@@ -1137,8 +1218,10 @@ class Visible {}
             config.dependencyPackageRootPaths.emplace("pkg", testDirectory / "dependency_source");
             config.dependencyPackageRootPaths.emplace("extra", testDirectory / "another_source");
             config.dependencyPackageRootPaths.emplace("vanillang", testDirectory / "standard_library");
-            writeFile("standard_library/typesystem.vni", R"({
+            writeFile("standard_library/types.vni", R"({
     "Optional": {"category": "enum", "accessModifier": "public", "genericParameters": ["T"], "members": {}},
+    "String": {"category": "class", "accessModifier": "public", "genericParameters": [], "properties": {}, "methods": {}, "constructors": {}, "operators": {},
+        "baseClass": null, "implementedInterfaces": [], "final": false},
     "Ordering": {"category": "enum", "accessModifier": "public", "genericParameters": [],
         "members": {
             "Less": {"category": "enummember", "associatedValues": {}},
@@ -1299,24 +1382,27 @@ class Visible {}
 
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalPrimitiveTypesWithTheirOriginalArguments) {
         for (const auto* primitiveType : { PrimitiveType::byteType(),
+                                           PrimitiveType::unsignedByteType(),
                                            PrimitiveType::shortType(),
+                                           PrimitiveType::unsignedShortType(),
                                            PrimitiveType::intType(),
+                                           PrimitiveType::unsignedIntType(),
                                            PrimitiveType::longType(),
+                                           PrimitiveType::unsignedLongType(),
                                            PrimitiveType::floatType(),
                                            PrimitiveType::doubleType(),
-                                           PrimitiveType::booleanType(),
-                                           PrimitiveType::stringType() }) {
+                                           PrimitiveType::booleanType() }) {
             const auto primitiveName = std::string(primitiveType->getFullTypeName());
             SCOPED_TRACE(primitiveName);
             withAliasType(
-                "import vanillang.typesystem.Optional\ntype Result = " + primitiveName + "?\n",
+                "import vanillang.types.Optional\ntype Result = " + primitiveName + "?\n",
                 [this, primitiveType, &primitiveName](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                     auto& context = semanticContext(analyzer);
                     ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
                     EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-                    EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.typesystem.Optional<" + primitiveName + ">");
+                    EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<" + primitiveName + ">");
                     ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
                     EXPECT_EQ(optionalType->getGenericArguments().front(), primitiveType);
                     EXPECT_EQ(context.getCustomizedTypeByFullTypeName(std::string(optionalType->getFullTypeName())), optionalType);
@@ -1326,15 +1412,43 @@ class Visible {}
         }
     }
 
+    TEST_F(SemanticAnalyzerImportTest, ResolvesStringToTheStandardLibraryClass) {
+        withAliasType("import vanillang.types.String\ntype Result = String\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
+            auto& context = semanticContext(analyzer);
+            ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
+            const auto* stringType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
+            ASSERT_NE(stringType, nullptr);
+            EXPECT_EQ(stringType->getCustomizedKind(), CustomizedTypeKind::CLASS);
+            EXPECT_EQ(stringType->getOrigin(), CustomizedTypeOrigin::IMPORTED);
+            EXPECT_EQ(stringType->getFullTypeName(), "vanillang.types.String");
+            EXPECT_TRUE(stringType->getGenericArguments().empty());
+            EXPECT_EQ(stringType->getImportedNode(), context.getImportedItemByFullPath({ "vanillang", "types", "String" }));
+        });
+    }
+
+    TEST_F(SemanticAnalyzerImportTest, RegistersOptionalStringsWithTheStandardLibraryClassArgument) {
+        withAliasType("import vanillang.types.{Optional, String}\ntype Result = String?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
+            auto& context = semanticContext(analyzer);
+            ASSERT_TRUE(context.getErrors().empty()) << context.getErrors().front().getMessage();
+            const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
+            ASSERT_NE(optionalType, nullptr);
+            EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<vanillang.types.String>");
+            ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
+            const auto* stringType = context.getCustomizedTypeByFullTypeName("vanillang.types.String");
+            ASSERT_NE(stringType, nullptr);
+            EXPECT_EQ(optionalType->getGenericArguments().front(), stringType);
+        });
+    }
+
     TEST_F(SemanticAnalyzerImportTest, RegistersNestedOptionalLocalTypesWithTheirOriginalArguments) {
-        withAliasType("import vanillang.typesystem.Optional\nclass Box<T> {}\ntype Result = Box<int?>?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
+        withAliasType("import vanillang.types.Optional\nclass Box<T> {}\ntype Result = Box<int?>?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
             ASSERT_TRUE(context.getErrors().empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-            const auto boxName = std::string(module->getFullName()) + ".Box<vanillang.typesystem.Optional<int>>";
-            EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.typesystem.Optional<" + boxName + ">");
+            const auto boxName = std::string(module->getFullName()) + ".Box<vanillang.types.Optional<int>>";
+            EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<" + boxName + ">");
             ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
             const auto* boxType = dynamic_cast<const CustomizedType*>(optionalType->getGenericArguments().front());
             ASSERT_NE(boxType, nullptr);
@@ -1347,7 +1461,7 @@ class Visible {}
             const auto* optionalIntType = dynamic_cast<const CustomizedType*>(boxType->getGenericArguments().front());
             ASSERT_NE(optionalIntType, nullptr);
             EXPECT_EQ(optionalIntType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-            EXPECT_EQ(optionalIntType->getFullTypeName(), "vanillang.typesystem.Optional<int>");
+            EXPECT_EQ(optionalIntType->getFullTypeName(), "vanillang.types.Optional<int>");
             const auto& originalType = dynamic_cast<const CustomizedTypeAnnotationNode&>(typeAlias.getOriginalType());
             EXPECT_EQ(context.getTypeByTypeAnnotationNode(originalType.getGenericArguments().front().get()), optionalIntType);
             ASSERT_EQ(optionalIntType->getGenericArguments().size(), 1);
@@ -1360,14 +1474,14 @@ class Visible {}
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalImportedTypesWithTheirOriginalDeclarations) {
         writeScopedModule();
         withAliasType(
-            "import pkg.api.Box as ImportedBox\nimport vanillang.typesystem.Optional\ntype Result = ImportedBox<int>?\n",
+            "import pkg.api.Box as ImportedBox\nimport vanillang.types.Optional\ntype Result = ImportedBox<int>?\n",
             [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
                 auto& context = semanticContext(analyzer);
                 ASSERT_TRUE(context.getErrors().empty());
                 const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
                 ASSERT_NE(optionalType, nullptr);
                 EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-                EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.typesystem.Optional<pkg.api.Box<int>>");
+                EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<pkg.api.Box<int>>");
                 ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
                 const auto* boxType = dynamic_cast<const CustomizedType*>(optionalType->getGenericArguments().front());
                 ASSERT_NE(boxType, nullptr);
@@ -1386,13 +1500,13 @@ class Visible {}
     }
 
     TEST_F(SemanticAnalyzerImportTest, RegistersOptionalGenericParametersWithTheirOriginalDeclarations) {
-        withAliasType("import vanillang.typesystem.Optional\ntype Result<T> = T?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
+        withAliasType("import vanillang.types.Optional\ntype Result<T> = T?\n", [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& typeAlias) {
             auto& context = semanticContext(analyzer);
             ASSERT_TRUE(context.getErrors().empty());
             const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&typeAlias.getOriginalType()));
             ASSERT_NE(optionalType, nullptr);
             EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-            EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.typesystem.Optional<T>");
+            EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<T>");
             ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
             const auto* genericType = dynamic_cast<const CustomizedType*>(optionalType->getGenericArguments().front());
             ASSERT_NE(genericType, nullptr);
@@ -1404,7 +1518,7 @@ class Visible {}
     }
 
     TEST_F(SemanticAnalyzerImportTest, RetainsSharedOptionalTypesAndTheirOriginalTypesInAnalysisResults) {
-        const auto result = analyze("import vanillang.typesystem.Optional\nclass Box<T> {}\ntype Original = Box<int>\ntype First = Box<int>?\ntype Second = Box<int>?\n");
+        const auto result = analyze("import vanillang.types.Optional\nclass Box<T> {}\ntype Original = Box<int>\ntype First = Box<int>?\ntype Second = Box<int>?\n");
         ASSERT_FALSE(result.hasErrors());
         const auto& declarations = module->getTopIdentifierDeclarations();
         const auto& originalAlias = dynamic_cast<const TypeAliasDeclarationNode&>(*declarations.at(1));
@@ -1423,9 +1537,8 @@ class Visible {}
     }
 
     TEST_F(SemanticAnalyzerImportTest, DoesNotRegisterOptionalTypesWithUnresolvedOriginalTypes) {
-        const auto result = analyze(
-            "import vanillang.typesystem.Optional\nclass Box<T> {}\ntype MissingOptional = Missing?\ntype MissingArgument = Box<Missing?>\ntype MissingOptionalArgument = Box<Missing?>?\n"
-        );
+        const auto result =
+            analyze("import vanillang.types.Optional\nclass Box<T> {}\ntype MissingOptional = Missing?\ntype MissingArgument = Box<Missing?>\ntype MissingOptionalArgument = Box<Missing?>?\n");
         ASSERT_EQ(result.getErrors().size(), 3);
         for (const auto& error : result.getErrors()) {
             EXPECT_EQ(error.getMessage(), "Use of undeclared type 'Missing'");
@@ -1434,10 +1547,10 @@ class Visible {}
             const auto& alias = dynamic_cast<const TypeAliasDeclarationNode&>(*module->getTopIdentifierDeclarations()[index]);
             EXPECT_EQ(result.getTypeByTypeAnnotationNode(&alias.getOriginalType()), nullptr);
         }
-        const auto boxName = std::string(module->getFullName()) + ".Box<vanillang.typesystem.Optional<Missing>>";
-        EXPECT_EQ(result.getCustomizedTypeByFullTypeName("vanillang.typesystem.Optional<Missing>"), nullptr);
+        const auto boxName = std::string(module->getFullName()) + ".Box<vanillang.types.Optional<Missing>>";
+        EXPECT_EQ(result.getCustomizedTypeByFullTypeName("vanillang.types.Optional<Missing>"), nullptr);
         EXPECT_EQ(result.getCustomizedTypeByFullTypeName(boxName), nullptr);
-        EXPECT_EQ(result.getCustomizedTypeByFullTypeName("vanillang.typesystem.Optional<" + boxName + ">"), nullptr);
+        EXPECT_EQ(result.getCustomizedTypeByFullTypeName("vanillang.types.Optional<" + boxName + ">"), nullptr);
     }
 
     TEST_F(SemanticAnalyzerImportTest, ReusesOptionalTypesAcrossSugarAndExplicitReferencesInEitherOrder) {
@@ -1445,7 +1558,7 @@ class Visible {}
             SCOPED_TRACE(firstType);
             const std::string secondType = firstType == "int?" ? "Optional<int>" : "int?";
             withAliasType(
-                "import vanillang.typesystem.Optional\ntype First = " + std::string(firstType) + "\ntype Second = " + secondType + "\n",
+                "import vanillang.types.Optional\ntype First = " + std::string(firstType) + "\ntype Second = " + secondType + "\n",
                 [this](SemanticAnalyzer& analyzer, const TypeAliasDeclarationNode& secondAlias) {
                     auto& context = semanticContext(analyzer);
                     ASSERT_TRUE(context.getErrors().empty());
@@ -1453,9 +1566,9 @@ class Visible {}
                     const auto* optionalType = dynamic_cast<const CustomizedType*>(context.getTypeByTypeAnnotationNode(&firstAlias.getOriginalType()));
                     ASSERT_NE(optionalType, nullptr);
                     EXPECT_EQ(optionalType->getCustomizedKind(), CustomizedTypeKind::ENUM);
-                    EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.typesystem.Optional<int>");
+                    EXPECT_EQ(optionalType->getFullTypeName(), "vanillang.types.Optional<int>");
                     EXPECT_EQ(context.getTypeByTypeAnnotationNode(&secondAlias.getOriginalType()), optionalType);
-                    EXPECT_EQ(context.getCustomizedTypeByFullTypeName("vanillang.typesystem.Optional<int>"), optionalType);
+                    EXPECT_EQ(context.getCustomizedTypeByFullTypeName("vanillang.types.Optional<int>"), optionalType);
                     ASSERT_EQ(optionalType->getGenericArguments().size(), 1);
                     EXPECT_EQ(optionalType->getGenericArguments().front(), PrimitiveType::intType());
                 }
@@ -1586,14 +1699,14 @@ class Visible {}
 
     TEST_F(SemanticAnalyzerImportTest, AcceptsEqualityAndComparisonOperatorsWithRequiredReturnTypes) {
         const auto result = analyze(R"(
-import vanillang.typesystem.{Optional, Ordering}
+import vanillang.types.{Optional, Ordering, String}
 class Vec3 {
     op ==(other: Vec3) -> bool { return true }
     op <=>(other: Vec3) -> Ordering? { return none }
     native op ==(other: int) -> bool
     native op <=>(other: int) -> Optional<Ordering>
-    op ==(other: string) { return true }
-    op <=>(other: string) { return none }
+    op ==(other: String) { return true }
+    op <=>(other: String) { return none }
 }
 interface Comparable {
     op ==(other: Comparable) -> bool
@@ -1612,11 +1725,11 @@ interface Comparable {
 
     TEST_F(SemanticAnalyzerImportTest, RejectsComparisonOperatorsNotReturningOptionalOrdering) {
         const auto result = analyze(R"(
-import vanillang.typesystem.{Optional, Ordering}
+import vanillang.types.{Optional, Ordering, String}
 class Vec3 {
     op <=>(other: Vec3) -> int { return 0 }
     native op <=>(other: int) -> Ordering
-    native op <=>(other: string) -> bool?
+    native op <=>(other: String) -> bool?
     native op <=>(other: bool)
 }
 interface Comparable {
@@ -1627,13 +1740,13 @@ interface Comparable {
 
         ASSERT_EQ(result.getErrors().size(), 6);
         for (const auto& error : result.getErrors()) {
-            EXPECT_EQ(error.getMessage(), "Operator 'comparison' must return 'vanillang.typesystem.Optional<vanillang.typesystem.Ordering>'");
+            EXPECT_EQ(error.getMessage(), "Operator 'comparison' must return 'vanillang.types.Optional<vanillang.types.Ordering>'");
         }
     }
 
     TEST_F(SemanticAnalyzerImportTest, RejectsComparisonOperatorsReturningLocalOrderingTypes) {
         const auto result = analyze(R"(
-import vanillang.typesystem.Optional
+import vanillang.types.Optional
 enum Ordering {
     Less
     Equal
@@ -1645,12 +1758,12 @@ class Vec3 {
 )");
 
         ASSERT_EQ(result.getErrors().size(), 1);
-        EXPECT_EQ(result.getErrors().front().getMessage(), "Operator 'comparison' must return 'vanillang.typesystem.Optional<vanillang.typesystem.Ordering>'");
+        EXPECT_EQ(result.getErrors().front().getMessage(), "Operator 'comparison' must return 'vanillang.types.Optional<vanillang.types.Ordering>'");
     }
 
     TEST_F(SemanticAnalyzerImportTest, AcceptsOperatorsWithAllowedParameterCounts) {
         const auto result = analyze(R"(
-import vanillang.typesystem.{Optional, Ordering}
+import vanillang.types.{Optional, Ordering}
 class Vec3 {
     op +() -> Vec3 { return this }
     op -() -> Vec3 { return this }
@@ -1691,7 +1804,7 @@ interface Operable {
 
     TEST_F(SemanticAnalyzerImportTest, RejectsOperatorsWithDisallowedParameterCounts) {
         const auto result = analyze(R"(
-import vanillang.typesystem.{Optional, Ordering}
+import vanillang.types.{Optional, Ordering}
 class Vec3 {
     op +(first: Vec3, second: Vec3) -> Vec3 { return this }
     native op ~(other: Vec3) -> Vec3
@@ -2379,7 +2492,7 @@ interface Operable {
             R"({"add":{"category":"func","accessModifier":"public","name":"add","returnType":"void","parameters":{"value":{"category":"parameter","type":"int"}},"native":false}})"
         );
 
-        const auto result = analyze("import pkg.api.add\nfunc add(value: string) {}\n");
+        const auto result = analyze("import pkg.api.add\nfunc add(value: bool) {}\n");
 
         ASSERT_EQ(result.getErrors().size(), 1);
         EXPECT_EQ(result.getErrors().front().getMessage(), "Redeclaration of symbol 'add'");

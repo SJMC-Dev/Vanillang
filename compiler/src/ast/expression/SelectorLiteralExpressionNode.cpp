@@ -3,7 +3,7 @@
 namespace vnlc {
     SelectorLiteralExpressionNode::SelectorLiteralExpressionNode(
         SelectorLiteralExpressionKind kind,
-        std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>&& arguments,
+        std::vector<SelectorLiteralExpressionItem::Argument>&& arguments,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -15,7 +15,7 @@ namespace vnlc {
         return kind;
     }
 
-    const std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>& SelectorLiteralExpressionNode::getArguments() const noexcept {
+    const std::vector<SelectorLiteralExpressionItem::Argument>& SelectorLiteralExpressionNode::getArguments() const noexcept {
         return arguments;
     }
 } // namespace vnlc

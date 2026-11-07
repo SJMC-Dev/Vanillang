@@ -182,19 +182,23 @@ namespace vnlc {
     }
 
     const Type* SemanticContext::getTypeByFullTypeName(std::string_view fullTypeName) const {
-        static const std::array<std::string_view, 8> primitiveTypes = {
-            PrimitiveTypeNames::Byte,  PrimitiveTypeNames::Short,  PrimitiveTypeNames::Int,     PrimitiveTypeNames::Long,
-            PrimitiveTypeNames::Float, PrimitiveTypeNames::Double, PrimitiveTypeNames::Boolean, PrimitiveTypeNames::String,
+        static const std::array<std::string_view, 11> primitiveTypes = {
+            PrimitiveTypeNames::Byte,  PrimitiveTypeNames::UnsignedByte, PrimitiveTypeNames::Short,   PrimitiveTypeNames::UnsignedShort,
+            PrimitiveTypeNames::Int,   PrimitiveTypeNames::UnsignedInt,  PrimitiveTypeNames::Long,    PrimitiveTypeNames::UnsignedLong,
+            PrimitiveTypeNames::Float, PrimitiveTypeNames::Double,       PrimitiveTypeNames::Boolean,
         };
         const auto getPrimitiveTypeByFullTypeName = [](std::string_view name) -> const PrimitiveType* {
             if (name == PrimitiveTypeNames::Byte) return PrimitiveType::byteType();
+            if (name == PrimitiveTypeNames::UnsignedByte) return PrimitiveType::unsignedByteType();
             if (name == PrimitiveTypeNames::Short) return PrimitiveType::shortType();
+            if (name == PrimitiveTypeNames::UnsignedShort) return PrimitiveType::unsignedShortType();
             if (name == PrimitiveTypeNames::Int) return PrimitiveType::intType();
+            if (name == PrimitiveTypeNames::UnsignedInt) return PrimitiveType::unsignedIntType();
             if (name == PrimitiveTypeNames::Long) return PrimitiveType::longType();
+            if (name == PrimitiveTypeNames::UnsignedLong) return PrimitiveType::unsignedLongType();
             if (name == PrimitiveTypeNames::Float) return PrimitiveType::floatType();
             if (name == PrimitiveTypeNames::Double) return PrimitiveType::doubleType();
             if (name == PrimitiveTypeNames::Boolean) return PrimitiveType::booleanType();
-            if (name == PrimitiveTypeNames::String) return PrimitiveType::stringType();
             return nullptr;
         };
 

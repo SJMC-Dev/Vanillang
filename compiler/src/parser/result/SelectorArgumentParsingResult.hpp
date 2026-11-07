@@ -8,6 +8,7 @@
 namespace vnlc {
     struct SelectorArgumentParsingResult {
         std::string key;
+        bool negated;
         std::unique_ptr<ExpressionNode> value;
     };
 } // namespace vnlc
