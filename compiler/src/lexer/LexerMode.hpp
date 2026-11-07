@@ -1,5 +1,4 @@
-#ifndef VNLC_LEXER_MODE_HPP
-#define VNLC_LEXER_MODE_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ namespace vnlc {
         NUMBER_STARTS_WITH_DOT,
     };
 }
-
-#endif // VNLC_LEXER_MODE_HPP

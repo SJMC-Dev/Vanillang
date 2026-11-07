@@ -1,5 +1,4 @@
-#ifndef VNLC_SELECTOR_ARGUMENT_PARSING_RESULT_HPP
-#define VNLC_SELECTOR_ARGUMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -12,5 +11,3 @@ namespace vnlc {
         std::unique_ptr<ExpressionNode> value;
     };
 } // namespace vnlc
-
-#endif // VNLC_SELECTOR_ARGUMENT_PARSING_RESULT_HPP

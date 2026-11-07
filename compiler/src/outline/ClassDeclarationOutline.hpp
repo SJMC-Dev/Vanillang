@@ -1,5 +1,4 @@
-#ifndef VNLC_CLASS_DECLARATION_OUTLINE_HPP
-#define VNLC_CLASS_DECLARATION_OUTLINE_HPP
+#pragma once
 
 #include "outline/TypeDeclarationOutline.hpp"
 #include <string>
@@ -18,5 +17,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getName() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CLASS_DECLARATION_OUTLINE_HPP

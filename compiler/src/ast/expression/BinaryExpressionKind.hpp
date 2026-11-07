@@ -1,5 +1,4 @@
-#ifndef VNLC_BINARY_EXPRESSION_KIND_HPP
-#define VNLC_BINARY_EXPRESSION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -47,5 +46,3 @@ namespace vnlc {
         INSTANCEOF,
     };
 }
-
-#endif // VNLC_BINARY_EXPRESSION_KIND_HPP

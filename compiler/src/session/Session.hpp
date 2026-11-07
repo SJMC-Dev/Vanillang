@@ -1,5 +1,4 @@
-#ifndef VNLC_SESSION_HPP
-#define VNLC_SESSION_HPP
+#pragma once
 
 #include "collector/CollectionResult.hpp"
 #include "config/Config.hpp"
@@ -21,5 +20,3 @@ namespace vnlc {
         void run();
     };
 } // namespace vnlc
-
-#endif // VNLC_SESSION_HPP

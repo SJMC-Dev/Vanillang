@@ -1,5 +1,4 @@
-#ifndef VNLC_SUBSCRIPT_EXPRESSION_NODE_HPP
-#define VNLC_SUBSCRIPT_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode& getIndex() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_SUBSCRIPT_EXPRESSION_NODE_HPP

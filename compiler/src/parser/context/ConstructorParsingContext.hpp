@@ -1,5 +1,4 @@
-#ifndef VNLC_CONSTRUCTOR_PARSING_CONTEXT_HPP
-#define VNLC_CONSTRUCTOR_PARSING_CONTEXT_HPP
+#pragma once
 
 #include "ast/declaration/ConstructorDeclarationKind.hpp"
 #include "ast/declaration/DeclarationItem.hpp"
@@ -13,5 +12,3 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm> metadataTerms;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONSTRUCTOR_PARSING_CONTEXT_HPP

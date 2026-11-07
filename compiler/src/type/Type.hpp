@@ -1,5 +1,4 @@
-#ifndef VNLC_TYPE_HPP
-#define VNLC_TYPE_HPP
+#pragma once
 
 #include <string_view>
 
@@ -12,5 +11,3 @@ namespace vnlc {
         virtual ~Type() = default;
     };
 } // namespace vnlc
-
-#endif // VNLC_TYPE_HPP

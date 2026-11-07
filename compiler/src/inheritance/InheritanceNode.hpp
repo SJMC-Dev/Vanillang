@@ -1,5 +1,4 @@
-#ifndef VNLC_INHERITANCE_NODE_HPP
-#define VNLC_INHERITANCE_NODE_HPP
+#pragma once
 
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "inheritance/InheritanceOrigin.hpp"
@@ -30,5 +29,3 @@ namespace vnlc {
         [[nodiscard]] virtual bool hasCycle() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_INHERITANCE_NODE_HPP

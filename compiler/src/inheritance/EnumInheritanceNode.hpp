@@ -1,5 +1,4 @@
-#ifndef VNLC_ENUM_INHERITANCE_NODE_HPP
-#define VNLC_ENUM_INHERITANCE_NODE_HPP
+#pragma once
 
 #include "ast/declaration/EnumDeclarationNode.hpp"
 #include "inheritance/InheritanceNode.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedEnum* getImportedNode() const noexcept override;
     };
 } // namespace vnlc
-
-#endif // VNLC_ENUM_INHERITANCE_NODE_HPP

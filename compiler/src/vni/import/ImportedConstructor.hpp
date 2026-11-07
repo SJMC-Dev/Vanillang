@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_CONSTRUCTOR_HPP
-#define VNLC_IMPORTED_CONSTRUCTOR_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 #include "vni/import/ImportedParameter.hpp"
@@ -28,5 +27,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedParameter* getParameterByName(std::string_view name) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_CONSTRUCTOR_HPP

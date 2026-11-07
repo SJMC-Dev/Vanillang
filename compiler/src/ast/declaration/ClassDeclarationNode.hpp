@@ -1,5 +1,4 @@
-#ifndef VNLC_CLASS_DECLARATION_NODE_HPP
-#define VNLC_CLASS_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
@@ -72,5 +71,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<OperatorDeclarationNode>>& getOperatorDeclarations() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CLASS_DECLARATION_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_MODULE_HPP
-#define VNLC_IMPORTED_MODULE_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 #include "vni/import/ImportedItem.hpp"
@@ -20,5 +19,3 @@ namespace vnlc {
         void addIdentifier(std::unique_ptr<ImportedIdentifier>&& identifier);
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_MODULE_HPP

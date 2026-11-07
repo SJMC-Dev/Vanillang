@@ -1,5 +1,4 @@
-#ifndef VNLC_PACKAGE_READER_ERROR_HPP
-#define VNLC_PACKAGE_READER_ERROR_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include "error/Error.hpp"
@@ -20,5 +19,3 @@ namespace vnlc {
         }
     };
 } // namespace vnlc
-
-#endif // VNLC_PACKAGE_READER_ERROR_HPP

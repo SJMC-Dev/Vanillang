@@ -1,5 +1,4 @@
-#ifndef VNLC_METADATA_INFO_HPP
-#define VNLC_METADATA_INFO_HPP
+#pragma once
 
 namespace vnlc {
     struct MetadataInfo {
@@ -8,5 +7,3 @@ namespace vnlc {
         bool deprecated;
     };
 } // namespace vnlc
-
-#endif // VNLC_METADATA_INFO_HPP

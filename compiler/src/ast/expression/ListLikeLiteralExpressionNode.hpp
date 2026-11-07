@@ -1,5 +1,4 @@
-#ifndef VNLC_LIST_LIKE_LITERAL_EXPRESSION_NODE_HPP
-#define VNLC_LIST_LIKE_LITERAL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ListLikeLiteralExpressionKind.hpp"
 #include "ast/expression/LiteralExpressionNode.hpp"
@@ -21,5 +20,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<ExpressionNode>>& getElements() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_LIST_LIKE_LITERAL_EXPRESSION_NODE_HPP

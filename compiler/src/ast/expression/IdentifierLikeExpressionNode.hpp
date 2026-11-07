@@ -1,5 +1,4 @@
-#ifndef VNLC_IDENTIFIER_EXPRESSION_NODE_HPP
-#define VNLC_IDENTIFIER_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/PrimaryExpressionNode.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
@@ -28,5 +27,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getGenericArguments() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_IDENTIFIER_EXPRESSION_NODE_HPP

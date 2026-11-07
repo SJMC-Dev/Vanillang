@@ -1,5 +1,4 @@
-#ifndef VNLC_MODULE_NODE_HPP
-#define VNLC_MODULE_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "ast/declaration/DeclarationNode.hpp"
@@ -34,5 +33,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<DeclarationNode>>& getTopIdentifierDeclarations() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_MODULE_NODE_HPP

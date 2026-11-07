@@ -1,5 +1,4 @@
-#ifndef VNLC_SELECTOR_LITERAL_EXPRESSION_ITEM_HPP
-#define VNLC_SELECTOR_LITERAL_EXPRESSION_ITEM_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -14,5 +13,3 @@ namespace vnlc {
         };
     }; // namespace SelectorLiteralExpressionItem
 } // namespace vnlc
-
-#endif // VNLC_SELECTOR_LITERAL_EXPRESSION_ITEM_HPP

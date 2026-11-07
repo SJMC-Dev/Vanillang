@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_TYPE_ALIAS_HPP
-#define VNLC_IMPORTED_TYPE_ALIAS_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 #include <vector>
@@ -26,5 +25,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getAccessModifier() const override;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_TYPE_ALIAS_HPP

@@ -8,7 +8,7 @@ This is the compiler of Vanillang DSL.
 - Use camelCase for customized variable and function names.
 - Follow `.clang-format` to format source code.
 - Format code after editing.
-- Add comments after namespaces and header guards.
+- Add comments after namespaces.
 - Add comments to all variable declarations that can represent a null or empty semantic value.
 - Do not add other comments unless you are explicitly instructed.
 - Refer to existing code for other coding standards.

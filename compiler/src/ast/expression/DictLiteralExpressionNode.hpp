@@ -1,5 +1,4 @@
-#ifndef VNLC_DICT_LITERAL_EXPRESSION_NODE_HPP
-#define VNLC_DICT_LITERAL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/LiteralExpressionNode.hpp"
 #include <memory>
@@ -18,5 +17,3 @@ namespace vnlc {
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ExpressionNode>>& getEntries() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_DICT_LITERAL_EXPRESSION_NODE_HPP

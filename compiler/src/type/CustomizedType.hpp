@@ -1,5 +1,4 @@
-#ifndef VNLC_CUSTOMIZED_TYPE_HPP
-#define VNLC_CUSTOMIZED_TYPE_HPP
+#pragma once
 
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "type/CustomizedTypeKind.hpp"
@@ -35,5 +34,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedIdentifier* getImportedNode() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CUSTOMIZED_TYPE_HPP

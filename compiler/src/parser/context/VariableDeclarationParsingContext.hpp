@@ -1,5 +1,4 @@
-#ifndef VNLC_VARIABLE_DECLARATION_PARSING_CONTEXT_HPP
-#define VNLC_VARIABLE_DECLARATION_PARSING_CONTEXT_HPP
+#pragma once
 
 #include "ast/declaration/DeclarationItem.hpp"
 #include "ast/declaration/ValueDeclarationKind.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         std::vector<DeclarationItem::MetadataTerm> metadataTerms;
     };
 } // namespace vnlc
-
-#endif // VNLC_VARIABLE_DECLARATION_PARSING_CONTEXT_HPP

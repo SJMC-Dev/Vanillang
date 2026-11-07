@@ -1,5 +1,4 @@
-#ifndef VNLC_GENERIC_PARAMETER_LIST_PARSING_RESULT_HPP
-#define VNLC_GENERIC_PARAMETER_LIST_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
@@ -10,5 +9,3 @@ namespace vnlc {
         std::vector<std::unique_ptr<IdentifierNode>> parameters;
     };
 } // namespace vnlc
-
-#endif // VNLC_GENERIC_PARAMETER_LIST_PARSING_RESULT_HPP

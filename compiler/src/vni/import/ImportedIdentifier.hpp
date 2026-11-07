@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_IDENTIFIER_HPP
-#define VNLC_IMPORTED_IDENTIFIER_HPP
+#pragma once
 
 #include "vni/import/ImportedItem.hpp"
 #include <optional>
@@ -20,5 +19,3 @@ namespace vnlc {
         [[nodiscard]] virtual std::string_view getAccessModifier() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_IDENTIFIER_HPP

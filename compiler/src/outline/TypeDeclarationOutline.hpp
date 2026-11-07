@@ -1,5 +1,4 @@
-#ifndef VNLC_TYPE_DECLARATION_OUTLINE_HPP
-#define VNLC_TYPE_DECLARATION_OUTLINE_HPP
+#pragma once
 
 #include "outline/DeclarationOutline.hpp"
 
@@ -12,5 +11,3 @@ namespace vnlc {
         TypeDeclarationOutline() = delete;
     };
 } // namespace vnlc
-
-#endif // VNLC_TYPE_DECLARATION_OUTLINE_HPP

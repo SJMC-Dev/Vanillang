@@ -1,5 +1,4 @@
-#ifndef VNLC_TOKEN_KIND_HPP
-#define VNLC_TOKEN_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -179,5 +178,3 @@ namespace vnlc {
         END_OF_FILE,
     };
 }
-
-#endif // VNLC_TOKEN_KIND_HPP

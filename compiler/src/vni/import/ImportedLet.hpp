@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_LET_HPP
-#define VNLC_IMPORTED_LET_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 
@@ -17,5 +16,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getAccessModifier() const override;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_LET_HPP

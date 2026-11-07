@@ -1,5 +1,4 @@
-#ifndef VNLC_PRIMITIVE_TYPE_EXPRESSION_NODE_HPP
-#define VNLC_PRIMITIVE_TYPE_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/PrimaryExpressionNode.hpp"
 #include "ast/expression/PrimitiveTypeExpressionKind.hpp"
@@ -17,5 +16,3 @@ namespace vnlc {
         [[nodiscard]] PrimitiveTypeExpressionKind getKind() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_PRIMITIVE_TYPE_EXPRESSION_NODE_HPP

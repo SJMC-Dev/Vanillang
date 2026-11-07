@@ -1,5 +1,4 @@
-#ifndef VNLC_REGULAR_SYMBOL_ACCESS_MODIFIER_HPP
-#define VNLC_REGULAR_SYMBOL_ACCESS_MODIFIER_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -10,5 +9,3 @@ namespace vnlc {
         PRIVATE,
     };
 }
-
-#endif // VNLC_REGULAR_SYMBOL_ACCESS_MODIFIER_HPP

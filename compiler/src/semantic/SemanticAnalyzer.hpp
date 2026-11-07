@@ -1,5 +1,4 @@
-#ifndef VNLC_SEMANTIC_ANALYZER_HPP
-#define VNLC_SEMANTIC_ANALYZER_HPP
+#pragma once
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
@@ -161,5 +160,3 @@ namespace vnlc {
         [[nodiscard]] SemanticResult analyze(const Config& config);
     };
 } // namespace vnlc
-
-#endif // VNLC_SEMANTIC_ANALYZER_HPP

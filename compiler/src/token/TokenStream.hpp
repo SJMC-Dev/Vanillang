@@ -1,5 +1,4 @@
-#ifndef VNLC_TOKEN_STREAM_HPP
-#define VNLC_TOKEN_STREAM_HPP
+#pragma once
 
 #include "lexer/Lexer.hpp"
 #include "token/Token.hpp"
@@ -35,5 +34,3 @@ namespace vnlc {
         [[nodiscard]] bool match(TokenKind expectedKind);
     };
 } // namespace vnlc
-
-#endif // VNLC_TOKEN_STREAM_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_LOGGER_HPP
-#define VNLC_LOGGER_HPP
+#pragma once
 
 #include <string_view>
 
@@ -33,5 +32,3 @@ namespace vnlc {
 #define VNLC_LOG_WARN(message) ::vnlc::Logger::warn(message)
 #define VNLC_LOG_ERROR(message) ::vnlc::Logger::error(message)
 #define VNLC_LOG_FATAL(message) ::vnlc::Logger::fatal(message)
-
-#endif // VNLC_LOGGER_HPP

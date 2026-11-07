@@ -1,5 +1,4 @@
-#ifndef VNLC_ILLEGAL_INPUT_ERROR_HPP
-#define VNLC_ILLEGAL_INPUT_ERROR_HPP
+#pragma once
 
 #include "error/Error.hpp"
 #include <fmt/core.h>
@@ -10,5 +9,3 @@ namespace vnlc {
         IllegalInputError(std::string_view message) : Error(fmt::format("Illegal input: {}", message)) {}
     };
 } // namespace vnlc
-
-#endif // VNLC_ILLEGAL_INPUT_ERROR_HPP

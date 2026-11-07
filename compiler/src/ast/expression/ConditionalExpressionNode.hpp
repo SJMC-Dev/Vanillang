@@ -1,5 +1,4 @@
-#ifndef VNLC_CONDITIONAL_EXPRESSION_NODE_HPP
-#define VNLC_CONDITIONAL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -27,5 +26,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode& getElseExpression() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONDITIONAL_EXPRESSION_NODE_HPP

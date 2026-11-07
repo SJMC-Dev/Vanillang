@@ -1,5 +1,4 @@
-#ifndef VNLC_SCOPE_HPP
-#define VNLC_SCOPE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "scope/ScopeKind.hpp"
@@ -40,5 +39,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedItem* getImportedNode() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_SCOPE_HPP

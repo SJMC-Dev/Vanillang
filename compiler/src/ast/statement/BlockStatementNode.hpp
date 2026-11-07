@@ -1,5 +1,4 @@
-#ifndef VNLC_BLOCK_STATEMENT_NODE_HPP
-#define VNLC_BLOCK_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/statement/StatementNode.hpp"
 #include <memory>
@@ -18,5 +17,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<StatementNode>>& getStatements() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_BLOCK_STATEMENT_NODE_HPP

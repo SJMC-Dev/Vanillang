@@ -1,5 +1,4 @@
-#ifndef VNLC_CUSTOMIZED_TYPE_KIND_HPP
-#define VNLC_CUSTOMIZED_TYPE_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -12,5 +11,3 @@ namespace vnlc {
         GENERIC_PARAMETER,
     };
 }
-
-#endif // VNLC_CUSTOMIZED_TYPE_KIND_HPP

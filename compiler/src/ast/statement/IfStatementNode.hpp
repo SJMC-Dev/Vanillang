@@ -1,5 +1,4 @@
-#ifndef VNLC_IF_STATEMENT_NODE_HPP
-#define VNLC_IF_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
@@ -39,5 +38,3 @@ namespace vnlc {
         [[nodiscard]] const StatementNode* getElseBranch() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_IF_STATEMENT_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_PACKAGE_READER_HPP
-#define VNLC_PACKAGE_READER_HPP
+#pragma once
 
 #include "config/Config.hpp"
 #include "vni/import/ImportedPackage.hpp"
@@ -24,5 +23,3 @@ namespace vnlc {
         void readPackageFromPath(std::string_view path, const Config& config);
     };
 } // namespace vnlc
-
-#endif // VNLC_PACKAGE_READER_HPP

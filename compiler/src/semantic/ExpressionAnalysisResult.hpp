@@ -1,5 +1,4 @@
-#ifndef VNLC_EXPRESSION_ANALYSIS_RESULT_HPP
-#define VNLC_EXPRESSION_ANALYSIS_RESULT_HPP
+#pragma once
 
 #include "type/Type.hpp"
 #include <cstdint>
@@ -17,5 +16,3 @@ namespace vnlc {
         const Type* valueType; // nullptr if the value kind is not VALUE
     };
 } // namespace vnlc
-
-#endif // VNLC_EXPRESSION_ANALYSIS_RESULT_HPP

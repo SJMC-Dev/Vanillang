@@ -1,5 +1,4 @@
-#ifndef VNLC_WHILE_STATEMENT_PARSING_RESULT_HPP
-#define VNLC_WHILE_STATEMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/statement/WhileStatementNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<WhileStatementNode> statement;
     };
 } // namespace vnlc
-
-#endif // VNLC_WHILE_STATEMENT_PARSING_RESULT_HPP

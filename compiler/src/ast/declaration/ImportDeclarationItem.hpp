@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORT_DECLARATION_ITEM_HPP
-#define VNLC_IMPORT_DECLARATION_ITEM_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
@@ -14,5 +13,3 @@ namespace vnlc {
         bool wildcard = false;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORT_DECLARATION_ITEM_HPP

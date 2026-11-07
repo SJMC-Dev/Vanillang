@@ -1,5 +1,4 @@
-#ifndef VNLC_LET_PRIMARY_PARSING_CONTEXT_HPP
-#define VNLC_LET_PRIMARY_PARSING_CONTEXT_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationKind.hpp"
 
@@ -8,5 +7,3 @@ namespace vnlc {
         ValueDeclarationKind::Kind kind;
     };
 } // namespace vnlc
-
-#endif // VNLC_LET_PRIMARY_PARSING_CONTEXT_HPP

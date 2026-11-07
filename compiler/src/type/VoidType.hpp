@@ -1,5 +1,4 @@
-#ifndef VNLC_VOID_TYPE_HPP
-#define VNLC_VOID_TYPE_HPP
+#pragma once
 
 #include "type/Type.hpp"
 #include <string_view>
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] static const VoidType* voidType();
     };
 } // namespace vnlc
-
-#endif // VNLC_VOID_TYPE_HPP

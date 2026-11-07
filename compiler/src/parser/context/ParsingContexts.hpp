@@ -1,5 +1,4 @@
-#ifndef VNLC_PARSING_CONTEXTS_HPP
-#define VNLC_PARSING_CONTEXTS_HPP
+#pragma once
 
 #include "parser/context/ClassDeclarationParsingContext.hpp"     // IWYU pragma: export
 #include "parser/context/ConstructorParsingContext.hpp"          // IWYU pragma: export
@@ -16,5 +15,3 @@
 #include "parser/context/TypeDeclarationParsingContext.hpp"      // IWYU pragma: export
 #include "parser/context/VariableDeclarationParsingContext.hpp"  // IWYU pragma: export
 #include "parser/context/WhileStatementParsingContext.hpp"       // IWYU pragma: export
-
-#endif // VNLC_PARSING_CONTEXTS_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_OPERATOR_DECLARATION_KIND_HPP
-#define VNLC_OPERATOR_DECLARATION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -44,5 +43,3 @@ namespace vnlc {
         };
     }; // namespace OperatorDeclarationKind
 } // namespace vnlc
-
-#endif // VNLC_OPERATOR_DECLARATION_KIND_HPP

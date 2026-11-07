@@ -1,5 +1,4 @@
-#ifndef VNLC_IF_STATEMENT_PARSING_RESULT_HPP
-#define VNLC_IF_STATEMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/statement/IfStatementNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<IfStatementNode> statement;
     };
 } // namespace vnlc
-
-#endif // VNLC_IF_STATEMENT_PARSING_RESULT_HPP

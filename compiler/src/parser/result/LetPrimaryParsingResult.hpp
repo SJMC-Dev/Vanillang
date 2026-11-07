@@ -1,5 +1,4 @@
-#ifndef VNLC_LET_PRIMARY_PARSING_RESULT_HPP
-#define VNLC_LET_PRIMARY_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationKind.hpp"
 #include "ast/identifier/IdentifierNode.hpp"
@@ -13,5 +12,3 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode> type; // nullptr if no type annotation
     };
 } // namespace vnlc
-
-#endif // VNLC_LET_PRIMARY_PARSING_RESULT_HPP

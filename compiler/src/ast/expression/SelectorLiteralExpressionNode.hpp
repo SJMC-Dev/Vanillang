@@ -1,5 +1,4 @@
-#ifndef VNLC_SELECTOR_LITERAL_EXPRESSION_NODE_HPP
-#define VNLC_SELECTOR_LITERAL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/LiteralExpressionNode.hpp"
 #include "ast/expression/SelectorLiteralExpressionItem.hpp"
@@ -26,5 +25,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<SelectorLiteralExpressionItem::Argument>& getArguments() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_SELECTOR_LITERAL_EXPRESSION_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_REGULAR_SYMBOL_ORIGIN_HPP
-#define VNLC_REGULAR_SYMBOL_ORIGIN_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -9,5 +8,3 @@ namespace vnlc {
         IMPORTED,
     };
 }
-
-#endif // VNLC_REGULAR_SYMBOL_ORIGIN_HPP

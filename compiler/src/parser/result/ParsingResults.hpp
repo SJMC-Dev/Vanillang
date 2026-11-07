@@ -1,5 +1,4 @@
-#ifndef VNLC_PARSING_RESULTS_HPP
-#define VNLC_PARSING_RESULTS_HPP
+#pragma once
 
 #include "parser/result/AdditiveExpressionParsingResult.hpp"           // IWYU pragma: export
 #include "parser/result/ArgumentListParsingResult.hpp"                 // IWYU pragma: export
@@ -80,5 +79,3 @@
 #include "parser/result/VariableDeclarationParsingResult.hpp"          // IWYU pragma: export
 #include "parser/result/VariableDeclarationStatementParsingResult.hpp" // IWYU pragma: export
 #include "parser/result/WhileStatementParsingResult.hpp"               // IWYU pragma: export
-
-#endif // VNLC_PARSING_RESULTS_HPP

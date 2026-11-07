@@ -1,5 +1,4 @@
-#ifndef VNLC_STATEMENT_NODE_HPP
-#define VNLC_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 
@@ -12,5 +11,3 @@ namespace vnlc {
         StatementNode() = delete;
     };
 } // namespace vnlc
-
-#endif // VNLC_STATEMENT_NODE_HPP

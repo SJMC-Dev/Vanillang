@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_PARAMETER_HPP
-#define VNLC_IMPORTED_PARAMETER_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 
@@ -15,5 +14,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getType() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_PARAMETER_HPP

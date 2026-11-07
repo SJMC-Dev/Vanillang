@@ -1,5 +1,4 @@
-#ifndef VNLC_VALUE_DECLARATION_NODE_HPP
-#define VNLC_VALUE_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationKind.hpp"
@@ -51,5 +50,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode* getInitializer() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_VALUE_DECLARATION_NODE_HPP

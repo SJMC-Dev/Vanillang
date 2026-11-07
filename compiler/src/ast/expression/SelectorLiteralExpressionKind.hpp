@@ -1,5 +1,4 @@
-#ifndef VNLC_SELECTOR_LITERAL_EXPRESSION_KIND_HPP
-#define VNLC_SELECTOR_LITERAL_EXPRESSION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ namespace vnlc {
         NEAREST_ENTITY,   // @n
     };
 }
-
-#endif // VNLC_SELECTOR_LITERAL_EXPRESSION_KIND_HPP

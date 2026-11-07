@@ -1,5 +1,4 @@
-#ifndef VNLC_PARSER_HPP
-#define VNLC_PARSER_HPP
+#pragma once
 
 #include "ast/expression/SimpleLiteralExpressionKind.hpp"
 #include "collector/CollectionResult.hpp"
@@ -128,5 +127,3 @@ namespace vnlc {
         [[nodiscard]] ParseResult parse(const Config& config);
     };
 } // namespace vnlc
-
-#endif // VNLC_PARSER_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_FOR_STATEMENT_PARSING_RESULT_HPP
-#define VNLC_FOR_STATEMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/statement/ForStatementNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<ForStatementNode> statement;
     };
 } // namespace vnlc
-
-#endif // VNLC_FOR_STATEMENT_PARSING_RESULT_HPP

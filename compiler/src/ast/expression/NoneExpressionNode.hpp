@@ -1,5 +1,4 @@
-#ifndef VNLC_NONE_EXPRESSION_NODE_HPP
-#define VNLC_NONE_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/PrimaryExpressionNode.hpp"
 
@@ -11,5 +10,3 @@ namespace vnlc {
         NoneExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_NONE_EXPRESSION_NODE_HPP

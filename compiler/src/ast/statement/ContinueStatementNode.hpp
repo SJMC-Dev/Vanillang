@@ -1,5 +1,4 @@
-#ifndef VNLC_CONTINUE_STATEMENT_NODE_HPP
-#define VNLC_CONTINUE_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include "ast/statement/ControlFlowStatementNode.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] const IdentifierNode* getLabel() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONTINUE_STATEMENT_NODE_HPP

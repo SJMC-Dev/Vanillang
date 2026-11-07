@@ -1,5 +1,4 @@
-#ifndef VNLC_TOKEN_KIND_UTIL_HPP
-#define VNLC_TOKEN_KIND_UTIL_HPP
+#pragma once
 
 #include "token/TokenKind.hpp"
 #include <string_view>
@@ -10,5 +9,3 @@ namespace vnlc {
         bool isGeneralizedIdentifier(TokenKind kind);
     }; // namespace TokenKindUtil
 } // namespace vnlc
-
-#endif // VNLC_TOKEN_KIND_UTIL_HPP

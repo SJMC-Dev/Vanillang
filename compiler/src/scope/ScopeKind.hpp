@@ -1,5 +1,4 @@
-#ifndef VNLC_SCOPE_KIND_HPP
-#define VNLC_SCOPE_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -19,5 +18,3 @@ namespace vnlc {
         SWITCH,
     };
 }
-
-#endif // VNLC_SCOPE_KIND_HPP

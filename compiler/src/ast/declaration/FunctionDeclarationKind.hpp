@@ -1,5 +1,4 @@
-#ifndef VNLC_FUNCTION_DECLARATION_KIND_HPP
-#define VNLC_FUNCTION_DECLARATION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -28,5 +27,3 @@ namespace vnlc {
         };
     }; // namespace FunctionDeclarationKind
 } // namespace vnlc
-
-#endif // VNLC_FUNCTION_DECLARATION_KIND_HPP

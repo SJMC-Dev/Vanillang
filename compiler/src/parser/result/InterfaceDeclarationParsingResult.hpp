@@ -1,5 +1,4 @@
-#ifndef VNLC_INTERFACE_DECLARATION_PARSING_RESULT_HPP
-#define VNLC_INTERFACE_DECLARATION_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<InterfaceDeclarationNode> declaration;
     };
 } // namespace vnlc
-
-#endif // VNLC_INTERFACE_DECLARATION_PARSING_RESULT_HPP

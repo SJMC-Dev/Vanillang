@@ -1,5 +1,4 @@
-#ifndef VNLC_EXPRESSION_PARSING_RESULT_HPP
-#define VNLC_EXPRESSION_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<ExpressionNode> expression;
     };
 } // namespace vnlc
-
-#endif // VNLC_EXPRESSION_PARSING_RESULT_HPP

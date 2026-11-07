@@ -1,5 +1,4 @@
-#ifndef VNLC_UNARY_EXPRESSION_KIND_HPP
-#define VNLC_UNARY_EXPRESSION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -11,5 +10,3 @@ namespace vnlc {
         BITWISE_NOT,
     };
 }
-
-#endif // VNLC_UNARY_EXPRESSION_KIND_HPP

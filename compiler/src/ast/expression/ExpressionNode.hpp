@@ -1,5 +1,4 @@
-#ifndef VNLC_EXPRESSION_NODE_HPP
-#define VNLC_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 
@@ -12,5 +11,3 @@ namespace vnlc {
         ExpressionNode() = delete;
     };
 } // namespace vnlc
-
-#endif // VNLC_EXPRESSION_NODE_HPP

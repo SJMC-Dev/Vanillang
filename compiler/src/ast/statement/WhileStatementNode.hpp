@@ -1,5 +1,4 @@
-#ifndef VNLC_WHILE_STATEMENT_NODE_HPP
-#define VNLC_WHILE_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/statement/LoopStatementNode.hpp"
@@ -28,5 +27,3 @@ namespace vnlc {
         [[nodiscard]] const StatementNode& getBody() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_WHILE_STATEMENT_NODE_HPP

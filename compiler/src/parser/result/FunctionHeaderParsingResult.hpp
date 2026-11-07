@@ -1,5 +1,4 @@
-#ifndef VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP
-#define VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/typeannotation/TypeAnnotationNode.hpp"
@@ -13,5 +12,3 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
     };
 } // namespace vnlc
-
-#endif // VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP

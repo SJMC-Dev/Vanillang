@@ -1,5 +1,4 @@
-#ifndef VNLC_STANDARD_LIBRARY_TYPE_NAMES_HPP
-#define VNLC_STANDARD_LIBRARY_TYPE_NAMES_HPP
+#pragma once
 
 #include <fmt/compile.h>
 #include <string_view>
@@ -32,5 +31,3 @@ namespace vnlc {
         constexpr std::string_view Ordering = "vanillang.types.Ordering";
     }; // namespace StandardLibraryTypeNames
 } // namespace vnlc
-
-#endif // VNLC_STANDARD_LIBRARY_TYPE_NAMES_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_SIMPLE_LITERAL_EXPRESSION_KIND_HPP
-#define VNLC_SIMPLE_LITERAL_EXPRESSION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -21,5 +20,3 @@ namespace vnlc {
         BOOLEAN,
     };
 }
-
-#endif // VNLC_SIMPLE_LITERAL_EXPRESSION_KIND_HPP

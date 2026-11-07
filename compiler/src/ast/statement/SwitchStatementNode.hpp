@@ -1,5 +1,4 @@
-#ifndef VNLC_SWITCH_STATEMENT_NODE_HPP
-#define VNLC_SWITCH_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/statement/ControlFlowStatementNode.hpp"
 #include "ast/statement/SwitchStatementItem.hpp"
@@ -42,5 +41,3 @@ namespace vnlc {
         [[nodiscard]] const StatementNode* getDefaultCaseBody() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_SWITCH_STATEMENT_NODE_HPP

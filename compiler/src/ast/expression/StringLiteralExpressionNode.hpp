@@ -1,5 +1,4 @@
-#ifndef VNLC_STRING_LITERAL_EXPRESSION_NODE_HPP
-#define VNLC_STRING_LITERAL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/LiteralExpressionNode.hpp"
 #include "ast/expression/StringLiteralExpressionKind.hpp"
@@ -27,5 +26,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::variant<std::string, std::unique_ptr<ExpressionNode>>>& getParts() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_STRING_LITERAL_EXPRESSION_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_COLLECTION_RESULT_HPP
-#define VNLC_COLLECTION_RESULT_HPP
+#pragma once
 
 #include "diagnostic/Diagnostic.hpp"
 #include "outline/ModuleOutline.hpp"
@@ -27,5 +26,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<Diagnostic>& getErrors() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_COLLECTION_RESULT_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_INHERITANCE_ORIGIN_HPP
-#define VNLC_INHERITANCE_ORIGIN_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -9,5 +8,3 @@ namespace vnlc {
         IMPORTED,
     };
 } // namespace vnlc
-
-#endif // VNLC_INHERITANCE_ORIGIN_HPP

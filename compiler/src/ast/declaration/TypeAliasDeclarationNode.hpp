@@ -1,5 +1,4 @@
-#ifndef VNLC_TYPE_ALIAS_DECLARATION_NODE_HPP
-#define VNLC_TYPE_ALIAS_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/TypeDeclarationKind.hpp"
 #include "ast/declaration/TypeDeclarationNode.hpp"
@@ -43,5 +42,3 @@ namespace vnlc {
         [[nodiscard]] const TypeAnnotationNode& getOriginalType() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_TYPE_ALIAS_DECLARATION_NODE_HPP

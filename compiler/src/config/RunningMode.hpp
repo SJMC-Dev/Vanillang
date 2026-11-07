@@ -1,5 +1,4 @@
-#ifndef VNLC_RUNNING_MODE_HPP
-#define VNLC_RUNNING_MODE_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -12,5 +11,3 @@ namespace vnlc {
         DUMP_AST,
     };
 }
-
-#endif // VNLC_RUNNING_MODE_HPP

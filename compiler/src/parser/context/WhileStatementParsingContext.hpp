@@ -1,5 +1,4 @@
-#ifndef VNLC_WHILE_STATEMENT_PARSING_CONTEXT_HPP
-#define VNLC_WHILE_STATEMENT_PARSING_CONTEXT_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<IdentifierNode> label; // nullptr if no label
     };
 } // namespace vnlc
-
-#endif // VNLC_WHILE_STATEMENT_PARSING_CONTEXT_HPP
