@@ -6,8 +6,8 @@
 #include "config/Config.hpp"
 #include "lexer/Lexer.hpp"
 #include "parser/ParseResult.hpp"
-#include "parser/inherited/ParsingContexts.hpp"
-#include "parser/synthesized/ParsingResults.hpp"
+#include "parser/context/ParsingContexts.hpp"
+#include "parser/result/ParsingResults.hpp"
 #include "token/Token.hpp"
 #include "token/TokenStream.hpp"
 #include <memory>
