@@ -144,7 +144,7 @@ namespace vnlc {
         EXPECT_EQ(forStatement->getLoopVariable().getInitializer(), nullptr);
     }
 
-    TEST(ParserTest, PropertyDeclarationsUseValueDeclarationNode) {
+    TEST(ParserTest, PropertiesUseValueDeclarationNode) {
         std::stringstream input("class Example {\n    private value: String\n    static count: int = 0\n}\n");
 
         Config config{
@@ -164,16 +164,16 @@ namespace vnlc {
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getPropertyDeclarations().size(), 2);
+        ASSERT_EQ(classDeclaration->getProperties().size(), 2);
 
-        const auto* instanceProperty = classDeclaration->getPropertyDeclarations()[0].get();
+        const auto* instanceProperty = classDeclaration->getProperties()[0].get();
         EXPECT_EQ(instanceProperty->getKind(), ValueDeclarationKind::Kind::INSTANCE_PROPERTY);
         EXPECT_EQ(instanceProperty->getContext(), ValueDeclarationKind::Context::CLASS);
         EXPECT_EQ(instanceProperty->getAccessModifier(), ValueDeclarationKind::AccessModifier::PRIVATE);
         EXPECT_NE(instanceProperty->getType(), nullptr);
         EXPECT_EQ(instanceProperty->getInitializer(), nullptr);
 
-        const auto* staticProperty = classDeclaration->getPropertyDeclarations()[1].get();
+        const auto* staticProperty = classDeclaration->getProperties()[1].get();
         EXPECT_EQ(staticProperty->getKind(), ValueDeclarationKind::Kind::STATIC_PROPERTY);
         EXPECT_EQ(staticProperty->getContext(), ValueDeclarationKind::Context::CLASS);
         EXPECT_EQ(staticProperty->getAccessModifier(), ValueDeclarationKind::AccessModifier::PUBLIC);
@@ -322,7 +322,7 @@ namespace vnlc {
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(classDeclaration, nullptr);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 5);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 2);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 2);
 
         const auto& addition = classDeclaration->getOperatorDeclarations()[0];
         EXPECT_EQ(addition->getKind(), OperatorDeclarationKind::Kind::ADDITION);
@@ -356,12 +356,12 @@ namespace vnlc {
         EXPECT_EQ(multiplication->getImplementation(), OperatorDeclarationKind::Implementation::REGULAR);
         EXPECT_NE(multiplication->getBody(), nullptr);
 
-        const auto& length = classDeclaration->getMethodDeclarations()[0];
+        const auto& length = classDeclaration->getMethods()[0];
         EXPECT_EQ(length->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(length->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
         EXPECT_EQ(length->getBody(), nullptr);
 
-        const auto& zero = classDeclaration->getMethodDeclarations()[1];
+        const auto& zero = classDeclaration->getMethods()[1];
         EXPECT_EQ(zero->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(zero->getBinding(), FunctionDeclarationKind::Binding::STATIC);
         EXPECT_EQ(zero->getBody(), nullptr);
@@ -406,22 +406,22 @@ namespace vnlc {
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations()[1].get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 3);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 3);
 
-        const auto& reset = classDeclaration->getMethodDeclarations()[0];
+        const auto& reset = classDeclaration->getMethods()[0];
         EXPECT_EQ(reset->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(reset->getContext(), FunctionDeclarationKind::Context::CLASS);
         EXPECT_EQ(reset->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
         EXPECT_EQ(reset->getBinding(), FunctionDeclarationKind::Binding::STATIC);
         EXPECT_NE(reset->getBody(), nullptr);
 
-        const auto& read = classDeclaration->getMethodDeclarations()[1];
+        const auto& read = classDeclaration->getMethods()[1];
         EXPECT_EQ(read->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(read->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PROTECTED);
         EXPECT_EQ(read->getBinding(), FunctionDeclarationKind::Binding::INSTANCE);
         EXPECT_NE(read->getBody(), nullptr);
 
-        const auto& create = classDeclaration->getMethodDeclarations()[2];
+        const auto& create = classDeclaration->getMethods()[2];
         EXPECT_EQ(create->getImplementation(), FunctionDeclarationKind::Implementation::NATIVE);
         EXPECT_EQ(create->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PRIVATE);
         EXPECT_EQ(create->getBinding(), FunctionDeclarationKind::Binding::STATIC);
@@ -429,9 +429,9 @@ namespace vnlc {
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(module.getTopIdentifierDeclarations()[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
-        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getMethods().size(), 1);
 
-        const auto& interfaceRead = interfaceDeclaration->getMethodDeclarations().front();
+        const auto& interfaceRead = interfaceDeclaration->getMethods().front();
         EXPECT_EQ(interfaceRead->getImplementation(), FunctionDeclarationKind::Implementation::REGULAR);
         EXPECT_EQ(interfaceRead->getContext(), FunctionDeclarationKind::Context::INTERFACE);
         EXPECT_EQ(interfaceRead->getAccessModifier(), FunctionDeclarationKind::AccessModifier::PUBLIC);
@@ -682,8 +682,8 @@ namespace vnlc {
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(module.getTopIdentifierDeclarations().front().get());
         ASSERT_NE(classDeclaration, nullptr);
-        EXPECT_EQ(classDeclaration->getPropertyDeclarations().size(), 2);
-        EXPECT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        EXPECT_EQ(classDeclaration->getProperties().size(), 2);
+        EXPECT_EQ(classDeclaration->getMethods().size(), 1);
         EXPECT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         EXPECT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
     }

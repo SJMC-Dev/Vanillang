@@ -42,8 +42,9 @@
 #include "parser/result/ImportPathParsingResult.hpp"                   // IWYU pragma: export
 #include "parser/result/InterfaceBodyParsingResult.hpp"                // IWYU pragma: export
 #include "parser/result/InterfaceDeclarationParsingResult.hpp"         // IWYU pragma: export
-#include "parser/result/InterfaceMethodDeclarationParsingResult.hpp"   // IWYU pragma: export
+#include "parser/result/InterfaceMemberParsingResult.hpp"              // IWYU pragma: export
 #include "parser/result/InterpolationParsingResult.hpp"                // IWYU pragma: export
+#include "parser/result/LetPrimaryParsingResult.hpp"                   // IWYU pragma: export
 #include "parser/result/ListLikeLiteralParsingResult.hpp"              // IWYU pragma: export
 #include "parser/result/LiteralParsingResult.hpp"                      // IWYU pragma: export
 #include "parser/result/LogicalAndExpressionParsingResult.hpp"         // IWYU pragma: export
@@ -58,7 +59,7 @@
 #include "parser/result/ParameterParsingResult.hpp"                    // IWYU pragma: export
 #include "parser/result/PostfixExpressionParsingResult.hpp"            // IWYU pragma: export
 #include "parser/result/PrimaryExpressionParsingResult.hpp"            // IWYU pragma: export
-#include "parser/result/PropertyDeclarationParsingResult.hpp"          // IWYU pragma: export
+#include "parser/result/PropertyParsingResult.hpp"                     // IWYU pragma: export
 #include "parser/result/RangeExpressionParsingResult.hpp"              // IWYU pragma: export
 #include "parser/result/RelationalExpressionParsingResult.hpp"         // IWYU pragma: export
 #include "parser/result/ReloadStatementParsingResult.hpp"              // IWYU pragma: export
@@ -77,7 +78,6 @@
 #include "parser/result/TypeParsingResult.hpp"                         // IWYU pragma: export
 #include "parser/result/UnaryExpressionParsingResult.hpp"              // IWYU pragma: export
 #include "parser/result/VariableDeclarationParsingResult.hpp"          // IWYU pragma: export
-#include "parser/result/VariableDeclarationPrimaryParsingResult.hpp"   // IWYU pragma: export
 #include "parser/result/VariableDeclarationStatementParsingResult.hpp" // IWYU pragma: export
 #include "parser/result/WhileStatementParsingResult.hpp"               // IWYU pragma: export
 

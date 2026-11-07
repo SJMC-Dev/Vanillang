@@ -1,5 +1,5 @@
-#ifndef VNLC_FUNCTION_SIGNATURE_PARSING_RESULT_HPP
-#define VNLC_FUNCTION_SIGNATURE_PARSING_RESULT_HPP
+#ifndef VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP
+#define VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP
 
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/typeannotation/TypeAnnotationNode.hpp"
@@ -14,4 +14,4 @@ namespace vnlc {
     };
 } // namespace vnlc
 
-#endif // VNLC_FUNCTION_SIGNATURE_PARSING_RESULT_HPP
+#endif // VNLC_FUNCTION_HEADER_PARSING_RESULT_HPP

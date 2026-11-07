@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace vnlc {
-    struct PropertyDeclarationParsingContext {
+    struct PropertyParsingContext {
         ValueDeclarationKind::Kind kind;
         ValueDeclarationKind::AccessModifier accessModifier;
 

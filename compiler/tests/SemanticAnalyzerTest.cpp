@@ -325,18 +325,18 @@ interface Resettable {
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 1);
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(classDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-reset()");
+        EXPECT_EQ(classDeclaration->getMethods().front()->getInternalName(), "vnl-function-reset()");
         EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor()");
         EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call()");
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
-        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getMethods().size(), 1);
         ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-reset()");
+        EXPECT_EQ(interfaceDeclaration->getMethods().front()->getInternalName(), "vnl-function-reset()");
         EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call()");
     }
 
@@ -373,18 +373,18 @@ class Later {}
 
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 1);
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(classDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-combine" + signature);
+        EXPECT_EQ(classDeclaration->getMethods().front()->getInternalName(), "vnl-function-combine" + signature);
         EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor" + signature);
         EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call" + signature);
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
-        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getMethods().size(), 1);
         ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations().front()->getInternalName(), "vnl-function-combine" + signature);
+        EXPECT_EQ(interfaceDeclaration->getMethods().front()->getInternalName(), "vnl-function-combine" + signature);
         EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-call" + signature);
     }
 
@@ -454,20 +454,20 @@ func afterInterface(input: T) {}
         ASSERT_EQ(declarations.size(), 5);
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 2);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 2);
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(classDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(T)");
-        EXPECT_EQ(classDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(bool)");
+        EXPECT_EQ(classDeclaration->getMethods()[0]->getInternalName(), "vnl-function-read(T)");
+        EXPECT_EQ(classDeclaration->getMethods()[1]->getInternalName(), "vnl-function-read(bool)");
         EXPECT_EQ(classDeclaration->getConstructorDeclarations().front()->getInternalName(), "vnl-constructor(T)");
         EXPECT_EQ(classDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(T)");
 
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[3].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
-        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 2);
+        ASSERT_EQ(interfaceDeclaration->getMethods().size(), 2);
         ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
-        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[0]->getInternalName(), "vnl-function-read(R)");
-        EXPECT_EQ(interfaceDeclaration->getMethodDeclarations()[1]->getInternalName(), "vnl-function-read(bool)");
+        EXPECT_EQ(interfaceDeclaration->getMethods()[0]->getInternalName(), "vnl-function-read(R)");
+        EXPECT_EQ(interfaceDeclaration->getMethods()[1]->getInternalName(), "vnl-function-read(bool)");
         EXPECT_EQ(interfaceDeclaration->getOperatorDeclarations().front()->getInternalName(), "vnl-operator-addition(R)");
 
         const auto* moduleScope = result.getScopeByAstNode(*module);
@@ -556,10 +556,10 @@ class Later {}
         ASSERT_NE(functionDeclaration, nullptr);
         const auto* classDeclaration = dynamic_cast<const ClassDeclarationNode*>(declarations[1].get());
         ASSERT_NE(classDeclaration, nullptr);
-        ASSERT_EQ(classDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(classDeclaration->getMethods().size(), 1);
         const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationNode*>(declarations[2].get());
         ASSERT_NE(interfaceDeclaration, nullptr);
-        ASSERT_EQ(interfaceDeclaration->getMethodDeclarations().size(), 1);
+        ASSERT_EQ(interfaceDeclaration->getMethods().size(), 1);
 
         const ImportedRootPackageMap imports;
         SemanticAnalyzer analyzer(*module, imports);
@@ -583,7 +583,7 @@ class Later {}
         ASSERT_EQ(classDeclaration->getConstructorDeclarations().size(), 1);
         ASSERT_EQ(classDeclaration->getOperatorDeclarations().size(), 1);
         const std::vector<const AstNode*> classCallables = {
-            classDeclaration->getMethodDeclarations().front().get(),
+            classDeclaration->getMethods().front().get(),
             classDeclaration->getConstructorDeclarations().front().get(),
             classDeclaration->getOperatorDeclarations().front().get(),
         };
@@ -602,7 +602,7 @@ class Later {}
         EXPECT_NE(dynamic_cast<const FunctionSymbol*>(interfaceScope->lookupLocal("read")), nullptr);
         ASSERT_EQ(interfaceDeclaration->getOperatorDeclarations().size(), 1);
         const std::vector<const AstNode*> interfaceCallables = {
-            interfaceDeclaration->getMethodDeclarations().front().get(),
+            interfaceDeclaration->getMethods().front().get(),
             interfaceDeclaration->getOperatorDeclarations().front().get(),
         };
         for (const auto* callable : interfaceCallables) {

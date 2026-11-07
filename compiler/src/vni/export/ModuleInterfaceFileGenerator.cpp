@@ -172,11 +172,11 @@ namespace vnlc {
         nlohmann::json constructorsObj = nlohmann::json::object();
         nlohmann::json operatorsObj = nlohmann::json::object();
 
-        for (const auto& property : classNode->getPropertyDeclarations()) {
+        for (const auto& property : classNode->getProperties()) {
             propertiesObj.emplace(property->getName().getIdentifierString(), stringifyProperty(property.get()));
         }
 
-        for (const auto& method : classNode->getMethodDeclarations()) {
+        for (const auto& method : classNode->getMethods()) {
             methodsObj.emplace(method->getInternalName(), stringifyMethod(method.get()));
         }
 
@@ -209,7 +209,7 @@ namespace vnlc {
         interfaceObj.emplace("genericParameters", stringifyGenericParameters(interfaceNode->getGenericParameterNames()));
 
         nlohmann::json methodsObj = nlohmann::json::object();
-        for (const auto& method : interfaceNode->getMethodDeclarations()) {
+        for (const auto& method : interfaceNode->getMethods()) {
             nlohmann::json methodObj = stringifyMethod(method.get());
             methodsObj.emplace(method->getInternalName(), methodObj);
         }

@@ -437,10 +437,10 @@ namespace vnlc {
 
         auto pos = context.position == VariableDeclarationParsingContext::Position::TOP_LEVEL ? ValueDeclarationKind::Context::TOP_LEVEL : ValueDeclarationKind::Context::BLOCK;
 
-        VariableDeclarationPrimaryParsingContext primaryContext{
+        LetPrimaryParsingContext primaryContext{
             .kind = ValueDeclarationKind::Kind::LET,
         };
-        auto primaryResult = parseVariableDeclarationPrimary(primaryContext);
+        auto primaryResult = parseLetPrimary(primaryContext);
 
         if (!match(TokenKind::EQUAL)) {
             throw SyntaxError("Expected '=' after variable declaration", peek().getLine(), peek().getColumn());
@@ -592,7 +592,7 @@ namespace vnlc {
         }
     }
 
-    PropertyDeclarationParsingResult Parser::parsePropertyDeclaration(PropertyDeclarationParsingContext context) {
+    PropertyParsingResult Parser::parseProperty(PropertyParsingContext context) {
         Token firstToken = peek();
 
         std::unique_ptr<IdentifierNode> name;
@@ -640,7 +640,7 @@ namespace vnlc {
                 );
             }
 
-            return PropertyDeclarationParsingResult{
+            return PropertyParsingResult{
                 .declaration = std::move(node),
             };
         } else {
@@ -673,13 +673,13 @@ namespace vnlc {
                 );
             }
 
-            return PropertyDeclarationParsingResult{
+            return PropertyParsingResult{
                 .declaration = std::move(node),
             };
         }
     }
 
-    InterfaceMethodDeclarationParsingResult Parser::parseInterfaceMethodDeclaration() {
+    InterfaceMemberParsingResult Parser::parseInterfaceMember() {
         Token firstToken = peek();
 
         bool hasMetadata = false;
@@ -725,7 +725,7 @@ namespace vnlc {
             throw SyntaxError("Expected newline after interface method declaration", peek().getLine(), peek().getColumn());
         }
 
-        return InterfaceMethodDeclarationParsingResult{
+        return InterfaceMemberParsingResult{
             .declaration = std::move(node),
         };
     }
@@ -756,7 +756,7 @@ namespace vnlc {
         };
     }
 
-    VariableDeclarationPrimaryParsingResult Parser::parseVariableDeclarationPrimary(VariableDeclarationPrimaryParsingContext context) {
+    LetPrimaryParsingResult Parser::parseLetPrimary(LetPrimaryParsingContext context) {
         std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> type; // nullptr if no type annotation
 
@@ -775,7 +775,7 @@ namespace vnlc {
             type = std::move(typeResult.type);
         }
 
-        return VariableDeclarationPrimaryParsingResult{
+        return LetPrimaryParsingResult{
             .kind = context.kind,
             .name = std::move(name),
             .type = std::move(type),
@@ -915,10 +915,10 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode> baseClass; // nullptr if no base class
         std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
-        std::vector<std::unique_ptr<ValueDeclarationNode>> propertyDeclarations;
-        std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
-        std::vector<std::unique_ptr<ConstructorDeclarationNode>> constructorDeclarations;
-        std::vector<std::unique_ptr<OperatorDeclarationNode>> operatorDeclarations;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> properties;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<ConstructorDeclarationNode>> constructors;
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
 
         Token firstToken = peek();
 
@@ -963,13 +963,13 @@ namespace vnlc {
 
         for (auto& declaration : bodyResult.declarations) {
             if (dynamic_cast<ValueDeclarationNode*>(declaration.get())) {
-                propertyDeclarations.emplace_back(static_cast<ValueDeclarationNode*>(declaration.release()));
+                properties.emplace_back(static_cast<ValueDeclarationNode*>(declaration.release()));
             } else if (dynamic_cast<FunctionDeclarationNode*>(declaration.get())) {
-                methodDeclarations.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
+                methods.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
             } else if (dynamic_cast<ConstructorDeclarationNode*>(declaration.get())) {
-                constructorDeclarations.emplace_back(static_cast<ConstructorDeclarationNode*>(declaration.release()));
+                constructors.emplace_back(static_cast<ConstructorDeclarationNode*>(declaration.release()));
             } else if (dynamic_cast<OperatorDeclarationNode*>(declaration.get())) {
-                operatorDeclarations.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
+                operators.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
             }
         }
 
@@ -984,10 +984,10 @@ namespace vnlc {
                     std::move(baseClass),
                     std::move(implementedInterfaces),
                     std::move(genericParameterNames),
-                    std::move(propertyDeclarations),
-                    std::move(methodDeclarations),
-                    std::move(constructorDeclarations),
-                    std::move(operatorDeclarations),
+                    std::move(properties),
+                    std::move(methods),
+                    std::move(constructors),
+                    std::move(operators),
                     firstToken,
                     lastToken,
                     std::move(context.metadataTerms)
@@ -1002,10 +1002,10 @@ namespace vnlc {
                     std::move(baseClass),
                     std::move(implementedInterfaces),
                     std::move(genericParameterNames),
-                    std::move(propertyDeclarations),
-                    std::move(methodDeclarations),
-                    std::move(constructorDeclarations),
-                    std::move(operatorDeclarations),
+                    std::move(properties),
+                    std::move(methods),
+                    std::move(constructors),
+                    std::move(operators),
                     firstToken,
                     lastToken
                 ),
@@ -1016,8 +1016,8 @@ namespace vnlc {
     InterfaceDeclarationParsingResult Parser::parseInterfaceDeclaration(InterfaceDeclarationParsingContext context) {
         std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
-        std::vector<std::unique_ptr<FunctionDeclarationNode>> methodDeclarations;
-        std::vector<std::unique_ptr<OperatorDeclarationNode>> operatorDeclarations;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
 
         Token firstToken = peek();
 
@@ -1044,9 +1044,9 @@ namespace vnlc {
 
         for (auto& declaration : bodyResult.declarations) {
             if (dynamic_cast<FunctionDeclarationNode*>(declaration.get())) {
-                methodDeclarations.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
+                methods.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
             } else if (dynamic_cast<OperatorDeclarationNode*>(declaration.get())) {
-                operatorDeclarations.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
+                operators.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
             }
         }
 
@@ -1058,8 +1058,8 @@ namespace vnlc {
                     context.accessModifier,
                     std::move(name),
                     std::move(genericParameterNames),
-                    std::move(methodDeclarations),
-                    std::move(operatorDeclarations),
+                    std::move(methods),
+                    std::move(operators),
                     firstToken,
                     lastToken,
                     std::move(context.metadataTerms)
@@ -1067,15 +1067,8 @@ namespace vnlc {
             };
         } else {
             return InterfaceDeclarationParsingResult{
-                .declaration = std::make_unique<InterfaceDeclarationNode>(
-                    context.accessModifier,
-                    std::move(name),
-                    std::move(genericParameterNames),
-                    std::move(methodDeclarations),
-                    std::move(operatorDeclarations),
-                    firstToken,
-                    lastToken
-                ),
+                .declaration = std::make_unique<
+                    InterfaceDeclarationNode>(context.accessModifier, std::move(name), std::move(genericParameterNames), std::move(methods), std::move(operators), firstToken, lastToken),
             };
         }
     }
@@ -1508,7 +1501,7 @@ namespace vnlc {
         }
 
         while (!check(TokenKind::RIGHT_BRACE)) {
-            auto result = parseInterfaceMethodDeclaration();
+            auto result = parseInterfaceMember();
             declarations.push_back(std::move(result.declaration));
         }
 
@@ -1778,23 +1771,23 @@ namespace vnlc {
                 .declaration = std::move(functionDeclarationResult.declaration),
             };
         } else {
-            PropertyDeclarationParsingContext propertyDeclarationContext{
+            PropertyParsingContext propertyContext{
                 .kind = binding == Binding::STATIC ? ValueDeclarationKind::Kind::STATIC_PROPERTY : ValueDeclarationKind::Kind::INSTANCE_PROPERTY,
                 .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
                 .hasMetadata = hasMetadata,
                 .metadataTerms = std::move(metadataTerms),
             };
-            auto propertyDeclarationResult = parsePropertyDeclaration(std::move(propertyDeclarationContext));
+            auto propertyResult = parseProperty(std::move(propertyContext));
 
             Token lastToken = peek();
-            propertyDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+            propertyResult.declaration->resetPosition(firstToken, lastToken);
 
             if (!tokenStream.endsWithNewlineOrEOF()) {
                 throw SyntaxError("Expected newline after property declaration", peek().getLine(), peek().getColumn());
             }
 
             return ClassMemberParsingResult{
-                .declaration = std::move(propertyDeclarationResult.declaration),
+                .declaration = std::move(propertyResult.declaration),
             };
         }
     }
@@ -3397,17 +3390,17 @@ namespace vnlc {
         }
 
         Token variableFirstToken = peek();
-        VariableDeclarationPrimaryParsingContext variableContext{
+        LetPrimaryParsingContext variableContext{
             .kind = ValueDeclarationKind::Kind::LOOP_VARIABLE,
         };
-        auto variableDeclarationPrimaryResult = parseVariableDeclarationPrimary(variableContext);
+        auto LetPrimaryResult = parseLetPrimary(variableContext);
         Token variableLastToken = peek();
         loopVariable = std::make_unique<ValueDeclarationNode>(
-            variableDeclarationPrimaryResult.kind,
+            LetPrimaryResult.kind,
             ValueDeclarationKind::Context::BLOCK,
             ValueDeclarationKind::AccessModifier::PUBLIC,
-            std::move(variableDeclarationPrimaryResult.name),
-            std::move(variableDeclarationPrimaryResult.type),
+            std::move(LetPrimaryResult.name),
+            std::move(LetPrimaryResult.type),
             nullptr,
             variableFirstToken,
             variableLastToken
