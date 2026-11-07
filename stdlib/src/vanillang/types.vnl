@@ -56,6 +56,18 @@ enum Result<T, E> {
     func isOk() -> bool {
         return this instanceof Ok
     }
+
+    #**
+     * Gets the value produced on success, discarding the error message on failure.
+     *
+     * @return The value if this is Ok, otherwise None.
+     *#
+    func value() -> T? {
+        switch (this) {
+            case Ok -> return this
+            case Error -> return none
+        }
+    }
 }
 
 #**
