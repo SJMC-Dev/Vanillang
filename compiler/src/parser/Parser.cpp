@@ -3264,8 +3264,7 @@ namespace vnlc {
     SwitchStatementParsingResult Parser::parseSwitchStatement() {
         Token firstToken = peek();
 
-        bool hasSwitchCases = false;
-        SwitchStatementKind switchKind = SwitchStatementKind::LITERAL_MATCH;
+        std::optional<SwitchStatementKind> switchKind;
         std::vector<SwitchStatementItem::LiteralMatchItem> literalMatchItems;
         std::vector<SwitchStatementItem::TypeMatchItem> typeMatchItems;
         std::unique_ptr<StatementNode> defaultCase; // nullptr if no default case
@@ -3293,13 +3292,12 @@ namespace vnlc {
             std::size_t caseBeginColumn = peek().getColumn();
             auto caseResult = parseSwitchCase();
 
-            if (hasSwitchCases && caseResult.kind != switchKind) {
+            if (switchKind.has_value() && caseResult.kind != switchKind.value()) {
                 throw SyntaxError("Cannot mix different types of switch cases in the same switch statement", caseBeginLine, caseBeginColumn);
             }
 
-            if (!hasSwitchCases) {
-                switchKind = caseResult.kind;
-                hasSwitchCases = true;
+            if (!switchKind.has_value()) {
+                switchKind.emplace(caseResult.kind);
             }
 
             if (!match(TokenKind::ARROW)) {
