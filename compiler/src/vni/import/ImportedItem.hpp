@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_ITEM_HPP
-#define VNLC_IMPORTED_ITEM_HPP
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -21,5 +20,3 @@ namespace vnlc {
         virtual ~ImportedItem() = default;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_ITEM_HPP

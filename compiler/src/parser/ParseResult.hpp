@@ -1,5 +1,4 @@
-#ifndef VNLC_PARSE_RESULT_HPP
-#define VNLC_PARSE_RESULT_HPP
+#pragma once
 
 #include "ast/module/ModuleNode.hpp"
 #include "diagnostic/Diagnostic.hpp"
@@ -24,5 +23,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<Diagnostic>& getErrors() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_PARSE_RESULT_HPP

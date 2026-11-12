@@ -109,8 +109,6 @@ namespace vnlc {
                 return "vnlc::TokenKind::PROTECTED";
             case TokenKind::PUBLIC:
                 return "vnlc::TokenKind::PUBLIC";
-            case TokenKind::READONLY:
-                return "vnlc::TokenKind::READONLY";
             case TokenKind::STATIC:
                 return "vnlc::TokenKind::STATIC";
             case TokenKind::INSTANCEOF:

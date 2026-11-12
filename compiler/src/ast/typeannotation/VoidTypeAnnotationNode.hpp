@@ -1,5 +1,4 @@
-#ifndef VNLC_VOID_TYPE_ANNOTATION_NODE_HPP
-#define VNLC_VOID_TYPE_ANNOTATION_NODE_HPP
+#pragma once
 
 #include "ast/typeannotation/TypeAnnotationNode.hpp"
 
@@ -11,5 +10,3 @@ namespace vnlc {
         VoidTypeAnnotationNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_VOID_TYPE_ANNOTATION_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_PRIMITIVE_TYPE_ANNOTATION_NODE_HPP
-#define VNLC_PRIMITIVE_TYPE_ANNOTATION_NODE_HPP
+#pragma once
 
 #include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
 #include "ast/typeannotation/TypeAnnotationNode.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getPrimitiveTypeName() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_PRIMITIVE_TYPE_ANNOTATION_NODE_HPP

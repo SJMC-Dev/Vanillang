@@ -1,5 +1,4 @@
-#ifndef VNLC_VARIABLE_DECLARATION_STATEMENT_NODE_HPP
-#define VNLC_VARIABLE_DECLARATION_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/statement/StatementNode.hpp"
@@ -18,5 +17,3 @@ namespace vnlc {
         [[nodiscard]] const ValueDeclarationNode& getVariableDeclaration() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_VARIABLE_DECLARATION_STATEMENT_NODE_HPP

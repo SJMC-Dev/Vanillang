@@ -550,7 +550,7 @@ namespace vnlc {
     void SemanticAnalyzer::collectLocalRegularSymbolsInClass(const ClassDeclarationNode& classNode) {
         context.pushScope(std::make_unique<Scope>(ScopeKind::CLASS, &context.currentScope(), &classNode));
 
-        for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
+        for (const auto& propertyDecl : classNode.getProperties()) {
             RegularSymbol memberSymbol(
                 RegularSymbolKind::PROPERTY,
                 static_cast<RegularSymbolAccessModifier>(propertyDecl->getAccessModifier()),
@@ -569,7 +569,7 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : classNode.getMethods()) {
             collectLocalRegularSymbolsInFunction(*methodDecl);
         }
 
@@ -594,7 +594,7 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : interfaceNode.getMethods()) {
             collectLocalRegularSymbolsInFunction(*methodDecl);
         }
 
@@ -1185,13 +1185,13 @@ namespace vnlc {
             resolveTypeAnnotation(*interfaceAnnoNode);
         }
 
-        for (const auto& propertyDecl : classNode.getPropertyDeclarations()) {
+        for (const auto& propertyDecl : classNode.getProperties()) {
             if (propertyDecl->getType() != nullptr) {
                 resolveTypeAnnotation(*propertyDecl->getType());
             }
         }
 
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : classNode.getMethods()) {
             resolveTypeAnnotationsInFunction(*methodDecl);
         }
 
@@ -1211,7 +1211,7 @@ namespace vnlc {
             return;
         }
 
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : interfaceNode.getMethods()) {
             resolveTypeAnnotationsInFunction(*methodDecl);
         }
 
@@ -1323,7 +1323,7 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::generateInternalNameForOverloadablesInClass(const ClassDeclarationNode& classNode) {
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : classNode.getMethods()) {
             generateInternalName(*methodDecl);
         }
 
@@ -1337,7 +1337,7 @@ namespace vnlc {
     }
 
     void SemanticAnalyzer::generateInternalNameForOverloadablesInInterface(const InterfaceDeclarationNode& interfaceNode) {
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : interfaceNode.getMethods()) {
             generateInternalName(*methodDecl);
         }
 
@@ -1379,7 +1379,7 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : classNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : classNode.getMethods()) {
             declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "class member");
         }
 
@@ -1398,7 +1398,7 @@ namespace vnlc {
             }
         }
 
-        for (const auto& methodDecl : interfaceNode.getMethodDeclarations()) {
+        for (const auto& methodDecl : interfaceNode.getMethods()) {
             declareFunctionOverloading(*methodDecl, RegularSymbolKind::METHOD, "interface method");
         }
 
@@ -1989,11 +1989,11 @@ namespace vnlc {
             }
         }
 
-        for (const auto& propertyDecl : classDecl.getPropertyDeclarations()) {
+        for (const auto& propertyDecl : classDecl.getProperties()) {
             checkValueDeclaration(*propertyDecl);
         }
 
-        for (const auto& methodDecl : classDecl.getMethodDeclarations()) {
+        for (const auto& methodDecl : classDecl.getMethods()) {
             checkFunctionDeclaration(*methodDecl);
         }
 
@@ -2013,7 +2013,7 @@ namespace vnlc {
             return;
         }
 
-        for (const auto& funcDecl : interfaceDecl.getMethodDeclarations()) {
+        for (const auto& funcDecl : interfaceDecl.getMethods()) {
             checkFunctionDeclaration(*funcDecl);
         }
 

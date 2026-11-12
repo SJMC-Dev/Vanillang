@@ -1,5 +1,4 @@
-#ifndef VNLC_ENUM_MEMBER_DECLARATION_OUTLINE_HPP
-#define VNLC_ENUM_MEMBER_DECLARATION_OUTLINE_HPP
+#pragma once
 
 #include "outline/TypeDeclarationOutline.hpp"
 #include <string>
@@ -24,5 +23,3 @@ namespace vnlc {
         [[nodiscard]] const EnumDeclarationOutline* getEnumDeclaration() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_ENUM_MEMBER_DECLARATION_OUTLINE_HPP

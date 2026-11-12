@@ -1,5 +1,4 @@
-#ifndef VNLC_MODULE_OUTLINE_HPP
-#define VNLC_MODULE_OUTLINE_HPP
+#pragma once
 
 #include "outline/DeclarationOutline.hpp"
 #include "outline/TypeDeclarationOutline.hpp"
@@ -31,5 +30,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<TypeDeclarationOutline>>& getTypeDeclarations() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_MODULE_OUTLINE_HPP

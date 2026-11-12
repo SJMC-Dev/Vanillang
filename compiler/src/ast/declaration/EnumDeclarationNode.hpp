@@ -1,5 +1,4 @@
-#ifndef VNLC_ENUM_DECLARATION_NODE_HPP
-#define VNLC_ENUM_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
 #include "ast/declaration/TypeDeclarationKind.hpp"
@@ -41,5 +40,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_ENUM_DECLARATION_NODE_HPP

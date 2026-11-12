@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_ENUM_HPP
-#define VNLC_IMPORTED_ENUM_HPP
+#pragma once
 
 #include "vni/import/ImportedEnumMember.hpp"
 #include "vni/import/ImportedIdentifier.hpp"
@@ -37,5 +36,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedEnumMember* getMemberByName(std::string_view name) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_ENUM_HPP

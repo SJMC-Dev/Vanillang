@@ -1,5 +1,4 @@
-#ifndef VNLC_TYPE_ANNOTATION_NODE_HPP
-#define VNLC_TYPE_ANNOTATION_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include <string>
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] std::string generateInternalNamePart() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_TYPE_ANNOTATION_NODE_HPP

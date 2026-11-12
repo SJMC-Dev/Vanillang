@@ -1,5 +1,4 @@
-#ifndef VNLC_FUNCTION_SYMBOL_HPP
-#define VNLC_FUNCTION_SYMBOL_HPP
+#pragma once
 
 #include "symbol/RegularSymbol.hpp"
 #include "symbol/Symbol.hpp"
@@ -23,5 +22,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getName() const noexcept override;
     };
 } // namespace vnlc
-
-#endif // VNLC_FUNCTION_SYMBOL_HPP

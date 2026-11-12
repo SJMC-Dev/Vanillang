@@ -55,7 +55,6 @@ namespace vnlc {
             { "private", TokenKind::PRIVATE },
             { "protected", TokenKind::PROTECTED },
             { "public", TokenKind::PUBLIC },
-            { "readonly", TokenKind::READONLY },
             { "static", TokenKind::STATIC },
             { "instanceof", TokenKind::INSTANCEOF },
             { "final", TokenKind::FINAL },

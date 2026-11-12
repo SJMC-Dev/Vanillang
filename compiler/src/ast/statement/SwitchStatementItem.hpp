@@ -1,5 +1,4 @@
-#ifndef VNLC_SWITCH_STATEMENT_ITEM_HPP
-#define VNLC_SWITCH_STATEMENT_ITEM_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/statement/StatementNode.hpp"
@@ -20,5 +19,3 @@ namespace vnlc {
         };
     }; // namespace SwitchStatementItem
 } // namespace vnlc
-
-#endif // VNLC_SWITCH_STATEMENT_ITEM_HPP

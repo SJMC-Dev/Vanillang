@@ -1,5 +1,4 @@
-#ifndef VNLC_TOKEN_HPP
-#define VNLC_TOKEN_HPP
+#pragma once
 
 #include "token/TokenKind.hpp"
 
@@ -32,5 +31,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getValue() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_TOKEN_HPP

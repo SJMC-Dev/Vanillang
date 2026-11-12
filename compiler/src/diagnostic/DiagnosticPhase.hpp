@@ -1,5 +1,4 @@
-#ifndef VNLC_DIAGNOSTIC_PHASE_HPP
-#define VNLC_DIAGNOSTIC_PHASE_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ namespace vnlc {
         INTERNAL,
     };
 }
-
-#endif // VNLC_DIAGNOSTIC_PHASE_HPP

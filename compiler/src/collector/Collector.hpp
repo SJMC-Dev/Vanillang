@@ -1,5 +1,4 @@
-#ifndef VNLC_COLLECTOR_HPP
-#define VNLC_COLLECTOR_HPP
+#pragma once
 
 #include "collector/CollectionResult.hpp"
 #include "config/Config.hpp"
@@ -58,5 +57,3 @@ namespace vnlc {
         [[nodiscard]] CollectionResult collect(const Config& config);
     };
 } // namespace vnlc
-
-#endif // VNLC_COLLECTOR_HPP

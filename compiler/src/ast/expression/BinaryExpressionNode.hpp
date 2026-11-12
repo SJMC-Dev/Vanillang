@@ -1,5 +1,4 @@
-#ifndef VNLC_BINARY_EXPRESSION_NODE_HPP
-#define VNLC_BINARY_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/BinaryExpressionKind.hpp"
 #include "ast/expression/ExpressionNode.hpp"
@@ -28,5 +27,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode& getRight() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_BINARY_EXPRESSION_NODE_HPP

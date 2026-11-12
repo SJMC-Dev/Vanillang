@@ -1,5 +1,4 @@
-#ifndef VNLC_FUNCTION_CALL_EXPRESSION_NODE_HPP
-#define VNLC_FUNCTION_CALL_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -35,5 +34,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode* getContext() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_FUNCTION_CALL_EXPRESSION_NODE_HPP

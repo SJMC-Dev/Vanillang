@@ -1,5 +1,4 @@
-#ifndef VNLC_REGULAR_SYMBOL_HPP
-#define VNLC_REGULAR_SYMBOL_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "symbol/RegularSymbolAccessModifier.hpp"
@@ -33,5 +32,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedItem* getImportedNode() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_REGULAR_SYMBOL_HPP

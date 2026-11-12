@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_ROOT_PACKAGE_MAP_HPP
-#define VNLC_IMPORTED_ROOT_PACKAGE_MAP_HPP
+#pragma once
 
 #include "vni/import/ImportedPackage.hpp"
 #include <memory>
@@ -14,5 +13,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedPackage* getImportedRootPackageByName(std::string_view name) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_ROOT_PACKAGE_MAP_HPP

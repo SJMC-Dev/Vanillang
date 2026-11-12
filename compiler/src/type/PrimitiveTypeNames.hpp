@@ -1,5 +1,4 @@
-#ifndef VNLC_PRIMITIVE_TYPE_NAMES_HPP
-#define VNLC_PRIMITIVE_TYPE_NAMES_HPP
+#pragma once
 
 #include <string_view>
 
@@ -18,5 +17,3 @@ namespace vnlc {
         constexpr std::string_view Boolean = "bool";
     }; // namespace PrimitiveTypeNames
 } // namespace vnlc
-
-#endif // VNLC_PRIMITIVE_TYPE_NAMES_HPP

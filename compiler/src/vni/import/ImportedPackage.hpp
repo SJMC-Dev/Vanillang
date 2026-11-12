@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_PACKAGE_HPP
-#define VNLC_IMPORTED_PACKAGE_HPP
+#pragma once
 
 #include "vni/import/ImportedItem.hpp"
 #include "vni/import/ImportedModule.hpp"
@@ -31,5 +30,3 @@ namespace vnlc {
         void merge(ImportedPackage&& package);
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_PACKAGE_HPP

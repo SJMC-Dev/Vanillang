@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_INTERFACE_HPP
-#define VNLC_IMPORTED_INTERFACE_HPP
+#pragma once
 
 #include "vni/import/ImportedIdentifier.hpp"
 #include "vni/import/ImportedMethod.hpp"
@@ -43,5 +42,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedOperator* getOperatorByName(std::string_view internalName) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_INTERFACE_HPP

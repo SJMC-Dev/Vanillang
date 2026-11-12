@@ -1,5 +1,4 @@
-#ifndef VNLC_VALUE_DECLARATION_KIND_HPP
-#define VNLC_VALUE_DECLARATION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -30,5 +29,3 @@ namespace vnlc {
         };
     }; // namespace ValueDeclarationKind
 } // namespace vnlc
-
-#endif // VNLC_VALUE_DECLARATION_KIND_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_MEMBER_ACCESS_EXPRESSION_NODE_HPP
-#define VNLC_MEMBER_ACCESS_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/expression/IdentifierLikeExpressionNode.hpp"
@@ -29,5 +28,3 @@ namespace vnlc {
         [[nodiscard]] const IdentifierLikeExpressionNode& getMember() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_MEMBER_ACCESS_EXPRESSION_NODE_HPP

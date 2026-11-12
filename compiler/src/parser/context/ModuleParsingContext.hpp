@@ -1,5 +1,4 @@
-#ifndef VNLC_MODULE_PARSING_CONTEXT_HPP
-#define VNLC_MODULE_PARSING_CONTEXT_HPP
+#pragma once
 
 #include "config/Config.hpp"
 
@@ -8,5 +7,3 @@ namespace vnlc {
         const Config& config;
     };
 } // namespace vnlc
-
-#endif // VNLC_MODULE_PARSING_CONTEXT_HPP

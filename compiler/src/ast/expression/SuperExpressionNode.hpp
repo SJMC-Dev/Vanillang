@@ -1,5 +1,4 @@
-#ifndef VNLC_SUPER_EXPRESSION_NODE_HPP
-#define VNLC_SUPER_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/PrimaryExpressionNode.hpp"
 
@@ -11,5 +10,3 @@ namespace vnlc {
         SuperExpressionNode(const Token& firstToken, const Token& lastToken) noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_SUPER_EXPRESSION_NODE_HPP

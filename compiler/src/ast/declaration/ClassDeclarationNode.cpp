@@ -8,10 +8,10 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode>&& baseClass,
         std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-        std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
-        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
-        std::vector<std::unique_ptr<ConstructorDeclarationNode>>&& constructorDeclarations,
-        std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operatorDeclarations,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& properties,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<ConstructorDeclarationNode>>&& constructors,
+        std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operators,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
@@ -22,10 +22,10 @@ namespace vnlc {
           baseClass(std::move(baseClass)),
           implementedInterfaces(std::move(implementedInterfaces)),
           genericParameterNames(std::move(genericParameterNames)),
-          propertyDeclarations(std::move(propertyDeclarations)),
-          methodDeclarations(std::move(methodDeclarations)),
-          constructorDeclarations(std::move(constructorDeclarations)),
-          operatorDeclarations(std::move(operatorDeclarations)) {}
+          properties(std::move(properties)),
+          methods(std::move(methods)),
+          constructors(std::move(constructors)),
+          operators(std::move(operators)) {}
 
     ClassDeclarationNode::ClassDeclarationNode(
         TypeDeclarationKind::AccessModifier accessModifier,
@@ -34,10 +34,10 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode>&& baseClass,
         std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
-        std::vector<std::unique_ptr<ValueDeclarationNode>>&& propertyDeclarations,
-        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methodDeclarations,
-        std::vector<std::unique_ptr<ConstructorDeclarationNode>>&& constructorDeclarations,
-        std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operatorDeclarations,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& properties,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<ConstructorDeclarationNode>>&& constructors,
+        std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operators,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
@@ -49,10 +49,10 @@ namespace vnlc {
           baseClass(std::move(baseClass)),
           implementedInterfaces(std::move(implementedInterfaces)),
           genericParameterNames(std::move(genericParameterNames)),
-          propertyDeclarations(std::move(propertyDeclarations)),
-          methodDeclarations(std::move(methodDeclarations)),
-          constructorDeclarations(std::move(constructorDeclarations)),
-          operatorDeclarations(std::move(operatorDeclarations)) {}
+          properties(std::move(properties)),
+          methods(std::move(methods)),
+          constructors(std::move(constructors)),
+          operators(std::move(operators)) {}
 
     TypeDeclarationKind::AccessModifier ClassDeclarationNode::getAccessModifier() const noexcept {
         return accessModifier;
@@ -78,19 +78,19 @@ namespace vnlc {
         return genericParameterNames;
     }
 
-    const std::vector<std::unique_ptr<ValueDeclarationNode>>& ClassDeclarationNode::getPropertyDeclarations() const noexcept {
-        return propertyDeclarations;
+    const std::vector<std::unique_ptr<ValueDeclarationNode>>& ClassDeclarationNode::getProperties() const noexcept {
+        return properties;
     }
 
-    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& ClassDeclarationNode::getMethodDeclarations() const noexcept {
-        return methodDeclarations;
+    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& ClassDeclarationNode::getMethods() const noexcept {
+        return methods;
     }
 
     const std::vector<std::unique_ptr<ConstructorDeclarationNode>>& ClassDeclarationNode::getConstructorDeclarations() const noexcept {
-        return constructorDeclarations;
+        return constructors;
     }
 
     const std::vector<std::unique_ptr<OperatorDeclarationNode>>& ClassDeclarationNode::getOperatorDeclarations() const noexcept {
-        return operatorDeclarations;
+        return operators;
     }
 } // namespace vnlc

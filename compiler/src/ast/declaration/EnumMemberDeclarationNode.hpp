@@ -1,5 +1,4 @@
-#ifndef VNLC_ENUM_MEMBER_DECLARATION_NODE_HPP
-#define VNLC_ENUM_MEMBER_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/TypeDeclarationNode.hpp"
 #include "ast/declaration/ValueDeclarationNode.hpp"
@@ -33,5 +32,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getAssociatedValues() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_ENUM_MEMBER_DECLARATION_NODE_HPP

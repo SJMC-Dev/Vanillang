@@ -1,5 +1,4 @@
-#ifndef VNLC_SEMANTIC_ANALYSIS_RESULT_HPP
-#define VNLC_SEMANTIC_ANALYSIS_RESULT_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "ast/declaration/FunctionDeclarationNode.hpp"
@@ -79,5 +78,3 @@ namespace vnlc {
         [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_SEMANTIC_ANALYSIS_RESULT_HPP

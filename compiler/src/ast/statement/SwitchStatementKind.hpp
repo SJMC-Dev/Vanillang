@@ -1,5 +1,4 @@
-#ifndef VNLC_SWITCH_STATEMENT_KIND_HPP
-#define VNLC_SWITCH_STATEMENT_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -9,5 +8,3 @@ namespace vnlc {
         TYPE_MATCH,
     };
 }
-
-#endif // VNLC_SWITCH_STATEMENT_KIND_HPP

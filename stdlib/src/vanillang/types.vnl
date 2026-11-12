@@ -275,7 +275,7 @@ class Array<T> implements Iterable<T> {
 #**
  * Represents a list, written as [...], whose elements may be of any type.
  *#
-class List implements Iterable<Any> {
+class List implements Iterable<any> {
     #**
      * Gets the number of elements in the list.
      *
@@ -290,7 +290,7 @@ class List implements Iterable<Any> {
      *
      * @return The element, or None if index is out of bounds.
      *#
-    native op [](index: int) -> Any?
+    native op [](index: int) -> any?
 
     #**
      * Replaces the element at the given index.
@@ -298,14 +298,14 @@ class List implements Iterable<Any> {
      * @param index - The zero-based position of the element.
      * @param value - The new element.
      *#
-    native func set(index: int, value: Any) -> void
+    native func set(index: int, value: any) -> void
 
     #**
      * Adds an element to the end of the list.
      *
      * @param value - The element to add.
      *#
-    native func append(value: Any) -> void
+    native func append(value: any) -> void
 
     #**
      * Inserts an element before the given index.
@@ -313,7 +313,7 @@ class List implements Iterable<Any> {
      * @param index - The zero-based position to insert at.
      * @param value - The element to insert.
      *#
-    native func insert(index: int, value: Any) -> void
+    native func insert(index: int, value: any) -> void
 
     #**
      * Removes the element at the given index.
@@ -327,7 +327,7 @@ class List implements Iterable<Any> {
      *
      * @return An iterator that yields each element in order.
      *#
-    native func getIterator() -> Iterator<Any>
+    native func getIterator() -> Iterator<any>
 }
 
 #**
@@ -348,7 +348,7 @@ class Dict {
      *
      * @return The value, or None if the key is absent.
      *#
-    native op [](key: String) -> Any?
+    native op [](key: String) -> any?
 
     #**
      * Associates a value with the given key, replacing any existing value.
@@ -356,7 +356,7 @@ class Dict {
      * @param key - The key to associate the value with.
      * @param value - The value to store.
      *#
-    native func set(key: String, value: Any) -> void
+    native func set(key: String, value: any) -> void
 
     #**
      * Checks whether the given key is present.

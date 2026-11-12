@@ -1,5 +1,4 @@
-#ifndef VNLC_ARGUMENT_LIST_PARSING_RESULT_HPP
-#define VNLC_ARGUMENT_LIST_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include <memory>
@@ -11,5 +10,3 @@ namespace vnlc {
         std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
     };
 } // namespace vnlc
-
-#endif // VNLC_ARGUMENT_LIST_PARSING_RESULT_HPP

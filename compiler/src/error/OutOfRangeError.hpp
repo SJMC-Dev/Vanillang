@@ -1,5 +1,4 @@
-#ifndef VNLC_OUT_OF_RANGE_ERROR_HPP
-#define VNLC_OUT_OF_RANGE_ERROR_HPP
+#pragma once
 
 #include "error/Error.hpp"
 #include <fmt/core.h>
@@ -10,5 +9,3 @@ namespace vnlc {
         OutOfRangeError(std::string_view message) : Error(fmt::format("Out of range: {}", message)) {}
     };
 } // namespace vnlc
-
-#endif // VNLC_OUT_OF_RANGE_ERROR_HPP

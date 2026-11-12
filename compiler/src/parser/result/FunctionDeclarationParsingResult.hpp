@@ -1,5 +1,4 @@
-#ifndef VNLC_FUNCTION_DECLARATION_PARSING_RESULT_HPP
-#define VNLC_FUNCTION_DECLARATION_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/FunctionDeclarationNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<FunctionDeclarationNode> declaration;
     };
 } // namespace vnlc
-
-#endif // VNLC_FUNCTION_DECLARATION_PARSING_RESULT_HPP

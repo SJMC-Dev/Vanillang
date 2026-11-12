@@ -1,5 +1,4 @@
-#ifndef VNLC_OPERATOR_DECLARATION_PARSING_RESULT_HPP
-#define VNLC_OPERATOR_DECLARATION_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/OperatorDeclarationNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<OperatorDeclarationNode> declaration;
     };
 } // namespace vnlc
-
-#endif // VNLC_OPERATOR_DECLARATION_PARSING_RESULT_HPP

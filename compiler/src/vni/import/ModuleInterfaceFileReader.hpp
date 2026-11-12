@@ -1,5 +1,4 @@
-#ifndef VNLC_MODULE_INTERFACE_FILE_READER_HPP
-#define VNLC_MODULE_INTERFACE_FILE_READER_HPP
+#pragma once
 
 #include "vni/import/ImportedClass.hpp"
 #include "vni/import/ImportedConstructor.hpp"
@@ -52,5 +51,3 @@ namespace vnlc {
         [[nodiscard]] std::unique_ptr<ImportedModule> read();
     };
 } // namespace vnlc
-
-#endif // VNLC_MODULE_INTERFACE_FILE_READER_HPP

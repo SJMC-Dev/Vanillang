@@ -1,5 +1,4 @@
-#ifndef VNLC_CONFIG_HPP
-#define VNLC_CONFIG_HPP
+#pragma once
 
 #include "config/RunningMode.hpp"
 
@@ -29,5 +28,3 @@ namespace vnlc {
         std::optional<int> optimizationLevel;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONFIG_HPP

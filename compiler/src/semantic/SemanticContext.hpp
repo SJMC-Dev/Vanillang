@@ -1,5 +1,4 @@
-#ifndef VNLC_SEMANTIC_CONTEXT_HPP
-#define VNLC_SEMANTIC_CONTEXT_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "ast/declaration/ClassDeclarationNode.hpp"
@@ -148,5 +147,3 @@ namespace vnlc {
         [[nodiscard]] std::unordered_map<const ImportedIdentifier*, InheritanceNode*> takeImportedInheritanceMap();
     };
 } // namespace vnlc
-
-#endif // VNLC_SEMANTIC_CONTEXT_HPP

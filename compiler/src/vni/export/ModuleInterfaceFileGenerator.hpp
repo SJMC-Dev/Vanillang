@@ -1,5 +1,4 @@
-#ifndef VNLC_MODULE_INTERFACE_FILE_GENERATOR_HPP
-#define VNLC_MODULE_INTERFACE_FILE_GENERATOR_HPP
+#pragma once
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "ast/declaration/ConstructorDeclarationNode.hpp"
@@ -44,5 +43,3 @@ namespace vnlc {
         void generate();
     };
 } // namespace vnlc
-
-#endif // VNLC_MODULE_INTERFACE_FILE_GENERATOR_HPP

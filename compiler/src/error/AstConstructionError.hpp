@@ -1,5 +1,4 @@
-#ifndef VNLC_AST_CONSTRUCTION_ERROR_HPP
-#define VNLC_AST_CONSTRUCTION_ERROR_HPP
+#pragma once
 
 #include "error/Error.hpp"
 #include <fmt/core.h>
@@ -10,5 +9,3 @@ namespace vnlc {
         AstConstructionError(std::string_view message) : Error(fmt::format("Invalid AST construction: {}", message)) {}
     };
 } // namespace vnlc
-
-#endif // VNLC_AST_CONSTRUCTION_ERROR_HPP

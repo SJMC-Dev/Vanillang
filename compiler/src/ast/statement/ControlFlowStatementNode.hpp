@@ -1,5 +1,4 @@
-#ifndef VNLC_CONTROL_FLOW_STATEMENT_NODE_HPP
-#define VNLC_CONTROL_FLOW_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/statement/StatementNode.hpp"
 
@@ -12,5 +11,3 @@ namespace vnlc {
         ControlFlowStatementNode() = delete;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONTROL_FLOW_STATEMENT_NODE_HPP

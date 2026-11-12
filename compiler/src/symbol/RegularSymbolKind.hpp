@@ -1,5 +1,4 @@
-#ifndef VNLC_REGULAR_SYMBOL_KIND_HPP
-#define VNLC_REGULAR_SYMBOL_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -21,5 +20,3 @@ namespace vnlc {
         LOOP_LABEL,
     };
 }
-
-#endif // VNLC_REGULAR_SYMBOL_KIND_HPP

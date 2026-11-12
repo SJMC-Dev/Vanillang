@@ -1,5 +1,4 @@
-#ifndef VNLC_DECLARATION_NODE_HPP
-#define VNLC_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include "ast/declaration/DeclarationItem.hpp"
@@ -22,5 +21,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<DeclarationItem::MetadataTerm>& getMetadataTerms() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_DECLARATION_NODE_HPP

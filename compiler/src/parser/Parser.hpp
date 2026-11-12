@@ -1,5 +1,4 @@
-#ifndef VNLC_PARSER_HPP
-#define VNLC_PARSER_HPP
+#pragma once
 
 #include "ast/expression/SimpleLiteralExpressionKind.hpp"
 #include "collector/CollectionResult.hpp"
@@ -48,10 +47,10 @@ namespace vnlc {
         [[nodiscard]] VariableDeclarationParsingResult parseVariableDeclaration(VariableDeclarationParsingContext context);
         [[nodiscard]] FunctionDeclarationParsingResult parseFunctionDeclaration(FunctionDeclarationParsingContext context);
         [[nodiscard]] TypeDeclarationParsingResult parseTypeDeclaration(TypeDeclarationParsingContext context);
-        [[nodiscard]] PropertyDeclarationParsingResult parsePropertyDeclaration(PropertyDeclarationParsingContext context);
-        [[nodiscard]] InterfaceMethodDeclarationParsingResult parseInterfaceMethodDeclaration();
+        [[nodiscard]] PropertyParsingResult parseProperty(PropertyParsingContext context);
+        [[nodiscard]] InterfaceMemberParsingResult parseInterfaceMember();
         [[nodiscard]] MetadataParsingResult parseMetadata();
-        [[nodiscard]] VariableDeclarationPrimaryParsingResult parseVariableDeclarationPrimary(VariableDeclarationPrimaryParsingContext context);
+        [[nodiscard]] LetPrimaryParsingResult parseLetPrimary(LetPrimaryParsingContext context);
         [[nodiscard]] OperatorDeclarationParsingResult parseOperatorDeclaration(OperatorDeclarationParsingContext context);
         [[nodiscard]] ParameterListParsingResult parseParameterList();
         [[nodiscard]] ClassDeclarationParsingResult parseClassDeclaration(ClassDeclarationParsingContext context);
@@ -60,7 +59,7 @@ namespace vnlc {
         [[nodiscard]] TypeAliasDeclarationParsingResult parseTypeAliasDeclaration(TypeAliasDeclarationParsingContext context);
         [[nodiscard]] ImportPathParsingResult parseImportPath();
         [[nodiscard]] MetadataTermParsingResult parseMetadataTerm();
-        [[nodiscard]] FunctionSignatureParsingResult parseFunctionSignature();
+        [[nodiscard]] FunctionHeaderParsingResult parseFunctionHeader();
         [[nodiscard]] TypeParsingResult parseType();
         [[nodiscard]] ParameterParsingResult parseParameter();
         [[nodiscard]] GenericParameterListParsingResult parseGenericParameterList();
@@ -128,5 +127,3 @@ namespace vnlc {
         [[nodiscard]] ParseResult parse(const Config& config);
     };
 } // namespace vnlc
-
-#endif // VNLC_PARSER_HPP

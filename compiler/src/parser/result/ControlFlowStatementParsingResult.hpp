@@ -1,5 +1,4 @@
-#ifndef VNLC_CONTROL_FLOW_STATEMENT_PARSING_RESULT_HPP
-#define VNLC_CONTROL_FLOW_STATEMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/statement/ControlFlowStatementNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<ControlFlowStatementNode> statement;
     };
 } // namespace vnlc
-
-#endif // VNLC_CONTROL_FLOW_STATEMENT_PARSING_RESULT_HPP

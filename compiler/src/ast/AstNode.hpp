@@ -1,5 +1,4 @@
-#ifndef VNLC_AST_NODE_HPP
-#define VNLC_AST_NODE_HPP
+#pragma once
 
 #include "token/Token.hpp"
 #include <utility>
@@ -29,5 +28,3 @@ namespace vnlc {
         friend class Parser;
     };
 } // namespace vnlc
-
-#endif // VNLC_AST_NODE_HPP

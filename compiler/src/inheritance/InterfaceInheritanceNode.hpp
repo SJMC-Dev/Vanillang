@@ -1,5 +1,4 @@
-#ifndef VNLC_INTERFACE_INHERITANCE_NODE_HPP
-#define VNLC_INTERFACE_INHERITANCE_NODE_HPP
+#pragma once
 
 #include "ast/declaration/InterfaceDeclarationNode.hpp"
 #include "inheritance/InheritanceNode.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedInterface* getImportedNode() const noexcept override;
     };
 } // namespace vnlc
-
-#endif // VNLC_INTERFACE_INHERITANCE_NODE_HPP

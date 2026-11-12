@@ -1,5 +1,4 @@
-#ifndef VNLC_CONSTRUCTOR_DECLARATION_KIND_HPP
-#define VNLC_CONSTRUCTOR_DECLARATION_KIND_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -12,5 +11,3 @@ namespace vnlc {
         };
     }; // namespace ConstructorDeclarationKind
 } // namespace vnlc
-
-#endif // VNLC_CONSTRUCTOR_DECLARATION_KIND_HPP

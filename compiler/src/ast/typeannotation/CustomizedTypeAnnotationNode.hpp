@@ -1,5 +1,4 @@
-#ifndef VNLC_CUSTOMIZED_TYPE_ANNOTATION_NODE_HPP
-#define VNLC_CUSTOMIZED_TYPE_ANNOTATION_NODE_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include "ast/typeannotation/TypeAnnotationNode.hpp"
@@ -27,5 +26,3 @@ namespace vnlc {
         [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getGenericArguments() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_CUSTOMIZED_TYPE_ANNOTATION_NODE_HPP

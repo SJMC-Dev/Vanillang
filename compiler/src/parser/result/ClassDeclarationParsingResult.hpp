@@ -1,5 +1,4 @@
-#ifndef VNLC_CLASS_DECLARATION_PARSING_RESULT_HPP
-#define VNLC_CLASS_DECLARATION_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<ClassDeclarationNode> declaration;
     };
 } // namespace vnlc
-
-#endif // VNLC_CLASS_DECLARATION_PARSING_RESULT_HPP

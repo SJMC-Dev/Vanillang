@@ -1,5 +1,4 @@
-#ifndef VNLC_FOR_STATEMENT_NODE_HPP
-#define VNLC_FOR_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/declaration/ValueDeclarationNode.hpp"
 #include "ast/expression/ExpressionNode.hpp"
@@ -38,5 +37,3 @@ namespace vnlc {
         [[nodiscard]] const StatementNode& getBody() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_FOR_STATEMENT_NODE_HPP

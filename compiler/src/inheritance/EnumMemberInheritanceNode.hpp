@@ -1,5 +1,4 @@
-#ifndef VNLC_ENUM_MEMBER_INHERITANCE_NODE_HPP
-#define VNLC_ENUM_MEMBER_INHERITANCE_NODE_HPP
+#pragma once
 
 #include "ast/declaration/EnumMemberDeclarationNode.hpp"
 #include "inheritance/EnumInheritanceNode.hpp"
@@ -26,5 +25,3 @@ namespace vnlc {
         void setParent(const EnumInheritanceNode* parent) noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_ENUM_MEMBER_INHERITANCE_NODE_HPP

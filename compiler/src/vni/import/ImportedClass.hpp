@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_CLASS_HPP
-#define VNLC_IMPORTED_CLASS_HPP
+#pragma once
 
 #include "vni/import/ImportedConstructor.hpp"
 #include "vni/import/ImportedIdentifier.hpp"
@@ -92,5 +91,3 @@ namespace vnlc {
         [[nodiscard]] const ImportedOperator* getOperatorByName(std::string_view internalName) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_CLASS_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_ERROR_HPP
-#define VNLC_ERROR_HPP
+#pragma once
 
 #include <exception>
 #include <string>
@@ -18,5 +17,3 @@ namespace vnlc {
         }
     };
 } // namespace vnlc
-
-#endif // VNLC_ERROR_HPP

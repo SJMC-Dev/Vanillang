@@ -1,5 +1,4 @@
-#ifndef VNLC_DECLARATION_OUTLINE_HPP
-#define VNLC_DECLARATION_OUTLINE_HPP
+#pragma once
 
 #include "token/Token.hpp"
 #include <cstddef>
@@ -27,5 +26,3 @@ namespace vnlc {
         virtual ~DeclarationOutline() = default;
     };
 } // namespace vnlc
-
-#endif // VNLC_DECLARATION_OUTLINE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_LEXER_HPP
-#define VNLC_LEXER_HPP
+#pragma once
 
 #include "lexer/LexerMode.hpp"
 #include "token/Token.hpp"
@@ -62,5 +61,3 @@ namespace vnlc {
         friend bool TokenKindUtil::isGeneralizedIdentifier(TokenKind type);
     };
 } // namespace vnlc
-
-#endif // VNLC_LEXER_HPP

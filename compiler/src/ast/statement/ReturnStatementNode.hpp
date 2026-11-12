@@ -1,5 +1,4 @@
-#ifndef VNLC_RETURN_STATEMENT_NODE_HPP
-#define VNLC_RETURN_STATEMENT_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/statement/ControlFlowStatementNode.hpp"
@@ -19,5 +18,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode* getReturnValue() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_RETURN_STATEMENT_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_SYMBOL_HPP
-#define VNLC_SYMBOL_HPP
+#pragma once
 
 #include <string_view>
 
@@ -17,5 +16,3 @@ namespace vnlc {
         [[nodiscard]] virtual std::string_view getName() const noexcept = 0;
     };
 } // namespace vnlc
-
-#endif // VNLC_SYMBOL_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_IMPORTED_ENUM_MEMBER_HPP
-#define VNLC_IMPORTED_ENUM_MEMBER_HPP
+#pragma once
 
 #include "vni/import/ImportedEnumValue.hpp"
 #include "vni/import/ImportedIdentifier.hpp"
@@ -23,5 +22,3 @@ namespace vnlc {
         [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<ImportedEnumValue>>& getAssociatedValues() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IMPORTED_ENUM_MEMBER_HPP

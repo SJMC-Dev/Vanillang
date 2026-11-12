@@ -1,5 +1,4 @@
-#ifndef VNLC_APP_HPP
-#define VNLC_APP_HPP
+#pragma once
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -26,5 +25,3 @@ namespace vnlc {
         void run();
     };
 } // namespace vnlc
-
-#endif // VNLC_APP_HPP

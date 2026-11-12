@@ -1,5 +1,4 @@
-#ifndef VNLC_UNARY_EXPRESSION_NODE_HPP
-#define VNLC_UNARY_EXPRESSION_NODE_HPP
+#pragma once
 
 #include "ast/expression/ExpressionNode.hpp"
 #include "ast/expression/UnaryExpressionKind.hpp"
@@ -20,5 +19,3 @@ namespace vnlc {
         [[nodiscard]] const ExpressionNode& getOperand() const noexcept;
     };
 } // namespace vnlc
-
-#endif // VNLC_UNARY_EXPRESSION_NODE_HPP

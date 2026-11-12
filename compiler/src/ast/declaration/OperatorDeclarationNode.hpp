@@ -1,5 +1,4 @@
-#ifndef VNLC_OPERATOR_DECLARATION_NODE_HPP
-#define VNLC_OPERATOR_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/DeclarationNode.hpp"
 #include "ast/declaration/OperatorDeclarationKind.hpp"
@@ -64,5 +63,3 @@ namespace vnlc {
         void setInternalName(std::string_view internalName) const;
     };
 } // namespace vnlc
-
-#endif // VNLC_OPERATOR_DECLARATION_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_PRIMITIVE_TYPE_HPP
-#define VNLC_PRIMITIVE_TYPE_HPP
+#pragma once
 
 #include "type/PrimitiveTypeKind.hpp"
 #include "type/Type.hpp"
@@ -33,5 +32,3 @@ namespace vnlc {
         [[nodiscard]] static const PrimitiveType* booleanType();
     };
 } // namespace vnlc
-
-#endif // VNLC_PRIMITIVE_TYPE_HPP

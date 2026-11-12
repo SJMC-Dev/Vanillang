@@ -1,5 +1,4 @@
-#ifndef VNLC_SWITCH_STATEMENT_PARSING_RESULT_HPP
-#define VNLC_SWITCH_STATEMENT_PARSING_RESULT_HPP
+#pragma once
 
 #include "ast/statement/SwitchStatementNode.hpp"
 #include <memory>
@@ -9,5 +8,3 @@ namespace vnlc {
         std::unique_ptr<SwitchStatementNode> statement;
     };
 } // namespace vnlc
-
-#endif // VNLC_SWITCH_STATEMENT_PARSING_RESULT_HPP

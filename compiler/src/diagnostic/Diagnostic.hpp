@@ -1,5 +1,4 @@
-#ifndef VNLC_DIAGNOSTIC_HPP
-#define VNLC_DIAGNOSTIC_HPP
+#pragma once
 
 #include "diagnostic/DiagnosticPhase.hpp"
 #include "diagnostic/DiagnosticSeverity.hpp"
@@ -30,5 +29,3 @@ namespace vnlc {
         [[nodiscard]] std::size_t getLength() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_DIAGNOSTIC_HPP

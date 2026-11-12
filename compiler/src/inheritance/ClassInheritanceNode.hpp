@@ -1,5 +1,4 @@
-#ifndef VNLC_CLASS_INHERITANCE_NODE_HPP
-#define VNLC_CLASS_INHERITANCE_NODE_HPP
+#pragma once
 
 #include "ast/declaration/ClassDeclarationNode.hpp"
 #include "inheritance/InheritanceNode.hpp"
@@ -31,5 +30,3 @@ namespace vnlc {
         void addImplementedInterface(const InterfaceInheritanceNode* implementedInterface);
     };
 } // namespace vnlc
-
-#endif // VNLC_CLASS_INHERITANCE_NODE_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_DECLARATION_ITEM_HPP
-#define VNLC_DECLARATION_ITEM_HPP
+#pragma once
 
 #include "ast/identifier/IdentifierNode.hpp"
 #include <memory>
@@ -14,5 +13,3 @@ namespace vnlc {
         };
     }; // namespace DeclarationItem
 } // namespace vnlc
-
-#endif // VNLC_DECLARATION_ITEM_HPP

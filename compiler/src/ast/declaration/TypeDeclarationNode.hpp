@@ -1,5 +1,4 @@
-#ifndef VNLC_TYPE_DECLARATION_NODE_HPP
-#define VNLC_TYPE_DECLARATION_NODE_HPP
+#pragma once
 
 #include "ast/declaration/DeclarationNode.hpp"
 
@@ -13,5 +12,3 @@ namespace vnlc {
         TypeDeclarationNode() = delete;
     };
 } // namespace vnlc
-
-#endif // VNLC_TYPE_DECLARATION_NODE_HPP

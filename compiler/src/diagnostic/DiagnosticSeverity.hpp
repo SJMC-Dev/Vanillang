@@ -1,5 +1,4 @@
-#ifndef VNLC_DIAGNOSTIC_SEVERITY_HPP
-#define VNLC_DIAGNOSTIC_SEVERITY_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -10,5 +9,3 @@ namespace vnlc {
         NOTE,
     };
 }
-
-#endif // VNLC_DIAGNOSTIC_SEVERITY_HPP

@@ -1,5 +1,4 @@
-#ifndef VNLC_IDENTIFIER_NODE_HPP
-#define VNLC_IDENTIFIER_NODE_HPP
+#pragma once
 
 #include "ast/AstNode.hpp"
 #include <string>
@@ -18,5 +17,3 @@ namespace vnlc {
         [[nodiscard]] std::string_view getIdentifierString() const;
     };
 } // namespace vnlc
-
-#endif // VNLC_IDENTIFIER_NODE_HPP
