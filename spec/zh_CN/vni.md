@@ -7,10 +7,10 @@ Vanillang 模块接口文件以 `.vni` 作为后缀，其本质是一个 JSON �
 
 在 Vanillang 模块接口文件中，标识符是一个键值对，其键名为该标识符在作用域内的名字，值为一个对象或多个 `category` 字段相同的对象的数组（用于重载），该对象有如下成员属性：
 
-| 属性     | 类型   | 解释                                                                                                                                                                                               |
-| -------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| category | string | 该标识符的类别，取值可以为 `let`、`func`、`class`、`interface`、`enum`、`opaque`、`typealias`、`property`、`method`、`parameter`、`enummember`、`enumvalue` 、`constructor`、`operator`、`generic` |
-| metadata | object | 元数据信息，仅当标识符具有元数据且不为 `enumvalue`、`parameter` 和 `generic` 时存在，键名为元数据项，值为 string 类型或 null，对于需要提供元数据值的元数据项，其值为 string 类型，否则其值为 null  |
+| 属性     | 类型   | 解释                                                                                                                                                                                                        |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| category | string | 该标识符的类别，取值可以为 `let`、`const`、`func`、`class`、`interface`、`enum`、`opaque`、`typealias`、`property`、`method`、`parameter`、`enummember`、`enumvalue` 、`constructor`、`operator`、`generic` |
+| metadata | object | 元数据信息，仅当标识符具有元数据且不为 `enumvalue`、`parameter` 和 `generic` 时存在，键名为元数据项，值为 string 类型或 null，对于需要提供元数据值的元数据项，其值为 string 类型，否则其值为 null           |
 
 根据 `category` 值的不同，其余属性的值也有所不同。                      |
 
@@ -20,6 +20,14 @@ Vanillang 模块接口文件以 `.vni` 作为后缀，其本质是一个 JSON �
 | -------------- | ------ | ------------------------------------------ |
 | type           | string | 该变量的类型，格式与源代码的类型语法一致   |
 | accessModifier | string | 访问修饰符，取值可以为 `public`、`private` |
+
+### const 类别
+
+| 属性           | 类型   | 解释                                                             |
+| -------------- | ------ | ---------------------------------------------------------------- |
+| type           | string | 该变量的类型，格式与源代码的类型语法一致                         |
+| value          | string | 该变量的值，由于初始化表达式只能是字面量，这里直接存储字面量本身 |
+| accessModifier | string | 访问修饰符，取值可以为 `public`、`private`                       |
 
 ### func 类别
 
