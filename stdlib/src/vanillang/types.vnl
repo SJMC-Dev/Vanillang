@@ -99,6 +99,13 @@ enum Status<E> {
  *#
 interface Iterator<T> {
     #**
+     * Checks whether the iterator has the next value.
+     *
+     * @return true if it has the next value, or false.
+     *#
+    func hasNext() -> bool
+
+    #**
      * Advances the iterator by one element.
      *
      * @return The next element, or None if the iteration is complete.
@@ -125,7 +132,7 @@ interface Iterable<T> {
  *
  * @generic T - The type of the values in the range.
  *#
-class Range<T> implements Iterable<T>, Iterator<T> {
+class Range<T> implements Iterable<T>, Iterator<T> where T notnone {
     private begin: T
     private end: T
     private step: T
