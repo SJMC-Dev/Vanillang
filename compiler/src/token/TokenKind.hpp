@@ -1,16 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
+#include <unordered_map>
 
 namespace vnlc {
     enum class TokenKind : std::uint8_t {
         IDENTIFIER,
 
         NUMBER,
-        CHAR,
         STRING,
 
-        VAR,
         LET,
         CONST_KEYWORD,
 
@@ -47,6 +47,7 @@ namespace vnlc {
         CALLEE,
         IN_KEYWORD,
         RELOAD,
+        TRY,
 
         CLASS,
         INTERFACE,
@@ -67,6 +68,10 @@ namespace vnlc {
         OVERRIDE,
         NONE,
 
+        WHERE,
+        NOTNONE,
+        HASOP,
+
         TRUE_LITERAL,
         FALSE_LITERAL,
 
@@ -74,19 +79,15 @@ namespace vnlc {
         EXPORT,
         AS,
         MODULE,
-        PARENT,
         SELF,
 
         LAMBDA,
         COMMAND,
         ASYNC,
         AWAIT,
-        GENERATOR,
         YIELD,
         FROM,
-        DECORATOR,
         DECORATE,
-        PANIC,
         ASSERT,
         TYPEOF,
         DEFER,
@@ -145,16 +146,15 @@ namespace vnlc {
         DOUBLE_RIGHT_ANGLE_EQUAL, // >>=
         TRIPLE_RIGHT_ANGLE_EQUAL, // >>>=
 
-        DOT,             // .
-        COMMA,           // ,
-        SEMICOLON,       // ;
-        COLON,           // :
-        DOUBLE_COLON,    // ::
-        QUESTION,        // ?
-        QUESTION_DOT,    // ?.
-        EXCLAMATION_DOT, // !.
-        DOUBLE_DOT,      // ..
-        TRIPLE_DOT,      // ...
+        DOT,          // .
+        COMMA,        // ,
+        SEMICOLON,    // ;
+        COLON,        // :
+        DOUBLE_COLON, // ::
+        QUESTION,     // ?
+        QUESTION_DOT, // ?.
+        DOUBLE_DOT,   // ..
+        TRIPLE_DOT,   // ...
 
         LEFT_PARENTHESIS,  // (
         RIGHT_PARENTHESIS, // )
@@ -170,11 +170,18 @@ namespace vnlc {
         SINGLE_LINE_COMMENT, // # comment
         MULTI_LINE_COMMENT,  // #* comment *#
 
-        BLANK,
         NEWLINE,
 
         LEXICAL_ERROR,
 
         END_OF_FILE,
     };
-}
+
+    namespace TokenKindUtil {
+        extern const std::unordered_map<std::string_view, TokenKind> keywords;
+
+        [[nodiscard]] std::string_view toString(TokenKind kind) noexcept;
+        [[nodiscard]] bool isKeyword(TokenKind kind) noexcept;
+        [[nodiscard]] bool isGeneralizedIdentifier(TokenKind kind) noexcept;
+    } // namespace TokenKindUtil
+} // namespace vnlc

@@ -2,7 +2,7 @@
 #include <string_view>
 
 namespace vnlc {
-    const std::unordered_map<std::string_view, TokenKind> TokenKindUtil::keywords{
+    const std::unordered_map<std::string_view, TokenKind> keywords{
         { "let", TokenKind::LET },
         { "const", TokenKind::CONST_KEYWORD },
         { "byte", TokenKind::BYTE_TYPE },
@@ -69,10 +69,8 @@ namespace vnlc {
         { "command", TokenKind::COMMAND },
         { "async", TokenKind::ASYNC },
         { "await", TokenKind::AWAIT },
-        { "generator", TokenKind::GENERATOR },
         { "yield", TokenKind::YIELD },
         { "from", TokenKind::FROM },
-        { "decorator", TokenKind::DECORATOR },
         { "decorate", TokenKind::DECORATE },
         { "assert", TokenKind::ASSERT },
         { "typeof", TokenKind::TYPEOF },
@@ -222,18 +220,12 @@ namespace vnlc {
                 return "vnlc::TokenKind::ASYNC";
             case TokenKind::AWAIT:
                 return "vnlc::TokenKind::AWAIT";
-            case TokenKind::GENERATOR:
-                return "vnlc::TokenKind::GENERATOR";
             case TokenKind::YIELD:
                 return "vnlc::TokenKind::YIELD";
             case TokenKind::FROM:
                 return "vnlc::TokenKind::FROM";
-            case TokenKind::DECORATOR:
-                return "vnlc::TokenKind::DECORATOR";
             case TokenKind::DECORATE:
                 return "vnlc::TokenKind::DECORATE";
-            case TokenKind::PANIC:
-                return "vnlc::TokenKind::PANIC";
             case TokenKind::ASSERT:
                 return "vnlc::TokenKind::ASSERT";
             case TokenKind::TYPEOF:
@@ -370,8 +362,6 @@ namespace vnlc {
                 return "vnlc::TokenKind::SINGLE_LINE_COMMENT";
             case TokenKind::MULTI_LINE_COMMENT:
                 return "vnlc::TokenKind::MULTI_LINE_COMMENT";
-            case TokenKind::BLANK:
-                return "vnlc::TokenKind::BLANK";
             case TokenKind::NEWLINE:
                 return "vnlc::TokenKind::NEWLINE";
             case TokenKind::LEXICAL_ERROR:

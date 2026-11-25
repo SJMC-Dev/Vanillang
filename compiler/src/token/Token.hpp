@@ -1,15 +1,14 @@
 #pragma once
 
 #include "token/TokenKind.hpp"
-
-#include <string>
 #include <string_view>
+#include <vector>
 
 namespace vnlc {
     class Token {
     private:
         TokenKind kind;
-        std::string value;
+        std::string_view value;
         std::size_t offset;
         std::size_t line;
         std::size_t column;
@@ -30,4 +29,6 @@ namespace vnlc {
         [[nodiscard]] std::size_t getLength() const noexcept;
         [[nodiscard]] std::string_view getValue() const noexcept;
     };
+
+    using Tokens = std::vector<Token>;
 } // namespace vnlc
