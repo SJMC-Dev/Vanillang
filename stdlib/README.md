@@ -1,1 +1,0 @@
-# Vanillang Standard Library
