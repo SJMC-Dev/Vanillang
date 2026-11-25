@@ -6,7 +6,6 @@ Vanillang 的字面量分为简单字面量和复合字面量，其中简单字�
 - 整型字面量
 - 浮点字面量
 - 布尔字面量
-- 字符字面量
 - 字符串字面量（普通字符串、原始字符串）
 
 这些是复合字面量：
@@ -98,20 +97,18 @@ Vanillang 的字面量分为简单字面量和复合字面量，其中简单字�
 
 表示一个 `bool` 类型的值，只能为 `true` 或 `false`。
 
-## 字符字面量
-
-注意，字符字面量虽然使用字符表示，但它本质上是一个 `ubyte` 类型的值。
-字符字面量需要使用单引号包围，例如 `'a'`、`'b'`、`'c'`。
-
 ## 字符串字面量
 
-使用双引号包围一个字符串，即可构成一个字符串字面量。
+使用双引号或单引号包围一个字符串，即可构成一个字符串字面量。
 这些都是合法的字符串字面量：
 
 ```vanillang
 "Hello, Vanillang!"
+'Minecraft'
 f"the value is $(expr)"
+f'your gamemode: $(mode)'
 r"This is a raw string"
+r'This is also a raw string'
 ```
 
 字符串字面量可以加上前缀，以区分不同表示法：
@@ -120,7 +117,7 @@ r"This is a raw string"
 | ---- | ------------ | ------------------------------------------ |
 | 无   | 普通字符串   | 支持转义符                                 |
 | `f`  | 格式化字符串 | 支持插值语法；表达式必须可以被转换为字符串 |
-| `r`  | 原始字符串   | 不支持转义符，不能包含双引号               |
+| `r`  | 原始字符串   | 不支持转义符                               |
 
 注：
 - 前缀不区分大小写。
@@ -164,8 +161,8 @@ r"This is a raw string"
 典型的写法如下：
 
 ```vanillang
-{ key1: value1, key2: value2, key3: value3 }
-{ "key1": value1, "key2": value2, "key3": value3 }
+{key1: value1, key2: value2, key3: value3}
+{"key1": value1, "key2": value2, "key3": value3}
 ```
 
 
@@ -197,7 +194,7 @@ r"This is a raw string"
 **附：Vanillang 字面量文法产生式**
 
 ```ebnf
-Literal ::= Number | Char | String | Boolean | ListLikeLiteral | DictLiteral | Selector;
+Literal ::= Number | String | Boolean | ListLikeLiteral | DictLiteral | Selector;
 String ::= StringLiteral [ (StringLiteral | Interpolation)* ];
 Interpolation ::= '$(' Expression ')';
 Boolean ::= 'true' | 'false';
