@@ -161,8 +161,8 @@ r'This is also a raw string'
 典型的写法如下：
 
 ```vanillang
-{ key1: value1, key2: value2, key3: value3 }
-{ "key1": value1, "key2": value2, "key3": value3 }
+{key1: value1, key2: value2, key3: value3}
+{"key1": value1, "key2": value2, "key3": value3}
 ```
 
 

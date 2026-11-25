@@ -32,8 +32,8 @@ Vanillang 关键字具有特殊用途，不可作用标识符，下面的表格�
 | `native`   | 表示函数是原生函数，没有 Vanillang 实现          | `native func getData() -> Dict?`                                                          |
 | `callee`   | 表示当前函数本身                                 | `return n * callee(n - 1)`                                                                |
 | `in`       | 遍历可迭代对象                                   | `for (let i in 0..9)`                                                                     |
-| `reload`   | 重新加载当前数据包，必须在函数体内使用           | `func reloadDataPack() -> void { reload }`                                                |
-| `init`     | 声明类的构造函数                                 | `init(value: int) { this.value = value }`                                                 |
+| `reload`   | 重新加载当前数据包，必须在函数体内使用           | `func reloadDataPack() -> void {reload}`                                                  |
+| `init`     | 声明类的构造函数                                 | `init(value: int) {this.value = value}`                                                   |
 
 ## 基本类型
 
