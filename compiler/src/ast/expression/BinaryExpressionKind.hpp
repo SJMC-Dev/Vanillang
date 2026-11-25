@@ -1,0 +1,48 @@
+#pragma once
+
+#include <cstdint>
+
+namespace vnlc {
+    enum class BinaryExpressionKind : std::uint8_t {
+        ASSIGNMENT,
+        ADDITION_ASSIGNMENT,
+        SUBTRACTION_ASSIGNMENT,
+        MULTIPLICATION_ASSIGNMENT,
+        DIVISION_ASSIGNMENT,
+        INTEGER_DIVISION_ASSIGNMENT,
+        MODULO_ASSIGNMENT,
+        EXPONENT_ASSIGNMENT,
+        BITWISE_AND_ASSIGNMENT,
+        BITWISE_OR_ASSIGNMENT,
+        BITWISE_XOR_ASSIGNMENT,
+        SHIFT_LEFT_ASSIGNMENT,
+        SHIFT_RIGHT_ASSIGNMENT,
+        SHIFT_RIGHT_UNSIGNED_ASSIGNMENT,
+        NULLISH_COALESCING_ASSIGNMENT,
+        ADDITION,
+        SUBTRACTION,
+        MULTIPLICATION,
+        DIVISION,
+        INTEGER_DIVISION,
+        MODULO,
+        EXPONENT,
+        EQUAL,
+        REFERENCE_EQUAL,
+        NOT_EQUAL,
+        REFERENCE_NOT_EQUAL,
+        GREATER_THAN,
+        GREATER_THAN_OR_EQUAL,
+        LESS_THAN,
+        LESS_THAN_OR_EQUAL,
+        LOGICAL_AND,
+        LOGICAL_OR,
+        BITWISE_AND,
+        BITWISE_OR,
+        BITWISE_XOR,
+        SHIFT_LEFT,
+        SHIFT_RIGHT,
+        SHIFT_RIGHT_UNSIGNED,
+        NULLISH_COALESCING,
+        INSTANCEOF,
+    };
+}

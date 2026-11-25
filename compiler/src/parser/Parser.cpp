@@ -1,0 +1,3570 @@
+#include "Parser.hpp"
+#include "ast/declaration/DeclarationNode.hpp"
+#include "ast/declaration/ImportDeclarationNode.hpp"
+#include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
+#include "ast/declaration/ValueDeclarationKind.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
+#include "ast/expression/BinaryExpressionKind.hpp"
+#include "ast/expression/BinaryExpressionNode.hpp"
+#include "ast/expression/ConditionalExpressionNode.hpp"
+#include "ast/expression/DictLiteralExpressionNode.hpp"
+#include "ast/expression/FunctionCallExpressionNode.hpp"
+#include "ast/expression/ListLikeLiteralExpressionKind.hpp"
+#include "ast/expression/ListLikeLiteralExpressionNode.hpp"
+#include "ast/expression/MemberAccessExpressionKind.hpp"
+#include "ast/expression/MemberAccessExpressionNode.hpp"
+#include "ast/expression/NoneExpressionNode.hpp"
+#include "ast/expression/PrimitiveTypeExpressionKind.hpp"
+#include "ast/expression/PrimitiveTypeExpressionNode.hpp"
+#include "ast/expression/RangeExpressionNode.hpp"
+#include "ast/expression/SelectorLiteralExpressionItem.hpp"
+#include "ast/expression/SelectorLiteralExpressionKind.hpp"
+#include "ast/expression/SelectorLiteralExpressionNode.hpp"
+#include "ast/expression/SimpleLiteralExpressionNode.hpp"
+#include "ast/expression/StringLiteralExpressionKind.hpp"
+#include "ast/expression/StringLiteralExpressionNode.hpp"
+#include "ast/expression/SubscriptExpressionNode.hpp"
+#include "ast/expression/SuperExpressionNode.hpp"
+#include "ast/expression/ThisExpressionNode.hpp"
+#include "ast/expression/UnaryExpressionKind.hpp"
+#include "ast/expression/UnaryExpressionNode.hpp"
+#include "ast/module/ModuleNode.hpp"
+#include "ast/statement/SwitchStatementItem.hpp"
+#include "ast/statement/SwitchStatementKind.hpp"
+#include "ast/statement/SwitchStatementNode.hpp"
+#include "ast/typeannotation/CustomizedTypeAnnotationNode.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationKind.hpp"
+#include "ast/typeannotation/PrimitiveTypeAnnotationNode.hpp"
+#include "ast/typeannotation/VoidTypeAnnotationNode.hpp"
+#include "error/IllegalModuleOrPackageNameError.hpp"
+#include "error/SyntaxError.hpp"
+#include "outline/ClassDeclarationOutline.hpp"
+#include "outline/EnumDeclarationOutline.hpp"
+#include "outline/InterfaceDeclarationOutline.hpp"
+#include "outline/TypeAliasDeclarationOutline.hpp"
+#include "parser/ParseResult.hpp"
+#include "token/Token.hpp"
+#include "token/TokenKind.hpp"
+#include "token/TokenKindUtil.hpp"
+#include "utils/Utils.hpp"
+#include "vni/import/ImportedClass.hpp"
+#include "vni/import/ImportedEnum.hpp"
+#include "vni/import/ImportedInterface.hpp"
+#include "vni/import/ImportedTypeAlias.hpp"
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace vnlc {
+    Parser::Parser(Lexer&& lexer, const CollectionResult& collectionResult, std::size_t maxBufferSize)
+        : tokenStream(std::move(lexer), maxBufferSize),
+          collectionResult(collectionResult),
+          importBindings() {}
+
+    const Token& Parser::peek() const {
+        return tokenStream.peek();
+    }
+
+    void Parser::advance() {
+        tokenStream.advance();
+    }
+
+    bool Parser::check(TokenKind expectedKind) {
+        return tokenStream.check(expectedKind);
+    }
+
+    bool Parser::checkGeneralizedIdentifier() {
+        return tokenStream.hasNextToken() && TokenKindUtil::isGeneralizedIdentifier(peek().getKind());
+    }
+
+    bool Parser::checkAny(const std::unordered_set<TokenKind>& expectedKinds) {
+        return tokenStream.hasNextToken() && expectedKinds.contains(peek().getKind());
+    }
+
+    bool Parser::match(TokenKind expectedKind) {
+        return tokenStream.match(expectedKind);
+    }
+
+    bool Parser::matchAny(const std::unordered_set<TokenKind>& expectedKinds) {
+        if (checkAny(expectedKinds)) {
+            advance();
+            return true;
+        }
+        return false;
+    }
+
+    bool Parser::consumeRightAngleInType() {
+        if (match(TokenKind::RIGHT_ANGLE)) {
+            return true;
+        }
+
+        if (check(TokenKind::DOUBLE_RIGHT_ANGLE)) {
+            tokenStream.replaceCurrent(Token(TokenKind::RIGHT_ANGLE, ">", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1));
+            return true;
+        }
+
+        if (check(TokenKind::TRIPLE_RIGHT_ANGLE)) {
+            tokenStream.replaceCurrent(Token(TokenKind::DOUBLE_RIGHT_ANGLE, ">>", peek().getLine(), peek().getColumn() + 1, peek().getOffset() + 1));
+            return true;
+        }
+
+        return false;
+    }
+
+    std::unique_ptr<IdentifierNode> Parser::constructCurrentIdentifierNode() {
+        Token firstToken = peek();
+        std::string nameValue = std::string(peek().getValue());
+        advance();
+        Token lastToken = peek();
+
+        return std::make_unique<IdentifierNode>(std::move(nameValue), firstToken, lastToken);
+    }
+
+    template <typename PrimitiveKind>
+    std::optional<PrimitiveKind> Parser::getPrimitiveKind(TokenKind kind) {
+        switch (kind) {
+            case TokenKind::BYTE_TYPE:
+                return PrimitiveKind::BYTE;
+            case TokenKind::UBYTE_TYPE:
+                return PrimitiveKind::UNSIGNED_BYTE;
+            case TokenKind::SHORT_TYPE:
+                return PrimitiveKind::SHORT;
+            case TokenKind::USHORT_TYPE:
+                return PrimitiveKind::UNSIGNED_SHORT;
+            case TokenKind::INT_TYPE:
+                return PrimitiveKind::INT;
+            case TokenKind::UINT_TYPE:
+                return PrimitiveKind::UNSIGNED_INT;
+            case TokenKind::LONG_TYPE:
+                return PrimitiveKind::LONG;
+            case TokenKind::ULONG_TYPE:
+                return PrimitiveKind::UNSIGNED_LONG;
+            case TokenKind::FLOAT_TYPE:
+                return PrimitiveKind::FLOAT;
+            case TokenKind::DOUBLE_TYPE:
+                return PrimitiveKind::DOUBLE;
+            case TokenKind::BOOL_TYPE:
+                return PrimitiveKind::BOOLEAN;
+            default:
+                return std::nullopt;
+        }
+    }
+
+    SimpleLiteralExpressionKind Parser::getNumberLiteralKind(std::string_view literal) {
+        std::string lowercaseLiteral(literal);
+        std::ranges::transform(lowercaseLiteral, lowercaseLiteral.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+
+        const bool hexadecimal = lowercaseLiteral.starts_with("0x");
+        const bool nonDecimal = hexadecimal || lowercaseLiteral.starts_with("0o") || (lowercaseLiteral.starts_with("0b") && lowercaseLiteral.length() > 2);
+
+        if (!nonDecimal && lowercaseLiteral.find_first_of(".e") != std::string::npos) {
+            return lowercaseLiteral.ends_with('d') ? SimpleLiteralExpressionKind::DOUBLE : SimpleLiteralExpressionKind::FLOAT;
+        }
+
+        const std::string_view digitsAndSuffix = std::string_view(lowercaseLiteral).substr(nonDecimal ? 2 : 0);
+        const std::size_t suffixStart = digitsAndSuffix.find_first_not_of(hexadecimal ? "0123456789abcdef" : "0123456789");
+        const std::string_view suffix = suffixStart == std::string_view::npos ? "i" : digitsAndSuffix.substr(suffixStart);
+        const bool isUnsigned = suffix.length() == 2 ? suffix.front() == 'u' : nonDecimal;
+
+        switch (suffix.back()) {
+            case 'b':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_BYTE : SimpleLiteralExpressionKind::BYTE;
+            case 's':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_SHORT : SimpleLiteralExpressionKind::SHORT;
+            case 'l':
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_LONG : SimpleLiteralExpressionKind::LONG;
+            default:
+                return isUnsigned ? SimpleLiteralExpressionKind::UNSIGNED_INT : SimpleLiteralExpressionKind::INT;
+        }
+    }
+
+    ParseResult Parser::parse(const Config& config) {
+        ModuleParsingContext context(config);
+        auto result = parseModule(context);
+
+        // TODO: implement collecting errors
+        return ParseResult{ std::move(result.moduleNode), {} };
+    }
+
+    ModuleParsingResult Parser::parseModule(ModuleParsingContext context) {
+        std::vector<std::unique_ptr<ImportDeclarationNode>> importDeclarations;
+        std::vector<std::unique_ptr<DeclarationNode>> declarations;
+        std::string name;
+        std::string fullName;
+
+        std::string prefix = context.config.packageRootPath.parent_path().string();
+        std::string fullPath = context.config.inputFilePath.string();
+
+        fullPath.erase(0, prefix.length());
+        if (fullPath.starts_with(std::filesystem::path::preferred_separator)) {
+            fullPath.erase(0, 1);
+        }
+
+        if (Utils::hasExtensionIgnoringCase(context.config.inputFilePath, ".vnl")) {
+            fullPath.erase(fullPath.length() - context.config.inputFilePath.extension().string().length());
+        }
+
+        std::stringstream ss(fullPath);
+        std::string namePart;
+        while (std::getline(ss, namePart, static_cast<char>(std::filesystem::path::preferred_separator))) {
+            if (namePart.empty()) {
+                throw IllegalModuleOrPackageNameError("Module name contains empty part");
+            }
+
+            std::stringstream namePartStream(namePart);
+            Lexer namePartLexer(namePartStream);
+            if (!(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::IDENTIFIER) ||
+                !(namePartLexer.hasNext() && namePartLexer.next().getKind() == TokenKind::END_OF_FILE) ||
+                namePart.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+                throw IllegalModuleOrPackageNameError(namePart);
+            }
+
+            fullName += namePart + ".";
+        }
+
+        if (fullName.ends_with(".")) {
+            fullName.pop_back();
+        }
+        name = fullName.substr(fullName.find_last_of('.') + 1);
+
+        Token firstToken = peek();
+
+        tokenStream.skipNewlines();
+
+        while (check(TokenKind::IMPORT)) {
+            auto result = parseImportDeclaration();
+            importDeclarations.push_back(std::move(result.declaration));
+        }
+
+        importBindings.clear();
+        const auto bindImport = [&](const ImportedItem* target, std::vector<std::string> path, const IdentifierNode* alias) {
+            const std::string name(alias == nullptr ? target->getName() : alias->getIdentifierString());
+            importBindings.emplace(name, std::move(path));
+        };
+        const auto collectImportBinding = [&](const auto& self, const ImportDeclarationItem& item, const ImportedItem* parent, std::vector<std::string> path) {
+            const ImportedItem* target = parent;
+            if (!item.self) {
+                for (const auto& part : item.namePrefix) {
+                    std::string_view name = part->getIdentifierString();
+                    if (item.wildcard && name == "*") {
+                        continue;
+                    }
+
+                    if (target == nullptr) {
+                        const auto package = collectionResult.getImports().find(std::string(name));
+                        if (package == collectionResult.getImports().end()) {
+                            return;
+                        }
+                        target = package->second.get();
+                    } else {
+                        target = target->getChildByName(name);
+                    }
+
+                    if (target == nullptr) {
+                        return;
+                    }
+                    path.emplace_back(name);
+                }
+            }
+
+            if (item.wildcard) {
+                if (const auto* module = dynamic_cast<const ImportedModule*>(target)) {
+                    for (const auto& [name, identifier] : module->getIdentifiers()) {
+                        if (identifier->getAccessModifier() == "private") {
+                            continue;
+                        }
+
+                        auto identifierPath = path;
+                        identifierPath.emplace_back(name);
+                        bindImport(identifier.get(), std::move(identifierPath), nullptr);
+                    }
+                }
+                return;
+            }
+
+            if (!item.nameSuffixes.empty()) {
+                for (const auto& suffix : item.nameSuffixes) {
+                    self(self, *suffix, target, path);
+                }
+                return;
+            }
+
+            bindImport(target, std::move(path), item.alias.get());
+        };
+        for (const auto& importDeclaration : importDeclarations) {
+            collectImportBinding(collectImportBinding, importDeclaration->getNamePartsListWithAliases(), nullptr, {});
+        }
+
+        while (!check(TokenKind::END_OF_FILE)) {
+            auto result = parseTopIdentifierDeclaration();
+            declarations.push_back(std::move(result.declaration));
+        }
+
+        Token lastToken = peek();
+
+        std::unique_ptr<ModuleNode> node = std::make_unique<ModuleNode>(std::move(name), std::move(fullName), std::move(importDeclarations), std::move(declarations), firstToken, lastToken);
+
+        return ModuleParsingResult{
+            .moduleNode = std::move(node),
+        };
+    }
+
+    TopIdentifierDeclarationParsingResult Parser::parseTopIdentifierDeclaration() {
+        bool hasMetadata = false;
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+
+        enum class AccessModifier : std::uint8_t {
+            PUBLIC,
+            PROTECTED,
+            PRIVATE,
+        };
+
+        AccessModifier accessModifier = AccessModifier::PUBLIC;
+
+        Token firstToken = peek();
+
+        if (check(TokenKind::METADATA)) {
+            hasMetadata = true;
+
+            auto result = parseMetadata();
+            metadataTerms = std::move(result.metadata);
+        }
+
+        if (match(TokenKind::PRIVATE)) {
+            accessModifier = AccessModifier::PRIVATE;
+        }
+
+        if (check(TokenKind::LET)) {
+            VariableDeclarationParsingContext context{
+                .position = VariableDeclarationParsingContext::Position::TOP_LEVEL,
+                .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto result = parseVariableDeclaration(std::move(context));
+
+            Token lastToken = peek();
+            result.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after variable declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return TopIdentifierDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else if (check(TokenKind::FUNC) || check(TokenKind::NATIVE)) {
+            FunctionDeclarationKind::Implementation implementation = FunctionDeclarationKind::Implementation::REGULAR;
+            if (match(TokenKind::NATIVE)) {
+                implementation = FunctionDeclarationKind::Implementation::NATIVE;
+            }
+
+            FunctionDeclarationParsingContext context{
+                .implementation = implementation,
+                .context = FunctionDeclarationKind::Context::TOP_LEVEL,
+                .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
+                .binding = FunctionDeclarationKind::Binding::STATIC,
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto result = parseFunctionDeclaration(std::move(context));
+
+            Token lastToken = peek();
+            result.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after function declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return TopIdentifierDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else if (check(TokenKind::CLASS) || check(TokenKind::INTERFACE) || check(TokenKind::ENUM) || check(TokenKind::TYPE) || check(TokenKind::FINAL)) {
+            TypeDeclarationParsingContext context{
+                .accessModifier = static_cast<TypeDeclarationKind::AccessModifier>(accessModifier),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto result = parseTypeDeclaration(std::move(context));
+
+            Token lastToken = peek();
+            result.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after type declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return TopIdentifierDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else {
+            throw SyntaxError("Expected variable, function or type declaration", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    ImportDeclarationParsingResult Parser::parseImportDeclaration() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::IMPORT)) {
+            throw SyntaxError("Expected 'import' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        auto result = parseImportPath();
+
+        Token lastToken = peek();
+
+        std::unique_ptr<ImportDeclarationNode> node = std::make_unique<ImportDeclarationNode>(std::move(result.paths), firstToken, lastToken);
+
+        if (!tokenStream.endsWithNewlineOrEOF()) {
+            throw SyntaxError("Expected newline after import declaration", peek().getLine(), peek().getColumn());
+        }
+
+        return ImportDeclarationParsingResult{
+            .declaration = std::move(node),
+        };
+    }
+
+    VariableDeclarationParsingResult Parser::parseVariableDeclaration(VariableDeclarationParsingContext context) {
+        Token firstToken = peek();
+
+        auto pos = context.position == VariableDeclarationParsingContext::Position::TOP_LEVEL ? ValueDeclarationKind::Context::TOP_LEVEL : ValueDeclarationKind::Context::BLOCK;
+
+        LetPrimaryParsingContext primaryContext{
+            .kind = ValueDeclarationKind::Kind::LET,
+        };
+        auto primaryResult = parseLetPrimary(primaryContext);
+
+        if (!match(TokenKind::EQUAL)) {
+            throw SyntaxError("Expected '=' after variable declaration", peek().getLine(), peek().getColumn());
+        }
+
+        auto initializerResult = parseExpression();
+
+        Token lastToken = peek();
+
+        std::unique_ptr<ValueDeclarationNode> node = nullptr;
+        if (context.hasMetadata) {
+            node = std::make_unique<ValueDeclarationNode>(
+                primaryResult.kind,
+                pos,
+                context.accessModifier,
+                std::move(primaryResult.name),
+                std::move(primaryResult.type),
+                std::move(initializerResult.expression),
+                firstToken,
+                lastToken,
+                std::move(context.metadataTerms)
+            );
+        } else {
+            node = std::make_unique<ValueDeclarationNode>(
+                primaryResult.kind,
+                pos,
+                context.accessModifier,
+                std::move(primaryResult.name),
+                std::move(primaryResult.type),
+                std::move(initializerResult.expression),
+                firstToken,
+                lastToken
+            );
+        };
+
+        return VariableDeclarationParsingResult{
+            .declaration = std::move(node),
+        };
+    }
+
+    FunctionDeclarationParsingResult Parser::parseFunctionDeclaration(FunctionDeclarationParsingContext context) {
+        Token firstToken = peek();
+
+        auto signatureResult = parseFunctionHeader();
+
+        std::unique_ptr<BlockStatementNode> body; // nullptr if native or declared in an interface
+        if (context.context != FunctionDeclarationKind::Context::INTERFACE && context.implementation == FunctionDeclarationKind::Implementation::REGULAR) {
+            auto bodyResult = parseFunctionBody();
+            body = std::move(bodyResult.body);
+        }
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return FunctionDeclarationParsingResult{
+                .declaration = std::make_unique<FunctionDeclarationNode>(
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    context.binding,
+                    std::move(signatureResult.name),
+                    std::move(signatureResult.parameters),
+                    std::move(signatureResult.returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return FunctionDeclarationParsingResult{
+                .declaration = std::make_unique<FunctionDeclarationNode>(
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    context.binding,
+                    std::move(signatureResult.name),
+                    std::move(signatureResult.parameters),
+                    std::move(signatureResult.returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken
+                ),
+            };
+        }
+    }
+
+    TypeDeclarationParsingResult Parser::parseTypeDeclaration(TypeDeclarationParsingContext context) {
+        Token firstToken = peek();
+
+        if (check(TokenKind::CLASS) || check(TokenKind::FINAL)) {
+            ClassDeclarationParsingContext classContext{
+                .accessModifier = context.accessModifier,
+                .hasMetadata = context.hasMetadata,
+                .metadataTerms = std::move(context.metadataTerms),
+            };
+
+            auto result = parseClassDeclaration(std::move(classContext));
+
+            Token lastToken = peek();
+
+            return TypeDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else if (check(TokenKind::INTERFACE)) {
+            InterfaceDeclarationParsingContext interfaceContext{
+                .accessModifier = context.accessModifier,
+                .hasMetadata = context.hasMetadata,
+                .metadataTerms = std::move(context.metadataTerms),
+            };
+
+            auto result = parseInterfaceDeclaration(std::move(interfaceContext));
+
+            Token lastToken = peek();
+
+            return TypeDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else if (check(TokenKind::ENUM)) {
+            EnumDeclarationParsingContext enumContext{
+                .accessModifier = context.accessModifier,
+                .hasMetadata = context.hasMetadata,
+                .metadataTerms = std::move(context.metadataTerms),
+            };
+
+            auto result = parseEnumDeclaration(std::move(enumContext));
+
+            Token lastToken = peek();
+
+            return TypeDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else if (check(TokenKind::TYPE)) {
+            TypeAliasDeclarationParsingContext typeAliasContext{
+                .accessModifier = context.accessModifier,
+                .hasMetadata = context.hasMetadata,
+                .metadataTerms = std::move(context.metadataTerms),
+            };
+
+            auto result = parseTypeAliasDeclaration(std::move(typeAliasContext));
+
+            Token lastToken = peek();
+
+            return TypeDeclarationParsingResult{
+                .declaration = std::move(result.declaration),
+            };
+        } else {
+            throw SyntaxError("Expected 'class', 'interface', 'enum' or 'type' keyword", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    PropertyParsingResult Parser::parseProperty(PropertyParsingContext context) {
+        Token firstToken = peek();
+
+        std::unique_ptr<IdentifierNode> name;
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected property name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (!match(TokenKind::COLON)) {
+            throw SyntaxError("Expected ':' after property name", peek().getLine(), peek().getColumn());
+        }
+
+        auto typeResult = parseType();
+
+        if (match(TokenKind::EQUAL)) {
+            auto initializerResult = parseExpression();
+
+            Token lastToken = peek();
+
+            std::unique_ptr<ValueDeclarationNode> node;
+
+            if (context.hasMetadata) {
+                node = std::make_unique<ValueDeclarationNode>(
+                    context.kind,
+                    ValueDeclarationKind::Context::CLASS,
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(typeResult.type),
+                    std::move(initializerResult.expression),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                );
+            } else {
+                node = std::make_unique<ValueDeclarationNode>(
+                    context.kind,
+                    ValueDeclarationKind::Context::CLASS,
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(typeResult.type),
+                    std::move(initializerResult.expression),
+                    firstToken,
+                    lastToken
+                );
+            }
+
+            return PropertyParsingResult{
+                .declaration = std::move(node),
+            };
+        } else {
+            Token lastToken = peek();
+
+            std::unique_ptr<ValueDeclarationNode> node;
+
+            if (context.hasMetadata) {
+                node = std::make_unique<ValueDeclarationNode>(
+                    context.kind,
+                    ValueDeclarationKind::Context::CLASS,
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(typeResult.type),
+                    nullptr,
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                );
+            } else {
+                node = std::make_unique<ValueDeclarationNode>(
+                    context.kind,
+                    ValueDeclarationKind::Context::CLASS,
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(typeResult.type),
+                    nullptr,
+                    firstToken,
+                    lastToken
+                );
+            }
+
+            return PropertyParsingResult{
+                .declaration = std::move(node),
+            };
+        }
+    }
+
+    InterfaceMemberParsingResult Parser::parseInterfaceMember() {
+        Token firstToken = peek();
+
+        bool hasMetadata = false;
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+        if (check(TokenKind::METADATA)) {
+            hasMetadata = true;
+            auto metadataResult = parseMetadata();
+            metadataTerms = std::move(metadataResult.metadata);
+        }
+
+        std::unique_ptr<DeclarationNode> node;
+        if (check(TokenKind::OP)) {
+            OperatorDeclarationParsingContext context{
+                .implementation = OperatorDeclarationKind::Implementation::REGULAR,
+                .context = OperatorDeclarationKind::Context::INTERFACE,
+                .accessModifier = OperatorDeclarationKind::AccessModifier::PUBLIC,
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+
+            auto result = parseOperatorDeclaration(std::move(context));
+
+            node = std::move(result.declaration);
+        } else {
+            FunctionDeclarationParsingContext context{
+                .implementation = FunctionDeclarationKind::Implementation::REGULAR,
+                .context = FunctionDeclarationKind::Context::INTERFACE,
+                .accessModifier = FunctionDeclarationKind::AccessModifier::PUBLIC,
+                .binding = FunctionDeclarationKind::Binding::INSTANCE,
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+
+            auto result = parseFunctionDeclaration(std::move(context));
+
+            node = std::move(result.declaration);
+        }
+
+        Token lastToken = peek();
+        node->resetPosition(firstToken, lastToken);
+
+        if (!tokenStream.endsWithNewlineOrEOF()) {
+            throw SyntaxError("Expected newline after interface method declaration", peek().getLine(), peek().getColumn());
+        }
+
+        return InterfaceMemberParsingResult{
+            .declaration = std::move(node),
+        };
+    }
+
+    MetadataParsingResult Parser::parseMetadata() {
+        if (!match(TokenKind::METADATA)) {
+            throw SyntaxError("Expected 'metadata' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after 'metadata' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+
+        do {
+            auto result = parseMetadataTerm();
+            metadataTerms.push_back(std::move(result.term));
+
+        } while (match(TokenKind::COMMA));
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after metadata terms", peek().getLine(), peek().getColumn());
+        }
+
+        return MetadataParsingResult{
+            .metadata = std::move(metadataTerms),
+        };
+    }
+
+    LetPrimaryParsingResult Parser::parseLetPrimary(LetPrimaryParsingContext context) {
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> type; // nullptr if no type annotation
+
+        if (!match(TokenKind::LET)) {
+            throw SyntaxError("Expected 'var', 'let' or 'const' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected variable name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::COLON)) {
+            auto typeResult = parseType();
+            type = std::move(typeResult.type);
+        }
+
+        return LetPrimaryParsingResult{
+            .kind = context.kind,
+            .name = std::move(name),
+            .type = std::move(type),
+        };
+    }
+
+    OperatorDeclarationParsingResult Parser::parseOperatorDeclaration(OperatorDeclarationParsingContext context) {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::OP)) {
+            throw SyntaxError("Expected 'op' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        OperatorDeclarationKind::Kind operatorKind;
+
+        if (match(TokenKind::LEFT_PARENTHESIS)) {
+            if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+                throw SyntaxError("Expected ')' in function call operator", peek().getLine(), peek().getColumn());
+            }
+            operatorKind = OperatorDeclarationKind::Kind::CALL;
+        } else if (match(TokenKind::LEFT_BRACKET)) {
+            if (!match(TokenKind::RIGHT_BRACKET)) {
+                throw SyntaxError("Expected ']' in subscript operator", peek().getLine(), peek().getColumn());
+            }
+            operatorKind = OperatorDeclarationKind::Kind::SUBSCRIPT;
+        } else {
+            static const std::unordered_map<TokenKind, OperatorDeclarationKind::Kind> operatorKinds = {
+                { TokenKind::PLUS, OperatorDeclarationKind::Kind::ADDITION },
+                { TokenKind::MINUS, OperatorDeclarationKind::Kind::SUBTRACTION },
+                { TokenKind::ASTERISK, OperatorDeclarationKind::Kind::MULTIPLICATION },
+                { TokenKind::SLASH, OperatorDeclarationKind::Kind::DIVISION },
+                { TokenKind::DOUBLE_SLASH, OperatorDeclarationKind::Kind::INTEGER_DIVISION },
+                { TokenKind::PERCENT, OperatorDeclarationKind::Kind::MODULO },
+                { TokenKind::DOUBLE_ASTERISK, OperatorDeclarationKind::Kind::EXPONENT },
+                { TokenKind::DOUBLE_EQUAL, OperatorDeclarationKind::Kind::EQUAL },
+                { TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE, OperatorDeclarationKind::Kind::COMPARISON },
+                { TokenKind::AMPERSAND, OperatorDeclarationKind::Kind::BITWISE_AND },
+                { TokenKind::PIPE, OperatorDeclarationKind::Kind::BITWISE_OR },
+                { TokenKind::CARET, OperatorDeclarationKind::Kind::BITWISE_XOR },
+                { TokenKind::TILDE, OperatorDeclarationKind::Kind::BITWISE_NOT },
+                { TokenKind::DOUBLE_LEFT_ANGLE, OperatorDeclarationKind::Kind::SHIFT_LEFT },
+                { TokenKind::DOUBLE_RIGHT_ANGLE, OperatorDeclarationKind::Kind::SHIFT_RIGHT },
+                { TokenKind::TRIPLE_RIGHT_ANGLE, OperatorDeclarationKind::Kind::SHIFT_RIGHT_UNSIGNED },
+                { TokenKind::DOUBLE_DOT, OperatorDeclarationKind::Kind::RANGE },
+            };
+
+            auto kind = operatorKinds.find(peek().getKind());
+            if (kind == operatorKinds.end()) {
+                throw SyntaxError("Expected overloadable operator", peek().getLine(), peek().getColumn());
+            }
+            operatorKind = kind->second;
+            advance();
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after operator", peek().getLine(), peek().getColumn());
+        }
+
+        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
+        if (!check(TokenKind::RIGHT_PARENTHESIS)) {
+            auto parameterListResult = parseParameterList();
+            parameters = std::move(parameterListResult.parameters);
+        }
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after parameter list", peek().getLine(), peek().getColumn());
+        }
+
+        std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
+        if (match(TokenKind::ARROW)) {
+            if (check(TokenKind::VOID_KEYWORD)) {
+                Token voidToken = peek();
+                advance();
+                returnType = std::make_unique<VoidTypeAnnotationNode>(voidToken, peek());
+            } else {
+                auto typeResult = parseType();
+                returnType = std::move(typeResult.type);
+            }
+        }
+
+        std::unique_ptr<BlockStatementNode> body; // nullptr if native or declared in an interface
+        if (context.context == OperatorDeclarationKind::Context::CLASS && context.implementation == OperatorDeclarationKind::Implementation::REGULAR) {
+            auto bodyResult = parseFunctionBody();
+            body = std::move(bodyResult.body);
+        }
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return OperatorDeclarationParsingResult{
+                .declaration = std::make_unique<OperatorDeclarationNode>(
+                    operatorKind,
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    std::move(parameters),
+                    std::move(returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return OperatorDeclarationParsingResult{
+                .declaration = std::make_unique<OperatorDeclarationNode>(
+                    operatorKind,
+                    context.implementation,
+                    context.context,
+                    context.accessModifier,
+                    std::move(parameters),
+                    std::move(returnType),
+                    std::move(body),
+                    firstToken,
+                    lastToken
+                ),
+            };
+        }
+    }
+
+    ParameterListParsingResult Parser::parseParameterList() {
+        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
+
+        do {
+            auto result = parseParameter();
+            parameters.emplace_back(std::move(result.declaration));
+        } while (match(TokenKind::COMMA));
+
+        return ParameterListParsingResult{
+            .parameters = std::move(parameters),
+        };
+    }
+
+    ClassDeclarationParsingResult Parser::parseClassDeclaration(ClassDeclarationParsingContext context) {
+        bool final = false;
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> baseClass; // nullptr if no base class
+        std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> properties;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<ConstructorDeclarationNode>> constructors;
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
+
+        Token firstToken = peek();
+
+        if (match(TokenKind::FINAL)) {
+            final = true;
+        }
+
+        if (!match(TokenKind::CLASS)) {
+            throw SyntaxError("Expected 'class' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected class name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::LEFT_ANGLE)) {
+
+            auto genericParameterListResult = parseGenericParameterList();
+            genericParameterNames = std::move(genericParameterListResult.parameters);
+
+            if (!match(TokenKind::RIGHT_ANGLE)) {
+                throw SyntaxError("Expected '>' after generic parameter list", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        if (match(TokenKind::EXTENDS)) {
+
+            auto typeResult = parseType();
+            baseClass = std::move(typeResult.type);
+        }
+
+        if (match(TokenKind::IMPLEMENTS)) {
+            do {
+                auto typeResult = parseType();
+                implementedInterfaces.push_back(std::move(typeResult.type));
+            } while (match(TokenKind::COMMA));
+        }
+
+        auto bodyResult = parseClassBody();
+
+        for (auto& declaration : bodyResult.declarations) {
+            if (dynamic_cast<ValueDeclarationNode*>(declaration.get())) {
+                properties.emplace_back(static_cast<ValueDeclarationNode*>(declaration.release()));
+            } else if (dynamic_cast<FunctionDeclarationNode*>(declaration.get())) {
+                methods.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
+            } else if (dynamic_cast<ConstructorDeclarationNode*>(declaration.get())) {
+                constructors.emplace_back(static_cast<ConstructorDeclarationNode*>(declaration.release()));
+            } else if (dynamic_cast<OperatorDeclarationNode*>(declaration.get())) {
+                operators.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
+            }
+        }
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return ClassDeclarationParsingResult{
+                .declaration = std::make_unique<ClassDeclarationNode>(
+                    context.accessModifier,
+                    final,
+                    std::move(name),
+                    std::move(baseClass),
+                    std::move(implementedInterfaces),
+                    std::move(genericParameterNames),
+                    std::move(properties),
+                    std::move(methods),
+                    std::move(constructors),
+                    std::move(operators),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return ClassDeclarationParsingResult{
+                .declaration = std::make_unique<ClassDeclarationNode>(
+                    context.accessModifier,
+                    final,
+                    std::move(name),
+                    std::move(baseClass),
+                    std::move(implementedInterfaces),
+                    std::move(genericParameterNames),
+                    std::move(properties),
+                    std::move(methods),
+                    std::move(constructors),
+                    std::move(operators),
+                    firstToken,
+                    lastToken
+                ),
+            };
+        }
+    }
+
+    InterfaceDeclarationParsingResult Parser::parseInterfaceDeclaration(InterfaceDeclarationParsingContext context) {
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
+
+        Token firstToken = peek();
+
+        if (!match(TokenKind::INTERFACE)) {
+            throw SyntaxError("Expected 'interface' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected interface name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::LEFT_ANGLE)) {
+            auto genericParameterListResult = parseGenericParameterList();
+            genericParameterNames = std::move(genericParameterListResult.parameters);
+
+            if (!match(TokenKind::RIGHT_ANGLE)) {
+                throw SyntaxError("Expected '>' after generic parameter list", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        auto bodyResult = parseInterfaceBody();
+
+        for (auto& declaration : bodyResult.declarations) {
+            if (dynamic_cast<FunctionDeclarationNode*>(declaration.get())) {
+                methods.emplace_back(static_cast<FunctionDeclarationNode*>(declaration.release()));
+            } else if (dynamic_cast<OperatorDeclarationNode*>(declaration.get())) {
+                operators.emplace_back(static_cast<OperatorDeclarationNode*>(declaration.release()));
+            }
+        }
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return InterfaceDeclarationParsingResult{
+                .declaration = std::make_unique<InterfaceDeclarationNode>(
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(genericParameterNames),
+                    std::move(methods),
+                    std::move(operators),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return InterfaceDeclarationParsingResult{
+                .declaration = std::make_unique<
+                    InterfaceDeclarationNode>(context.accessModifier, std::move(name), std::move(genericParameterNames), std::move(methods), std::move(operators), firstToken, lastToken),
+            };
+        }
+    }
+
+    EnumDeclarationParsingResult Parser::parseEnumDeclaration(EnumDeclarationParsingContext context) {
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::vector<std::unique_ptr<EnumMemberDeclarationNode>> memberDeclarations;
+
+        Token firstToken = peek();
+
+        if (!match(TokenKind::ENUM)) {
+            throw SyntaxError("Expected 'enum' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected enum name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::LEFT_ANGLE)) {
+            auto genericParameterListResult = parseGenericParameterList();
+            genericParameterNames = std::move(genericParameterListResult.parameters);
+
+            if (!match(TokenKind::RIGHT_ANGLE)) {
+                throw SyntaxError("Expected '>' after generic parameter list", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        auto bodyResult = parseEnumBody();
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return EnumDeclarationParsingResult{
+                .declaration = std::make_unique<EnumDeclarationNode>(
+                    context.accessModifier,
+                    std::move(name),
+                    std::move(genericParameterNames),
+                    std::move(bodyResult.declarations),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return EnumDeclarationParsingResult{
+                .declaration =
+                    std::make_unique<EnumDeclarationNode>(context.accessModifier, std::move(name), std::move(genericParameterNames), std::move(bodyResult.declarations), firstToken, lastToken),
+            };
+        }
+    }
+
+    TypeAliasDeclarationParsingResult Parser::parseTypeAliasDeclaration(TypeAliasDeclarationParsingContext context) {
+        std::unique_ptr<IdentifierNode> aliasName;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::unique_ptr<TypeAnnotationNode> originalType;
+
+        Token firstToken = peek();
+
+        if (!match(TokenKind::TYPE)) {
+            throw SyntaxError("Expected 'type' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected type alias name", peek().getLine(), peek().getColumn());
+        } else {
+            aliasName = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::LEFT_ANGLE)) {
+            auto genericParameterListResult = parseGenericParameterList();
+            genericParameterNames = std::move(genericParameterListResult.parameters);
+
+            if (!match(TokenKind::RIGHT_ANGLE)) {
+                throw SyntaxError("Expected '>' after generic parameter list", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        if (!match(TokenKind::EQUAL)) {
+            throw SyntaxError("Expected '=' after type alias name", peek().getLine(), peek().getColumn());
+        }
+
+        auto typeResult = parseType();
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return TypeAliasDeclarationParsingResult{
+                .declaration = std::make_unique<TypeAliasDeclarationNode>(
+                    context.accessModifier,
+                    std::move(aliasName),
+                    std::move(genericParameterNames),
+                    std::move(typeResult.type),
+                    firstToken,
+                    lastToken,
+                    std::move(context.metadataTerms)
+                ),
+            };
+        } else {
+            return TypeAliasDeclarationParsingResult{
+                .declaration = std::make_unique<
+                    TypeAliasDeclarationNode>(context.accessModifier, std::move(aliasName), std::move(genericParameterNames), std::move(typeResult.type), firstToken, lastToken),
+            };
+        }
+    }
+
+    MetadataTermParsingResult Parser::parseMetadataTerm() {
+        std::unique_ptr<IdentifierNode> key;
+        std::optional<std::string> value = std::nullopt;
+
+        if (!checkGeneralizedIdentifier()) {
+            throw SyntaxError("Expected metadata term key", peek().getLine(), peek().getColumn());
+        } else {
+            key = constructCurrentIdentifierNode();
+        }
+
+        if (check(TokenKind::STRING)) {
+            std::string literal(peek().getValue());
+
+            if (!literal.starts_with('"') || !literal.ends_with('"')) {
+                throw SyntaxError("Metadata term value must be a simple string literal", peek().getLine(), peek().getColumn());
+            }
+
+            value = std::make_optional<std::string>(literal.substr(1, literal.size() - 2));
+            advance();
+        }
+
+        return MetadataTermParsingResult{
+            .term =
+                DeclarationItem::MetadataTerm{
+                    .key = std::move(key),
+                    .value = std::move(value),
+                },
+        };
+    }
+
+    FunctionHeaderParsingResult Parser::parseFunctionHeader() {
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
+        std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted
+
+        if (!match(TokenKind::FUNC)) {
+            throw SyntaxError("Expected 'func' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected function name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after function name", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::RIGHT_PARENTHESIS)) {
+            auto parameterListResult = parseParameterList();
+
+            for (auto& parameter : parameterListResult.parameters) {
+                parameters.emplace_back(std::move(parameter));
+            }
+        }
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after parameter list", peek().getLine(), peek().getColumn());
+        }
+
+        if (match(TokenKind::ARROW)) {
+            if (check(TokenKind::VOID_KEYWORD)) {
+                Token voidToken = peek();
+                advance();
+                returnType = std::make_unique<VoidTypeAnnotationNode>(voidToken, peek());
+            } else {
+                auto typeResult = parseType();
+                returnType = std::move(typeResult.type);
+            }
+        }
+
+        return FunctionHeaderParsingResult{
+            .name = std::move(name),
+            .parameters = std::move(parameters),
+            .returnType = std::move(returnType),
+        };
+    }
+
+    ImportPathParsingResult Parser::parseImportPath() {
+        std::unique_ptr<ImportDeclarationItem> paths;
+        std::vector<std::unique_ptr<IdentifierNode>> namePrefix;
+
+        while (true) {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier in import path", peek().getLine(), peek().getColumn());
+            } else {
+                namePrefix.emplace_back(constructCurrentIdentifierNode());
+            }
+
+            if (!check(TokenKind::DOT)) {
+                break;
+            } else {
+                advance();
+
+                if (match(TokenKind::ASTERISK)) {
+                    paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                        .namePrefix = std::move(namePrefix),
+                        .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
+                        .alias = nullptr,
+                        .self = false,
+                        .wildcard = true,
+                    });
+
+                    return ImportPathParsingResult{
+                        .paths = std::move(paths),
+                    };
+                } else {
+                    if (check(TokenKind::IDENTIFIER)) {
+                        continue;
+                    } else if (check(TokenKind::LEFT_BRACE)) {
+                        break;
+                    } else {
+                        throw SyntaxError("Expected identifier, '*' or '{' after '.'", peek().getLine(), peek().getColumn());
+                    }
+                }
+            }
+        }
+
+        if (match(TokenKind::AS)) {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier after 'as' keyword in import path", peek().getLine(), peek().getColumn());
+            } else {
+                std::unique_ptr<IdentifierNode> alias = constructCurrentIdentifierNode();
+
+                paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                    .namePrefix = std::move(namePrefix),
+                    .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
+                    .alias = std::move(alias),
+                    .self = false,
+                    .wildcard = false,
+                });
+            }
+        } else if (match(TokenKind::LEFT_BRACE)) {
+
+            auto listResult = parseImportPathList();
+
+            paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                .namePrefix = std::move(namePrefix),
+                .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>(std::move(listResult.paths)),
+                .alias = nullptr,
+                .self = false,
+                .wildcard = false,
+            });
+
+            if (!match(TokenKind::RIGHT_BRACE)) {
+                throw SyntaxError("Expected '}' after import path list", peek().getLine(), peek().getColumn());
+            }
+        } else {
+            paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                .namePrefix = std::move(namePrefix),
+                .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
+                .alias = nullptr,
+                .self = false,
+                .wildcard = false,
+            });
+        }
+
+        return ImportPathParsingResult{
+            .paths = std::move(paths),
+        };
+    }
+
+    TypeParsingResult Parser::parseType() {
+        Token firstToken = peek();
+
+        bool questionMarkSuffix = false;
+        auto primitiveKind = getPrimitiveKind<PrimitiveTypeAnnotationKind>(peek().getKind());
+        std::vector<std::unique_ptr<IdentifierNode>> nameParts;
+        std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
+
+        if (primitiveKind.has_value()) {
+            advance();
+        } else {
+            do {
+                if (!check(TokenKind::IDENTIFIER)) {
+                    throw SyntaxError("Expected identifier in type", peek().getLine(), peek().getColumn());
+                } else {
+                    nameParts.emplace_back(constructCurrentIdentifierNode());
+                }
+            } while (match(TokenKind::DOT));
+
+            if (match(TokenKind::LEFT_ANGLE)) {
+                auto genericArgumentListResult = parseGenericArgumentList();
+                genericArguments = std::move(genericArgumentListResult.arguments);
+
+                if (!consumeRightAngleInType()) {
+                    throw SyntaxError("Expected '>' after generic argument list in type", peek().getLine(), peek().getColumn());
+                }
+            }
+        }
+
+        if (match(TokenKind::QUESTION)) {
+            questionMarkSuffix = true;
+        }
+
+        Token lastToken = peek();
+
+        std::unique_ptr<TypeAnnotationNode> type;
+        if (primitiveKind.has_value()) {
+            type = std::make_unique<PrimitiveTypeAnnotationNode>(primitiveKind.value(), questionMarkSuffix, firstToken, lastToken);
+        } else {
+            type = std::make_unique<CustomizedTypeAnnotationNode>(questionMarkSuffix, std::move(nameParts), std::move(genericArguments), firstToken, lastToken);
+        }
+
+        return TypeParsingResult{
+            .type = std::move(type),
+        };
+    }
+
+    ParameterParsingResult Parser::parseParameter() {
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> type;
+
+        Token firstToken = peek();
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected parameter name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (!match(TokenKind::COLON)) {
+            throw SyntaxError("Expected ':' after parameter name", peek().getLine(), peek().getColumn());
+        }
+
+        auto typeResult = parseType();
+        type = std::move(typeResult.type);
+
+        Token lastToken = peek();
+
+        return ParameterParsingResult{
+            .declaration = std::make_unique<ValueDeclarationNode>(
+                ValueDeclarationKind::Kind::PARAMETER,
+                ValueDeclarationKind::Context::FUNCTION,
+                ValueDeclarationKind::AccessModifier::PUBLIC,
+                std::move(name),
+                std::move(type),
+                nullptr,
+                firstToken,
+                lastToken
+            ),
+        };
+    }
+
+    GenericParameterListParsingResult Parser::parseGenericParameterList() {
+        std::vector<std::unique_ptr<IdentifierNode>> parameters;
+
+        do {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier in generic parameter list", peek().getLine(), peek().getColumn());
+            } else {
+                parameters.emplace_back(constructCurrentIdentifierNode());
+            }
+        } while (match(TokenKind::COMMA));
+
+        return GenericParameterListParsingResult{
+            .parameters = std::move(parameters),
+        };
+    }
+
+    GenericArgumentListParsingResult Parser::parseGenericArgumentList() {
+        std::vector<std::unique_ptr<TypeAnnotationNode>> arguments;
+
+        do {
+            auto typeResult = parseType();
+            arguments.push_back(std::move(typeResult.type));
+        } while (match(TokenKind::COMMA));
+
+        return GenericArgumentListParsingResult{
+            .arguments = std::move(arguments),
+        };
+    }
+
+    ImportPathListParsingResult Parser::parseImportPathList() {
+        std::vector<std::unique_ptr<ImportDeclarationItem>> paths;
+
+        do {
+            auto itemResult = parseImportPathItem();
+            paths.push_back(std::move(itemResult.paths));
+        } while (match(TokenKind::COMMA));
+
+        return ImportPathListParsingResult{
+            .paths = std::move(paths),
+        };
+    }
+
+    FunctionBodyParsingResult Parser::parseFunctionBody() {
+        auto result = parseBlockStatement();
+
+        return FunctionBodyParsingResult{
+            .body = std::move(result.statement),
+        };
+    }
+
+    ClassBodyParsingResult Parser::parseClassBody() {
+        std::vector<std::unique_ptr<DeclarationNode>> declarations;
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' at the beginning of class body", peek().getLine(), peek().getColumn());
+        }
+
+        while (!check(TokenKind::RIGHT_BRACE)) {
+            auto result = parseClassMember();
+            declarations.push_back(std::move(result.declaration));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' at the end of class body", peek().getLine(), peek().getColumn());
+        }
+
+        return ClassBodyParsingResult{
+            .declarations = std::move(declarations),
+        };
+    }
+
+    InterfaceBodyParsingResult Parser::parseInterfaceBody() {
+        std::vector<std::unique_ptr<DeclarationNode>> declarations;
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' at the beginning of interface body", peek().getLine(), peek().getColumn());
+        }
+
+        while (!check(TokenKind::RIGHT_BRACE)) {
+            auto result = parseInterfaceMember();
+            declarations.push_back(std::move(result.declaration));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' at the end of interface body", peek().getLine(), peek().getColumn());
+        }
+
+        return InterfaceBodyParsingResult{
+            .declarations = std::move(declarations),
+        };
+    }
+
+    EnumBodyParsingResult Parser::parseEnumBody() {
+        std::vector<std::unique_ptr<EnumMemberDeclarationNode>> declarations;
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' at the beginning of enum body", peek().getLine(), peek().getColumn());
+        }
+
+        while (!check(TokenKind::RIGHT_BRACE)) {
+            auto result = parseEnumMemberDeclaration();
+            declarations.push_back(std::move(result.declaration));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' at the end of enum body", peek().getLine(), peek().getColumn());
+        }
+
+        return EnumBodyParsingResult{
+            .declarations = std::move(declarations),
+        };
+    }
+
+    ImportPathItemParsingResult Parser::parseImportPathItem() {
+        std::vector<std::unique_ptr<IdentifierNode>> namePrefix;
+        std::unique_ptr<IdentifierNode> alias; // nullptr if no alias
+
+        if (check(TokenKind::SELF)) {
+            namePrefix.emplace_back(constructCurrentIdentifierNode());
+
+            if (match(TokenKind::AS)) {
+                if (!check(TokenKind::IDENTIFIER)) {
+                    throw SyntaxError("Expected identifier after 'as' keyword in import path", peek().getLine(), peek().getColumn());
+                } else {
+                    alias = constructCurrentIdentifierNode();
+                }
+            }
+
+            return ImportPathItemParsingResult{
+                .paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                    .namePrefix = std::move(namePrefix),
+                    .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
+                    .alias = std::move(alias),
+                    .self = true,
+                    .wildcard = false,
+                }),
+            };
+        } else if (check(TokenKind::ASTERISK)) {
+            namePrefix.emplace_back(constructCurrentIdentifierNode());
+
+            return ImportPathItemParsingResult{
+                .paths = std::make_unique<ImportDeclarationItem>(ImportDeclarationItem{
+                    .namePrefix = std::move(namePrefix),
+                    .nameSuffixes = std::vector<std::unique_ptr<ImportDeclarationItem>>{},
+                    .alias = nullptr,
+                    .self = false,
+                    .wildcard = true,
+                }),
+            };
+        } else {
+            auto result = parseImportPath();
+
+            return ImportPathItemParsingResult{
+                .paths = std::move(result.paths),
+            };
+        }
+    }
+
+    ClassMemberParsingResult Parser::parseClassMember() {
+        Token firstToken = peek();
+
+        bool hasMetadata = false;
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+
+        enum class AccessModifier : std::uint8_t {
+            PUBLIC,
+            PROTECTED,
+            PRIVATE,
+        };
+
+        enum class Binding : std::uint8_t {
+            INSTANCE,
+            STATIC,
+        };
+
+        AccessModifier accessModifier = AccessModifier::PUBLIC;
+        Binding binding = Binding::INSTANCE;
+
+        if (check(TokenKind::METADATA)) {
+            hasMetadata = true;
+            auto metadataResult = parseMetadata();
+            metadataTerms = std::move(metadataResult.metadata);
+        }
+
+        if (match(TokenKind::PUBLIC)) {
+            accessModifier = AccessModifier::PUBLIC;
+        } else if (match(TokenKind::PROTECTED)) {
+            accessModifier = AccessModifier::PROTECTED;
+        } else if (match(TokenKind::PRIVATE)) {
+            accessModifier = AccessModifier::PRIVATE;
+        }
+
+        if (check(TokenKind::INIT)) {
+            ConstructorParsingContext constructorContext{
+                .accessModifier = static_cast<ConstructorDeclarationKind::AccessModifier>(accessModifier),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+
+            auto constructorResult = parseConstructor(std::move(constructorContext));
+
+            Token lastToken = peek();
+            constructorResult.constructor->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after constructor declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return ClassMemberParsingResult{
+                .declaration = std::move(constructorResult.constructor),
+            };
+        }
+
+        if (check(TokenKind::OP)) {
+            OperatorDeclarationParsingContext operatorContext{
+                .implementation = OperatorDeclarationKind::Implementation::REGULAR,
+                .context = OperatorDeclarationKind::Context::CLASS,
+                .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto operatorResult = parseOperatorDeclaration(std::move(operatorContext));
+
+            Token lastToken = peek();
+            operatorResult.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return ClassMemberParsingResult{
+                .declaration = std::move(operatorResult.declaration),
+            };
+        }
+
+        if (match(TokenKind::STATIC)) {
+            binding = Binding::STATIC;
+        } else if (match(TokenKind::OVERRIDE)) {
+            if (check(TokenKind::FUNC)) {
+                FunctionDeclarationParsingContext functionDeclarationContext{
+                    .implementation = FunctionDeclarationKind::Implementation::REGULAR,
+                    .context = FunctionDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
+                    .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto functionDeclarationResult = parseFunctionDeclaration(std::move(functionDeclarationContext));
+
+                Token lastToken = peek();
+                functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!tokenStream.endsWithNewlineOrEOF()) {
+                    throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(functionDeclarationResult.declaration),
+                };
+            } else if (check(TokenKind::OP)) {
+                OperatorDeclarationParsingContext operatorContext{
+                    .implementation = OperatorDeclarationKind::Implementation::REGULAR,
+                    .context = OperatorDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto operatorResult = parseOperatorDeclaration(std::move(operatorContext));
+
+                Token lastToken = peek();
+                operatorResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!tokenStream.endsWithNewlineOrEOF()) {
+                    throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(operatorResult.declaration),
+                };
+            }
+        }
+
+        if (match(TokenKind::NATIVE)) {
+            if (binding == Binding::INSTANCE && check(TokenKind::OP)) {
+                OperatorDeclarationParsingContext operatorContext{
+                    .implementation = OperatorDeclarationKind::Implementation::NATIVE,
+                    .context = OperatorDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<OperatorDeclarationKind::AccessModifier>(accessModifier),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto operatorResult = parseOperatorDeclaration(std::move(operatorContext));
+
+                Token lastToken = peek();
+                operatorResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!tokenStream.endsWithNewlineOrEOF()) {
+                    throw SyntaxError("Expected newline after operator declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(operatorResult.declaration),
+                };
+            } else {
+                FunctionDeclarationParsingContext functionDeclarationContext{
+                    .implementation = FunctionDeclarationKind::Implementation::NATIVE,
+                    .context = FunctionDeclarationKind::Context::CLASS,
+                    .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
+                    .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
+                    .hasMetadata = hasMetadata,
+                    .metadataTerms = std::move(metadataTerms),
+                };
+                auto functionDeclarationResult = parseFunctionDeclaration(std::move(functionDeclarationContext));
+
+                Token lastToken = peek();
+                functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+
+                if (!tokenStream.endsWithNewlineOrEOF()) {
+                    throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
+                }
+
+                return ClassMemberParsingResult{
+                    .declaration = std::move(functionDeclarationResult.declaration),
+                };
+            }
+        }
+
+        if (check(TokenKind::FUNC)) {
+            FunctionDeclarationParsingContext functionDeclarationContext{
+                .implementation = FunctionDeclarationKind::Implementation::REGULAR,
+                .context = FunctionDeclarationKind::Context::CLASS,
+                .accessModifier = static_cast<FunctionDeclarationKind::AccessModifier>(accessModifier),
+                .binding = static_cast<FunctionDeclarationKind::Binding>(binding),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto functionDeclarationResult = parseFunctionDeclaration(std::move(functionDeclarationContext));
+
+            Token lastToken = peek();
+            functionDeclarationResult.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after method declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return ClassMemberParsingResult{
+                .declaration = std::move(functionDeclarationResult.declaration),
+            };
+        } else {
+            PropertyParsingContext propertyContext{
+                .kind = binding == Binding::STATIC ? ValueDeclarationKind::Kind::STATIC_PROPERTY : ValueDeclarationKind::Kind::INSTANCE_PROPERTY,
+                .accessModifier = static_cast<ValueDeclarationKind::AccessModifier>(accessModifier),
+                .hasMetadata = hasMetadata,
+                .metadataTerms = std::move(metadataTerms),
+            };
+            auto propertyResult = parseProperty(std::move(propertyContext));
+
+            Token lastToken = peek();
+            propertyResult.declaration->resetPosition(firstToken, lastToken);
+
+            if (!tokenStream.endsWithNewlineOrEOF()) {
+                throw SyntaxError("Expected newline after property declaration", peek().getLine(), peek().getColumn());
+            }
+
+            return ClassMemberParsingResult{
+                .declaration = std::move(propertyResult.declaration),
+            };
+        }
+    }
+
+    ConstructorParsingResult Parser::parseConstructor(ConstructorParsingContext context) {
+        Token firstToken = peek();
+
+        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
+
+        if (!match(TokenKind::INIT)) {
+            throw SyntaxError("Expected 'init' keyword", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '('", peek().getLine(), peek().getColumn());
+        }
+
+        if (!check(TokenKind::RIGHT_PARENTHESIS)) {
+            auto parameterListResult = parseParameterList();
+
+            for (auto& parameter : parameterListResult.parameters) {
+                parameters.emplace_back(std::move(parameter));
+            }
+        }
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')'", peek().getLine(), peek().getColumn());
+        }
+
+        auto bodyResult = parseFunctionBody();
+
+        Token lastToken = peek();
+
+        if (context.hasMetadata) {
+            return ConstructorParsingResult{
+                .constructor = std::make_unique<
+                    ConstructorDeclarationNode>(context.accessModifier, std::move(parameters), std::move(bodyResult.body), firstToken, lastToken, std::move(context.metadataTerms)),
+            };
+        } else {
+            return ConstructorParsingResult{
+                .constructor = std::make_unique<ConstructorDeclarationNode>(context.accessModifier, std::move(parameters), std::move(bodyResult.body), firstToken, lastToken),
+            };
+        }
+    }
+
+    EnumMemberDeclarationParsingResult Parser::parseEnumMemberDeclaration() {
+        Token firstToken = peek();
+
+        bool hasMetadata = false;
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> associatedValues;
+
+        if (check(TokenKind::METADATA)) {
+            hasMetadata = true;
+            auto metadataResult = parseMetadata();
+            metadataTerms = std::move(metadataResult.metadata);
+        }
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected enum member name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (match(TokenKind::LEFT_PARENTHESIS)) {
+            if (!check(TokenKind::RIGHT_PARENTHESIS)) {
+                auto enumAssoicatedValueListResult = parseEnumAssociatedValueList();
+                for (auto& associatedValue : enumAssoicatedValueListResult.associatedValues) {
+                    associatedValues.emplace_back(std::move(associatedValue));
+                }
+            }
+
+            if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+                throw SyntaxError("Expected ')' after enum member associated value list", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        Token lastToken = peek();
+
+        if (!tokenStream.endsWithNewlineOrEOF()) {
+            throw SyntaxError("Expected newline after enum member declaration", peek().getLine(), peek().getColumn());
+        }
+
+        if (hasMetadata) {
+            return EnumMemberDeclarationParsingResult{
+                .declaration = std::make_unique<EnumMemberDeclarationNode>(std::move(name), std::move(associatedValues), firstToken, lastToken, std::move(metadataTerms)),
+            };
+        } else {
+            return EnumMemberDeclarationParsingResult{
+                .declaration = std::make_unique<EnumMemberDeclarationNode>(std::move(name), std::move(associatedValues), firstToken, lastToken),
+            };
+        }
+    }
+
+    EnumAssociatedValueListParsingResult Parser::parseEnumAssociatedValueList() {
+        std::vector<std::unique_ptr<ValueDeclarationNode>> items;
+
+        do {
+            auto result = parseEnumAssociatedValue();
+            items.emplace_back(std::move(result.declaration));
+        } while (match(TokenKind::COMMA));
+
+        return EnumAssociatedValueListParsingResult{
+            .associatedValues = std::move(items),
+        };
+    }
+
+    EnumAssociatedValueParsingResult Parser::parseEnumAssociatedValue() {
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> type;
+
+        Token firstToken = peek();
+
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected parameter name", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        if (!match(TokenKind::COLON)) {
+            throw SyntaxError("Expected ':' after parameter name", peek().getLine(), peek().getColumn());
+        }
+
+        auto typeResult = parseType();
+        type = std::move(typeResult.type);
+
+        Token lastToken = peek();
+
+        return EnumAssociatedValueParsingResult{
+            .declaration = std::make_unique<ValueDeclarationNode>(
+                ValueDeclarationKind::Kind::ENUM_ASSOCIATED_VALUE,
+                ValueDeclarationKind::Context::ENUM_MEMBER,
+                ValueDeclarationKind::AccessModifier::PUBLIC,
+                std::move(name),
+                std::move(type),
+                nullptr,
+                firstToken,
+                lastToken
+            ),
+        };
+    }
+
+    ExpressionParsingResult Parser::parseExpression() {
+        auto result = parseAssignmentExpression();
+
+        return ExpressionParsingResult{
+            .expression = std::move(result.expression),
+        };
+    }
+
+    AssignmentExpressionParsingResult Parser::parseAssignmentExpression() {
+        static const std::unordered_set<TokenKind> assignmentOperators = {
+            TokenKind::EQUAL,
+            TokenKind::DOUBLE_QUESTION_EQUAL,
+            TokenKind::PLUS_EQUAL,
+            TokenKind::MINUS_EQUAL,
+            TokenKind::ASTERISK_EQUAL,
+            TokenKind::SLASH_EQUAL,
+            TokenKind::DOUBLE_SLASH_EQUAL,
+            TokenKind::PERCENT_EQUAL,
+            TokenKind::DOUBLE_ASTERISK_EQUAL,
+            TokenKind::AMPERSAND_EQUAL,
+            TokenKind::CARET_EQUAL,
+            TokenKind::PIPE_EQUAL,
+            TokenKind::DOUBLE_LEFT_ANGLE,
+            TokenKind::DOUBLE_RIGHT_ANGLE,
+            TokenKind::TRIPLE_RIGHT_ANGLE,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> assignmentExpressionKinds = {
+            { TokenKind::EQUAL, BinaryExpressionKind::ASSIGNMENT },
+            { TokenKind::DOUBLE_QUESTION_EQUAL, BinaryExpressionKind::NULLISH_COALESCING_ASSIGNMENT },
+            { TokenKind::PLUS_EQUAL, BinaryExpressionKind::ADDITION_ASSIGNMENT },
+            { TokenKind::MINUS_EQUAL, BinaryExpressionKind::SUBTRACTION_ASSIGNMENT },
+            { TokenKind::ASTERISK_EQUAL, BinaryExpressionKind::MULTIPLICATION_ASSIGNMENT },
+            { TokenKind::SLASH_EQUAL, BinaryExpressionKind::DIVISION_ASSIGNMENT },
+            { TokenKind::DOUBLE_SLASH_EQUAL, BinaryExpressionKind::INTEGER_DIVISION_ASSIGNMENT },
+            { TokenKind::PERCENT_EQUAL, BinaryExpressionKind::MODULO_ASSIGNMENT },
+            { TokenKind::DOUBLE_ASTERISK_EQUAL, BinaryExpressionKind::EXPONENT_ASSIGNMENT },
+            { TokenKind::AMPERSAND_EQUAL, BinaryExpressionKind::BITWISE_AND_ASSIGNMENT },
+            { TokenKind::CARET_EQUAL, BinaryExpressionKind::BITWISE_XOR_ASSIGNMENT },
+            { TokenKind::PIPE_EQUAL, BinaryExpressionKind::BITWISE_OR_ASSIGNMENT },
+            { TokenKind::DOUBLE_LEFT_ANGLE, BinaryExpressionKind::SHIFT_LEFT_ASSIGNMENT },
+            { TokenKind::DOUBLE_RIGHT_ANGLE, BinaryExpressionKind::SHIFT_RIGHT_ASSIGNMENT },
+            { TokenKind::TRIPLE_RIGHT_ANGLE, BinaryExpressionKind::SHIFT_RIGHT_UNSIGNED_ASSIGNMENT },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseConditionalExpression();
+
+        if (checkAny(assignmentOperators)) {
+            BinaryExpressionKind operatorKind = assignmentExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseAssignmentExpression();
+
+            Token lastToken = peek();
+
+            return AssignmentExpressionParsingResult{
+                .expression = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(leftResult.expression), std::move(rightResult.expression), firstToken, lastToken),
+            };
+        } else {
+            return AssignmentExpressionParsingResult{
+                .expression = std::move(leftResult.expression),
+            };
+        }
+    }
+
+    ConditionalExpressionParsingResult Parser::parseConditionalExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseNullishCoalescingExpression();
+
+        if (match(TokenKind::QUESTION)) {
+            auto middleResult = parseAssignmentExpression();
+
+            if (!match(TokenKind::COLON)) {
+                throw SyntaxError("Expected ':' in conditional expression", peek().getLine(), peek().getColumn());
+            }
+
+            auto rightResult = parseConditionalExpression();
+
+            Token lastToken = peek();
+
+            return ConditionalExpressionParsingResult{
+                .expression =
+                    std::make_unique<ConditionalExpressionNode>(std::move(leftResult.expression), std::move(middleResult.expression), std::move(rightResult.expression), firstToken, lastToken),
+            };
+        } else {
+            return ConditionalExpressionParsingResult{
+                .expression = std::move(leftResult.expression),
+            };
+        }
+    }
+
+    NullishCoalescingExpressionParsingResult Parser::parseNullishCoalescingExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseLogicalOrExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::DOUBLE_QUESTION)) {
+            auto rightResult = parseLogicalOrExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::NULLISH_COALESCING, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return NullishCoalescingExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    LogicalOrExpressionParsingResult Parser::parseLogicalOrExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseLogicalAndExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::DOUBLE_PIPE)) {
+            auto rightResult = parseLogicalAndExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::LOGICAL_OR, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return LogicalOrExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    LogicalAndExpressionParsingResult Parser::parseLogicalAndExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseEqualityExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::DOUBLE_AMPERSAND)) {
+            auto rightResult = parseEqualityExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::LOGICAL_AND, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return LogicalAndExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    EqualityExpressionParsingResult Parser::parseEqualityExpression() {
+        static const std::unordered_set<TokenKind> equalityOperators = {
+            TokenKind::DOUBLE_EQUAL,
+            TokenKind::TRIPLE_EQUAL,
+            TokenKind::EXCLAMATION_EQUAL,
+            TokenKind::EXCLAMATION_DOUBLE_EQUAL,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> equalityExpressionKinds = {
+            { TokenKind::DOUBLE_EQUAL, BinaryExpressionKind::EQUAL },
+            { TokenKind::TRIPLE_EQUAL, BinaryExpressionKind::REFERENCE_EQUAL },
+            { TokenKind::EXCLAMATION_EQUAL, BinaryExpressionKind::NOT_EQUAL },
+            { TokenKind::EXCLAMATION_DOUBLE_EQUAL, BinaryExpressionKind::REFERENCE_NOT_EQUAL },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseRelationalExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (checkAny(equalityOperators)) {
+            BinaryExpressionKind operatorKind = equalityExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseRelationalExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return EqualityExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    RelationalExpressionParsingResult Parser::parseRelationalExpression() {
+        static const std::unordered_set<TokenKind> relationalOperators = {
+            TokenKind::LEFT_ANGLE,
+            TokenKind::LEFT_ANGLE_EQUAL,
+            TokenKind::RIGHT_ANGLE,
+            TokenKind::RIGHT_ANGLE_EQUAL,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> relationalExpressionKinds = {
+            { TokenKind::LEFT_ANGLE, BinaryExpressionKind::LESS_THAN },
+            { TokenKind::LEFT_ANGLE_EQUAL, BinaryExpressionKind::LESS_THAN_OR_EQUAL },
+            { TokenKind::RIGHT_ANGLE, BinaryExpressionKind::GREATER_THAN },
+            { TokenKind::RIGHT_ANGLE_EQUAL, BinaryExpressionKind::GREATER_THAN_OR_EQUAL },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseRangeExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (checkAny(relationalOperators)) {
+            BinaryExpressionKind operatorKind = relationalExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseRangeExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return RelationalExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    RangeExpressionParsingResult Parser::parseRangeExpression() {
+        Token firstToken = peek();
+
+        if (match(TokenKind::DOUBLE_DOT)) {
+            auto endResult = parseBitwiseOrExpression();
+            Token lastToken = peek();
+
+            return RangeExpressionParsingResult{
+                .expression = std::make_unique<RangeExpressionNode>(nullptr, std::move(endResult.expression), firstToken, lastToken),
+            };
+        } else {
+            auto startResult = parseBitwiseOrExpression();
+
+            if (match(TokenKind::DOUBLE_DOT)) {
+                static const std::unordered_set<TokenKind> rangeEndExpressionStarters = {
+                    TokenKind::IDENTIFIER, TokenKind::NUMBER,      TokenKind::STRING,           TokenKind::CHAR,         TokenKind::TRUE_LITERAL, TokenKind::FALSE_LITERAL, TokenKind::THIS,
+                    TokenKind::SUPER,      TokenKind::NONE,        TokenKind::LEFT_PARENTHESIS, TokenKind::LEFT_BRACKET, TokenKind::LEFT_BRACE,   TokenKind::PLUS,          TokenKind::MINUS,
+                    TokenKind::TILDE,      TokenKind::EXCLAMATION, TokenKind::SELECTOR_PREFIX,
+                };
+
+                if (checkAny(rangeEndExpressionStarters)) {
+                    auto endResult = parseBitwiseOrExpression();
+                    Token lastToken = peek();
+
+                    return RangeExpressionParsingResult{
+                        .expression = std::make_unique<RangeExpressionNode>(std::move(startResult.expression), std::move(endResult.expression), firstToken, lastToken),
+                    };
+                } else {
+                    Token lastToken = peek();
+
+                    return RangeExpressionParsingResult{
+                        .expression = std::make_unique<RangeExpressionNode>(std::move(startResult.expression), nullptr, firstToken, lastToken),
+                    };
+                }
+            } else {
+                return RangeExpressionParsingResult{
+                    .expression = std::move(startResult.expression),
+                };
+            }
+        }
+    }
+
+    BitwiseOrExpressionParsingResult Parser::parseBitwiseOrExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseBitwiseXorExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::PIPE)) {
+            auto rightResult = parseBitwiseXorExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::BITWISE_OR, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return BitwiseOrExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    BitwiseXorExpressionParsingResult Parser::parseBitwiseXorExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseBitwiseAndExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::CARET)) {
+            auto rightResult = parseBitwiseAndExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::BITWISE_XOR, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return BitwiseXorExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    BitwiseAndExpressionParsingResult Parser::parseBitwiseAndExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parseShiftExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (match(TokenKind::AMPERSAND)) {
+            auto rightResult = parseShiftExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::BITWISE_AND, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return BitwiseAndExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    ShiftExpressionParsingResult Parser::parseShiftExpression() {
+        static const std::unordered_set<TokenKind> shiftOperators = {
+            TokenKind::DOUBLE_LEFT_ANGLE,
+            TokenKind::DOUBLE_RIGHT_ANGLE,
+            TokenKind::TRIPLE_RIGHT_ANGLE,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> shiftExpressionKinds = {
+            { TokenKind::DOUBLE_LEFT_ANGLE, BinaryExpressionKind::SHIFT_LEFT },
+            { TokenKind::DOUBLE_RIGHT_ANGLE, BinaryExpressionKind::SHIFT_RIGHT },
+            { TokenKind::TRIPLE_RIGHT_ANGLE, BinaryExpressionKind::SHIFT_RIGHT_UNSIGNED },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseAdditiveExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (checkAny(shiftOperators)) {
+            BinaryExpressionKind operatorKind = shiftExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseAdditiveExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return ShiftExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    AdditiveExpressionParsingResult Parser::parseAdditiveExpression() {
+        static const std::unordered_set<TokenKind> additiveOperators = {
+            TokenKind::PLUS,
+            TokenKind::MINUS,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> additiveExpressionKinds = {
+            { TokenKind::PLUS, BinaryExpressionKind::ADDITION },
+            { TokenKind::MINUS, BinaryExpressionKind::SUBTRACTION },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseMultiplicativeExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (checkAny(additiveOperators)) {
+            BinaryExpressionKind operatorKind = additiveExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseMultiplicativeExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return AdditiveExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    MultiplicativeExpressionParsingResult Parser::parseMultiplicativeExpression() {
+        static const std::unordered_set<TokenKind> multiplicativeOperators = {
+            TokenKind::ASTERISK,
+            TokenKind::SLASH,
+            TokenKind::DOUBLE_SLASH,
+            TokenKind::PERCENT,
+        };
+
+        static const std::unordered_map<TokenKind, BinaryExpressionKind> multiplicativeExpressionKinds = {
+            { TokenKind::ASTERISK, BinaryExpressionKind::MULTIPLICATION },
+            { TokenKind::SLASH, BinaryExpressionKind::DIVISION },
+            { TokenKind::DOUBLE_SLASH, BinaryExpressionKind::INTEGER_DIVISION },
+            { TokenKind::PERCENT, BinaryExpressionKind::MODULO },
+        };
+
+        Token firstToken = peek();
+
+        auto leftResult = parseUnaryExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(leftResult.expression);
+
+        while (checkAny(multiplicativeOperators)) {
+            BinaryExpressionKind operatorKind = multiplicativeExpressionKinds.at(peek().getKind());
+            advance();
+            auto rightResult = parseUnaryExpression();
+
+            Token lastToken = peek();
+
+            currentNode = std::make_unique<BinaryExpressionNode>(operatorKind, std::move(currentNode), std::move(rightResult.expression), firstToken, lastToken);
+        }
+
+        return MultiplicativeExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    UnaryExpressionParsingResult Parser::parseUnaryExpression() {
+        static const std::unordered_set<TokenKind> unaryOperators = {
+            TokenKind::PLUS,
+            TokenKind::MINUS,
+            TokenKind::TILDE,
+            TokenKind::EXCLAMATION,
+        };
+
+        static const std::unordered_map<TokenKind, UnaryExpressionKind> unaryExpressionKinds = {
+            { TokenKind::PLUS, UnaryExpressionKind::UNARY_PLUS },
+            { TokenKind::MINUS, UnaryExpressionKind::UNARY_MINUS },
+            { TokenKind::TILDE, UnaryExpressionKind::BITWISE_NOT },
+            { TokenKind::EXCLAMATION, UnaryExpressionKind::LOGICAL_NOT },
+        };
+
+        Token firstToken = peek();
+
+        if (checkAny(unaryOperators)) {
+            UnaryExpressionKind operatorKind = unaryExpressionKinds.at(peek().getKind());
+            advance();
+            auto operandResult = parseExponentialExpression();
+
+            Token lastToken = peek();
+
+            return UnaryExpressionParsingResult{
+                .expression = std::make_unique<UnaryExpressionNode>(operatorKind, std::move(operandResult.expression), firstToken, lastToken),
+            };
+        } else {
+            auto result = parseExponentialExpression();
+
+            return UnaryExpressionParsingResult{
+                .expression = std::move(result.expression),
+            };
+        }
+    }
+
+    ExponentialExpressionParsingResult Parser::parseExponentialExpression() {
+        Token firstToken = peek();
+
+        auto leftResult = parsePostfixExpression();
+
+        if (match(TokenKind::DOUBLE_ASTERISK)) {
+            auto rightResult = parseUnaryExpression();
+
+            Token lastToken = peek();
+
+            return ExponentialExpressionParsingResult{
+                .expression =
+                    std::make_unique<BinaryExpressionNode>(BinaryExpressionKind::EXPONENT, std::move(leftResult.expression), std::move(rightResult.expression), firstToken, lastToken),
+            };
+        } else {
+            return ExponentialExpressionParsingResult{
+                .expression = std::move(leftResult.expression),
+            };
+        }
+    }
+
+    PostfixExpressionParsingResult Parser::parsePostfixExpression() {
+        Token firstToken = peek();
+
+        auto primaryResult = parsePrimaryExpression();
+        std::unique_ptr<ExpressionNode> currentNode = std::move(primaryResult.expression);
+        std::vector<std::string> identifierPrefix; // empty if currentNode is not an identifier path
+        if (const auto* identifierLike = dynamic_cast<const IdentifierLikeExpressionNode*>(currentNode.get())) {
+            identifierPrefix.emplace_back(identifierLike->getName().getIdentifierString());
+        }
+
+        static const std::unordered_set<TokenKind> postfixOperators = {
+            TokenKind::DOT,
+            TokenKind::QUESTION_DOT,
+            TokenKind::LEFT_PARENTHESIS,
+            TokenKind::LEFT_BRACKET,
+        };
+
+        while (checkAny(postfixOperators)) {
+            if (match(TokenKind::DOT)) {
+                Token identifierFirstToken = peek();
+
+                std::unique_ptr<IdentifierLikeExpressionNode> nameNode;
+                if (!checkGeneralizedIdentifier()) {
+                    throw SyntaxError("Expected generalized identifier after '.'", peek().getLine(), peek().getColumn());
+                } else if (!identifierPrefix.empty() && check(TokenKind::IDENTIFIER)) {
+                    IdentifierLikeParsingContext context{
+                        .prefix = identifierPrefix,
+                    };
+                    auto identifierLikeResult = parseIdentifierLike(std::move(context));
+                    nameNode = std::move(identifierLikeResult.expression);
+                    identifierPrefix.emplace_back(nameNode->getName().getIdentifierString());
+                } else {
+                    nameNode = std::make_unique<IdentifierLikeExpressionNode>(constructCurrentIdentifierNode(), identifierFirstToken, peek());
+                    identifierPrefix.clear();
+                }
+
+                Token lastToken = peek();
+
+                currentNode = std::make_unique<MemberAccessExpressionNode>(MemberAccessExpressionKind::DOT, std::move(currentNode), std::move(nameNode), firstToken, lastToken);
+            } else if (match(TokenKind::QUESTION_DOT)) {
+                Token identifierFirstToken = peek();
+
+                std::unique_ptr<IdentifierNode> name;
+                if (!checkGeneralizedIdentifier()) {
+                    throw SyntaxError("Expected generalized identifier after '?.'", peek().getLine(), peek().getColumn());
+                } else {
+                    name = constructCurrentIdentifierNode();
+                }
+
+                Token lastToken = peek();
+
+                std::unique_ptr<IdentifierLikeExpressionNode> nameNode = std::make_unique<IdentifierLikeExpressionNode>(std::move(name), identifierFirstToken, lastToken);
+                identifierPrefix.clear();
+
+                currentNode = std::make_unique<MemberAccessExpressionNode>(MemberAccessExpressionKind::OPTIONAL_CHAINING, std::move(currentNode), std::move(nameNode), firstToken, lastToken);
+            } else if (tokenStream.endsWithNewlineOrEOF()) {
+                break;
+            } else if (match(TokenKind::LEFT_PARENTHESIS)) {
+                std::vector<std::unique_ptr<ExpressionNode>> arguments;
+                std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
+
+                if (!check(TokenKind::RIGHT_PARENTHESIS)) {
+                    auto argumentListResult = parseArgumentList();
+                    arguments = std::move(argumentListResult.arguments);
+                    context = std::move(argumentListResult.context);
+                }
+
+                if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+                    throw SyntaxError("Expected ')' after argument list", peek().getLine(), peek().getColumn());
+                }
+
+                Token lastToken = peek();
+
+                if (context != nullptr) {
+                    currentNode = std::make_unique<FunctionCallExpressionNode>(std::move(currentNode), std::move(arguments), std::move(context), firstToken, lastToken);
+                } else {
+                    currentNode = std::make_unique<FunctionCallExpressionNode>(std::move(currentNode), std::move(arguments), firstToken, lastToken);
+                }
+                identifierPrefix.clear();
+            } else if (match(TokenKind::LEFT_BRACKET)) {
+                auto indexResult = parseExpression();
+
+                if (!match(TokenKind::RIGHT_BRACKET)) {
+                    throw SyntaxError("Expected ']' after index expression", peek().getLine(), peek().getColumn());
+                }
+
+                Token lastToken = peek();
+
+                currentNode = std::make_unique<SubscriptExpressionNode>(std::move(currentNode), std::move(indexResult.expression), firstToken, lastToken);
+                identifierPrefix.clear();
+            }
+        }
+
+        return PostfixExpressionParsingResult{
+            .expression = std::move(currentNode),
+        };
+    }
+
+    IdentifierLikeParsingResult Parser::parseIdentifierLike(IdentifierLikeParsingContext context) {
+        Token firstToken = peek();
+
+        std::unique_ptr<IdentifierNode> name;
+        if (!check(TokenKind::IDENTIFIER)) {
+            throw SyntaxError("Expected identifier", peek().getLine(), peek().getColumn());
+        } else {
+            name = constructCurrentIdentifierNode();
+        }
+
+        context.prefix.emplace_back(name->getIdentifierString());
+
+        std::vector<std::unique_ptr<TypeAnnotationNode>> genericArguments;
+        if (check(TokenKind::LEFT_ANGLE)) {
+            std::string_view identifierName = name->getIdentifierString();
+
+            bool isTypeDeclaration = false;
+            if (context.prefix.size() == 1) {
+                for (const auto& declaration : collectionResult.getModuleOutline().getTypeDeclarations()) {
+                    if (const auto* classDeclaration = dynamic_cast<const ClassDeclarationOutline*>(declaration.get())) {
+                        isTypeDeclaration = classDeclaration->getName() == identifierName;
+                    } else if (const auto* interfaceDeclaration = dynamic_cast<const InterfaceDeclarationOutline*>(declaration.get())) {
+                        isTypeDeclaration = interfaceDeclaration->getName() == identifierName;
+                    } else if (const auto* enumDeclaration = dynamic_cast<const EnumDeclarationOutline*>(declaration.get())) {
+                        isTypeDeclaration = enumDeclaration->getName() == identifierName;
+                    } else if (const auto* typeAliasDeclaration = dynamic_cast<const TypeAliasDeclarationOutline*>(declaration.get())) {
+                        isTypeDeclaration = typeAliasDeclaration->getAliasName() == identifierName;
+                    }
+
+                    if (isTypeDeclaration) {
+                        break;
+                    }
+                }
+            }
+
+            if (!isTypeDeclaration) {
+                const ImportedItem* importedItem = nullptr;
+                const auto binding = importBindings.find(context.prefix.front());
+                if (binding != importBindings.end()) {
+                    std::vector<std::string> importedPath = context.prefix;
+                    importedPath.erase(importedPath.begin());
+                    importedPath.insert(importedPath.begin(), binding->second.begin(), binding->second.end());
+                    importedItem = collectionResult.getImports().getImportedItemByFullPath(importedPath);
+                }
+
+                isTypeDeclaration =
+                    importedItem != nullptr && (dynamic_cast<const ImportedClass*>(importedItem) != nullptr || dynamic_cast<const ImportedInterface*>(importedItem) != nullptr ||
+                                                dynamic_cast<const ImportedEnum*>(importedItem) != nullptr || dynamic_cast<const ImportedTypeAlias*>(importedItem) != nullptr);
+            }
+
+            if (isTypeDeclaration) {
+                advance();
+                auto genericArgumentListResult = parseGenericArgumentList();
+                genericArguments = std::move(genericArgumentListResult.arguments);
+
+                if (!consumeRightAngleInType()) {
+                    throw SyntaxError("Expected '>' after generic argument list in identifier-like expression", peek().getLine(), peek().getColumn());
+                }
+            }
+        }
+
+        Token lastToken = peek();
+
+        std::unique_ptr<IdentifierLikeExpressionNode> node;
+        if (genericArguments.empty()) {
+            node = std::make_unique<IdentifierLikeExpressionNode>(std::move(name), firstToken, lastToken);
+        } else {
+            node = std::make_unique<IdentifierLikeExpressionNode>(std::move(name), std::move(genericArguments), firstToken, lastToken);
+        }
+
+        return IdentifierLikeParsingResult{
+            .expression = std::move(node),
+        };
+    }
+
+    PrimaryExpressionParsingResult Parser::parsePrimaryExpression() {
+        static const std::unordered_set<TokenKind> literalStarters = {
+            TokenKind::NUMBER,        TokenKind::STRING,       TokenKind::CHAR,       TokenKind::TRUE_LITERAL,
+            TokenKind::FALSE_LITERAL, TokenKind::LEFT_BRACKET, TokenKind::LEFT_BRACE, TokenKind::SELECTOR_PREFIX,
+        };
+        Token firstToken = peek();
+
+        if (match(TokenKind::LEFT_PARENTHESIS)) {
+            auto expressionResult = parseExpression();
+
+            if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+                throw SyntaxError("Expected ')' after expression", peek().getLine(), peek().getColumn());
+            }
+
+            Token lastToken = peek();
+            expressionResult.expression->resetPosition(firstToken, lastToken);
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::move(expressionResult.expression),
+            };
+        } else if (match(TokenKind::THIS)) {
+            Token lastToken = peek();
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::make_unique<ThisExpressionNode>(firstToken, lastToken),
+            };
+        } else if (match(TokenKind::SUPER)) {
+            Token lastToken = peek();
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::make_unique<SuperExpressionNode>(firstToken, lastToken),
+            };
+        } else if (match(TokenKind::NONE)) {
+            Token lastToken = peek();
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::make_unique<NoneExpressionNode>(firstToken, lastToken),
+            };
+        } else if (auto primitiveKind = getPrimitiveKind<PrimitiveTypeExpressionKind>(peek().getKind())) {
+            advance();
+
+            Token lastToken = peek();
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::make_unique<PrimitiveTypeExpressionNode>(primitiveKind.value(), firstToken, lastToken),
+            };
+        } else if (check(TokenKind::IDENTIFIER)) {
+            auto identifierLikeResult = parseIdentifierLike(IdentifierLikeParsingContext{});
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::move(identifierLikeResult.expression),
+            };
+        } else if (checkAny(literalStarters)) {
+            auto literalResult = parseLiteral();
+
+            return PrimaryExpressionParsingResult{
+                .expression = std::move(literalResult.expression),
+            };
+        } else {
+            throw SyntaxError("Expected primary expression", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    LiteralParsingResult Parser::parseLiteral() {
+        Token firstToken = peek();
+
+        if (match(TokenKind::NUMBER)) {
+            Token lastToken = peek();
+
+            return LiteralParsingResult{
+                .expression = std::make_unique<SimpleLiteralExpressionNode>(getNumberLiteralKind(firstToken.getValue()), firstToken.getValue(), firstToken, lastToken),
+            };
+        } else if (match(TokenKind::CHAR)) {
+            Token lastToken = peek();
+
+            return LiteralParsingResult{
+                .expression = std::make_unique<SimpleLiteralExpressionNode>(
+                    SimpleLiteralExpressionKind::CHARACTER,
+                    firstToken.getValue().substr(1, firstToken.getValue().length() - 2), // Remove the surrounding single quotes
+                    firstToken,
+                    lastToken
+                ),
+            };
+        } else if (check(TokenKind::STRING)) {
+            auto result = parseString();
+
+            return LiteralParsingResult{
+                .expression = std::move(result.expression),
+            };
+        } else if (check(TokenKind::TRUE_LITERAL) || check(TokenKind::FALSE_LITERAL)) {
+            auto result = parseBoolean();
+
+            return LiteralParsingResult{
+                .expression = std::move(result.expression),
+            };
+        } else if (check(TokenKind::LEFT_BRACKET)) {
+            auto result = parseListLikeLiteral();
+
+            return LiteralParsingResult{
+                .expression = std::move(result.expression),
+            };
+        } else if (check(TokenKind::LEFT_BRACE)) {
+            auto result = parseDictLiteral();
+
+            return LiteralParsingResult{
+                .expression = std::move(result.expression),
+            };
+        } else if (check(TokenKind::SELECTOR_PREFIX)) {
+            auto result = parseSelector();
+
+            return LiteralParsingResult{
+                .expression = std::move(result.expression),
+            };
+        } else {
+            throw SyntaxError("Expected literal", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    StringParsingResult Parser::parseString() {
+        Token firstToken = peek();
+        std::vector<std::variant<std::string, std::unique_ptr<ExpressionNode>>> parts;
+
+        if (!check(TokenKind::STRING)) {
+            throw SyntaxError("Expected string literal", peek().getLine(), peek().getColumn());
+        }
+
+        if (peek().getValue().starts_with("\"")) {
+            std::string value(peek().getValue().substr(1, peek().getValue().length() - 2));
+            parts.emplace_back(std::move(value));
+            advance();
+
+            Token lastToken = peek();
+
+            return StringParsingResult{
+                .expression = std::make_unique<StringLiteralExpressionNode>(StringLiteralExpressionKind::STRING, std::move(parts), firstToken, lastToken),
+            };
+        } else if (peek().getValue().starts_with("f\"") || peek().getValue().starts_with("F\"")) {
+            std::string value(peek().getValue().substr(2));
+            if (value.ends_with('\"') && !value.ends_with("\\\"")) {
+                value.pop_back();
+            }
+            parts.emplace_back(std::move(value));
+            advance();
+
+            while (check(TokenKind::INTERPOLATION_START) || check(TokenKind::STRING)) {
+                if (check(TokenKind::STRING)) {
+                    std::string value(peek().getValue());
+                    if (value.ends_with('\"') && !value.ends_with("\\\"")) {
+                        value.pop_back();
+                    }
+                    parts.emplace_back(std::move(value));
+                    advance();
+                } else if (check(TokenKind::INTERPOLATION_START)) {
+                    auto interpolationResult = parseInterpolation();
+                    parts.emplace_back(std::move(interpolationResult.expression));
+                } else {
+                    throw SyntaxError("Expected string literal or interpolation in formatted string", peek().getLine(), peek().getColumn());
+                }
+            }
+
+            Token lastToken = peek();
+
+            return StringParsingResult{
+                .expression = std::make_unique<StringLiteralExpressionNode>(StringLiteralExpressionKind::FORMAT_STRING, std::move(parts), firstToken, lastToken),
+            };
+
+        } else if (peek().getValue().starts_with("r\"") || peek().getValue().starts_with("R\"")) {
+            std::string value(peek().getValue().substr(2, peek().getValue().length() - 3)); // Remove the r" prefix and the surrounding quotes
+            parts.emplace_back(std::move(value));
+            advance();
+
+            Token lastToken = peek();
+
+            return StringParsingResult{
+                .expression = std::make_unique<StringLiteralExpressionNode>(StringLiteralExpressionKind::RAW_STRING, std::move(parts), firstToken, lastToken),
+            };
+        } else {
+            throw SyntaxError("Invalid string literal", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    BooleanParsingResult Parser::parseBoolean() {
+        Token firstToken = peek();
+
+        if (match(TokenKind::TRUE_LITERAL) || match(TokenKind::FALSE_LITERAL)) {
+            bool value = firstToken.getKind() == TokenKind::TRUE_LITERAL;
+
+            Token lastToken = peek();
+
+            return BooleanParsingResult{
+                .expression = std::make_unique<SimpleLiteralExpressionNode>(SimpleLiteralExpressionKind::BOOLEAN, value ? "true" : "false", firstToken, lastToken),
+            };
+        } else {
+            throw SyntaxError("Expected boolean literal", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    ListLikeLiteralParsingResult Parser::parseListLikeLiteral() {
+        Token firstToken = peek();
+
+        ListLikeLiteralExpressionKind literalKind = ListLikeLiteralExpressionKind::LIST;
+
+        if (!match(TokenKind::LEFT_BRACKET)) {
+            throw SyntaxError("Expected '[' to start list literal", peek().getLine(), peek().getColumn());
+        }
+
+        std::vector<std::unique_ptr<ExpressionNode>> elements;
+        bool comma = false;
+
+        if (check(TokenKind::IDENTIFIER)) {
+            auto name = constructCurrentIdentifierNode();
+
+            if ((name->getIdentifierString() == "B" || name->getIdentifierString() == "I" || name->getIdentifierString() == "L")) {
+                if (!match(TokenKind::SEMICOLON)) {
+                    elements.push_back(std::make_unique<IdentifierLikeExpressionNode>(std::move(name), firstToken, peek()));
+                    comma = match(TokenKind::COMMA);
+                } else {
+                    if (name->getIdentifierString() == "B") {
+                        literalKind = ListLikeLiteralExpressionKind::BYTE_SNBT_ARRAY;
+                    } else if (name->getIdentifierString() == "I") {
+                        literalKind = ListLikeLiteralExpressionKind::INT_SNBT_ARRAY;
+                    } else if (name->getIdentifierString() == "L") {
+                        literalKind = ListLikeLiteralExpressionKind::LONG_SNBT_ARRAY;
+                    }
+                }
+            } else {
+                elements.push_back(std::make_unique<IdentifierLikeExpressionNode>(std::move(name), firstToken, peek()));
+                comma = match(TokenKind::COMMA);
+            }
+        }
+
+        if (comma || !check(TokenKind::RIGHT_BRACKET)) {
+            do {
+                auto expressionResult = parseExpression();
+                elements.push_back(std::move(expressionResult.expression));
+            } while (match(TokenKind::COMMA));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACKET)) {
+            throw SyntaxError("Expected ']' to end list literal", peek().getLine(), peek().getColumn());
+        }
+
+        Token lastToken = peek();
+
+        return ListLikeLiteralParsingResult{
+            .expression = std::make_unique<ListLikeLiteralExpressionNode>(literalKind, std::move(elements), firstToken, lastToken),
+        };
+    }
+
+    DictLiteralParsingResult Parser::parseDictLiteral() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' to start dict literal", peek().getLine(), peek().getColumn());
+        }
+
+        std::unordered_map<std::string, std::unique_ptr<ExpressionNode>> entries;
+
+        if (!check(TokenKind::RIGHT_BRACE)) {
+            do {
+                auto entryResult = parseDictEntry();
+                entries.emplace(std::move(entryResult.key), std::move(entryResult.value));
+            } while (match(TokenKind::COMMA));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' to end dict literal", peek().getLine(), peek().getColumn());
+        }
+
+        Token lastToken = peek();
+
+        return DictLiteralParsingResult{
+            .expression = std::make_unique<DictLiteralExpressionNode>(std::move(entries), firstToken, lastToken),
+        };
+    }
+
+    SelectorParsingResult Parser::parseSelector() {
+        Token firstToken = peek();
+
+        SelectorLiteralExpressionKind literalKind = SelectorLiteralExpressionKind::NEAREST_PLAYER;
+        std::vector<SelectorLiteralExpressionItem::Argument> arguments;
+
+        if (!check(TokenKind::SELECTOR_PREFIX)) {
+            throw SyntaxError("Expected '@' to start selector", peek().getLine(), peek().getColumn());
+        }
+
+        if (peek().getValue() == "@p") {
+            literalKind = SelectorLiteralExpressionKind::NEAREST_PLAYER;
+        } else if (peek().getValue() == "@r") {
+            literalKind = SelectorLiteralExpressionKind::RANDOM_PLAYER;
+        } else if (peek().getValue() == "@a") {
+            literalKind = SelectorLiteralExpressionKind::ALL_PLAYERS;
+        } else if (peek().getValue() == "@e") {
+            literalKind = SelectorLiteralExpressionKind::ALL_ENTITIES;
+        } else if (peek().getValue() == "@s") {
+            literalKind = SelectorLiteralExpressionKind::CURRENT_EXECUTOR;
+        } else if (peek().getValue() == "@n") {
+            literalKind = SelectorLiteralExpressionKind::NEAREST_ENTITY;
+        } else {
+            throw SyntaxError("Invalid selector type", peek().getLine(), peek().getColumn());
+        }
+
+        advance();
+
+        if (match(TokenKind::LEFT_BRACKET)) {
+            if (!check(TokenKind::RIGHT_BRACKET)) {
+                auto argumentListResult = parseSelectorArgumentList();
+                arguments = std::move(argumentListResult.arguments);
+            }
+
+            if (!match(TokenKind::RIGHT_BRACKET)) {
+                throw SyntaxError("Expected ']' to end selector arguments", peek().getLine(), peek().getColumn());
+            }
+        }
+
+        Token lastToken = peek();
+
+        return SelectorParsingResult{
+            .expression = std::make_unique<SelectorLiteralExpressionNode>(literalKind, std::move(arguments), firstToken, lastToken),
+        };
+    }
+
+    ArgumentListParsingResult Parser::parseArgumentList() {
+        std::vector<std::unique_ptr<ExpressionNode>> arguments;
+        std::unique_ptr<ExpressionNode> context; // nullptr if no context argument
+
+        do {
+            if (match(TokenKind::CONTEXT)) {
+                if (!match(TokenKind::EQUAL)) {
+                    throw SyntaxError("Expected '=' after 'context'", peek().getLine(), peek().getColumn());
+                }
+
+                if (!check(TokenKind::LEFT_BRACE)) {
+                    throw SyntaxError("Expected dict literal after 'context='", peek().getLine(), peek().getColumn());
+                }
+
+                auto contextResult = parseDictLiteral();
+                context = std::move(contextResult.expression);
+
+                return ArgumentListParsingResult{
+                    .arguments = std::move(arguments),
+                    .context = std::move(context),
+                };
+            }
+
+            auto expressionResult = parseExpression();
+            arguments.push_back(std::move(expressionResult.expression));
+        } while (match(TokenKind::COMMA));
+
+        return ArgumentListParsingResult{
+            .arguments = std::move(arguments),
+            .context = std::move(context),
+        };
+    }
+
+    InterpolationParsingResult Parser::parseInterpolation() {
+        if (!match(TokenKind::INTERPOLATION_START)) {
+            throw SyntaxError("Expected '$(' to start interpolation", peek().getLine(), peek().getColumn());
+        }
+
+        auto expressionResult = parseExpression();
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' to end interpolation", peek().getLine(), peek().getColumn());
+        }
+
+        return InterpolationParsingResult{
+            .expression = std::move(expressionResult.expression),
+        };
+    }
+
+    DictEntryParsingResult Parser::parseDictEntry() {
+        std::string key;
+        if (check(TokenKind::STRING)) {
+            if (!peek().getValue().starts_with("\"")) {
+                throw SyntaxError("Expected simple string literal for dict key", peek().getLine(), peek().getColumn());
+            }
+
+            key = peek().getValue().substr(1, peek().getValue().length() - 2); // Remove the surrounding quotes
+            advance();
+        } else if (checkGeneralizedIdentifier()) {
+            key = peek().getValue();
+            advance();
+        } else {
+            throw SyntaxError("Expected string literal or identifier for dict key", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::COLON)) {
+            throw SyntaxError("Expected ':' after dict key", peek().getLine(), peek().getColumn());
+        }
+
+        auto valueResult = parseExpression();
+
+        return DictEntryParsingResult{
+            .key = std::move(key),
+            .value = std::move(valueResult.expression),
+        };
+    }
+
+    SelectorArgumentListParsingResult Parser::parseSelectorArgumentList() {
+        std::vector<SelectorLiteralExpressionItem::Argument> arguments;
+
+        do {
+            auto argumentResult = parseSelectorArgument();
+            arguments.push_back(
+                {
+                    .key = std::move(argumentResult.key),
+                    .negated = argumentResult.negated,
+                    .value = std::move(argumentResult.value),
+                }
+            );
+        } while (match(TokenKind::COMMA));
+
+        return SelectorArgumentListParsingResult{
+            .arguments = std::move(arguments),
+        };
+    }
+
+    SelectorArgumentParsingResult Parser::parseSelectorArgument() {
+        std::string key;
+
+        if (!checkGeneralizedIdentifier()) {
+            throw SyntaxError("Expected identifier for selector argument key", peek().getLine(), peek().getColumn());
+        } else {
+            key = peek().getValue();
+            advance();
+        }
+
+        bool negated = false;
+        if (match(TokenKind::EXCLAMATION_EQUAL)) {
+            negated = true;
+        } else if (!match(TokenKind::EQUAL)) {
+            throw SyntaxError("Expected '=' or '!=' after selector argument key", peek().getLine(), peek().getColumn());
+        }
+
+        auto valueResult = parseExpression();
+
+        return SelectorArgumentParsingResult{
+            .key = std::move(key),
+            .negated = negated,
+            .value = std::move(valueResult.expression),
+        };
+    }
+
+    StatementParsingResult Parser::parseStatement() {
+        static const std::unordered_set<TokenKind> expressionStarters = {
+            TokenKind::IDENTIFIER,      TokenKind::NUMBER, TokenKind::STRING, TokenKind::CHAR,  TokenKind::TRUE_LITERAL,
+            TokenKind::FALSE_LITERAL,   TokenKind::THIS,   TokenKind::SUPER,  TokenKind::NONE,  TokenKind::LEFT_PARENTHESIS,
+            TokenKind::LEFT_BRACKET,    TokenKind::PLUS,   TokenKind::MINUS,  TokenKind::TILDE, TokenKind::EXCLAMATION,
+            TokenKind::SELECTOR_PREFIX,
+        };
+
+        static const std::unordered_set<TokenKind> controlFlowStarters = {
+            TokenKind::IF, TokenKind::SWITCH, TokenKind::LABEL, TokenKind::WHILE, TokenKind::FOR, TokenKind::RETURN, TokenKind::BREAK, TokenKind::CONTINUE, TokenKind::RELOAD,
+        };
+
+        std::unique_ptr<StatementNode> statement;
+
+        if (checkAny(expressionStarters)) {
+            auto result = parseExpressionStatement();
+
+            statement = std::move(result.statement);
+        } else if (check(TokenKind::LET)) {
+            auto result = parseVariableDeclarationStatement();
+
+            statement = std::move(result.statement);
+        } else if (check(TokenKind::LEFT_BRACE)) {
+            auto result = parseBlockStatement();
+
+            statement = std::move(result.statement);
+        } else if (checkAny(controlFlowStarters)) {
+            auto result = parseControlFlowStatement();
+
+            statement = std::move(result.statement);
+        } else {
+            throw SyntaxError("Expected statement", peek().getLine(), peek().getColumn());
+        }
+
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE || peek().getKind() == TokenKind::ELSE)) {
+            throw SyntaxError("Expected newline after statement", peek().getLine(), peek().getColumn());
+        }
+
+        return StatementParsingResult{
+            .statement = std::move(statement),
+        };
+    }
+
+    ExpressionStatementParsingResult Parser::parseExpressionStatement() {
+        Token firstToken = peek();
+
+        auto result = parseExpression();
+
+        Token lastToken = peek();
+
+        return ExpressionStatementParsingResult{
+            .statement = std::make_unique<ExpressionStatementNode>(std::move(result.expression), firstToken, lastToken),
+        };
+    }
+
+    VariableDeclarationStatementParsingResult Parser::parseVariableDeclarationStatement() {
+        Token firstToken = peek();
+
+        VariableDeclarationParsingContext context{
+            .position = VariableDeclarationParsingContext::Position::STATEMENT,
+            .accessModifier = ValueDeclarationKind::AccessModifier::PUBLIC,
+            .hasMetadata = false,
+            .metadataTerms = {},
+        };
+
+        auto result = parseVariableDeclaration(std::move(context));
+
+        Token lastToken = peek();
+
+        return VariableDeclarationStatementParsingResult{
+            .statement = std::make_unique<VariableDeclarationStatementNode>(std::move(result.declaration), firstToken, lastToken),
+        };
+    }
+
+    BlockStatementParsingResult Parser::parseBlockStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' to start block statement", peek().getLine(), peek().getColumn());
+        }
+
+        std::vector<std::unique_ptr<StatementNode>> statements;
+
+        while (!check(TokenKind::RIGHT_BRACE)) {
+            auto statementResult = parseStatement();
+            statements.push_back(std::move(statementResult.statement));
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' to end block statement", peek().getLine(), peek().getColumn());
+        }
+
+        Token lastToken = peek();
+
+        return BlockStatementParsingResult{
+            .statement = std::make_unique<BlockStatementNode>(std::move(statements), firstToken, lastToken),
+        };
+    }
+
+    ControlFlowStatementParsingResult Parser::parseControlFlowStatement() {
+        if (check(TokenKind::IF)) {
+            auto result = parseIfStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::SWITCH)) {
+            auto result = parseSwitchStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (match(TokenKind::LABEL)) {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier after 'label'", peek().getLine(), peek().getColumn());
+            }
+
+            std::unique_ptr<IdentifierNode> label = constructCurrentIdentifierNode();
+
+            if (check(TokenKind::WHILE)) {
+                WhileStatementParsingContext context{
+                    .label = std::move(label),
+                };
+
+                auto result = parseWhileStatement(std::move(context));
+
+                return ControlFlowStatementParsingResult{
+                    .statement = std::move(result.statement),
+                };
+            } else if (check(TokenKind::FOR)) {
+                ForStatementParsingContext context{
+                    .label = std::move(label),
+                };
+
+                auto result = parseForStatement(std::move(context));
+
+                return ControlFlowStatementParsingResult{
+                    .statement = std::move(result.statement),
+                };
+            } else {
+                throw SyntaxError("Expected 'while' or 'for' after label declaration", peek().getLine(), peek().getColumn());
+            }
+        } else if (check(TokenKind::WHILE)) {
+            auto result = parseWhileStatement({ nullptr });
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::FOR)) {
+            auto result = parseForStatement({ nullptr });
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::RETURN)) {
+            auto result = parseReturnStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::BREAK)) {
+            auto result = parseBreakStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::CONTINUE)) {
+            auto result = parseContinueStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else if (check(TokenKind::RELOAD)) {
+            auto result = parseReloadStatement();
+
+            return ControlFlowStatementParsingResult{
+                .statement = std::move(result.statement),
+            };
+        } else {
+            throw SyntaxError("Expected control flow statement", peek().getLine(), peek().getColumn());
+        }
+    }
+
+    IfStatementParsingResult Parser::parseIfStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::IF)) {
+            throw SyntaxError("Expected 'if' to start if statement", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after 'if'", peek().getLine(), peek().getColumn());
+        }
+
+        std::unique_ptr<ExpressionNode> condition;                  // nullptr if the condition is a variable declaration
+        std::unique_ptr<ValueDeclarationNode> conditionDeclaration; // nullptr if the condition is an expression
+
+        if (check(TokenKind::LET)) {
+            VariableDeclarationParsingContext context{
+                .position = VariableDeclarationParsingContext::Position::STATEMENT,
+                .accessModifier = ValueDeclarationKind::AccessModifier::PUBLIC,
+                .hasMetadata = false,
+                .metadataTerms = {},
+            };
+
+            auto declarationResult = parseVariableDeclaration(std::move(context));
+            conditionDeclaration = std::move(declarationResult.declaration);
+        } else {
+            auto conditionResult = parseExpression();
+            condition = std::move(conditionResult.expression);
+        }
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after if condition", peek().getLine(), peek().getColumn());
+        }
+
+        auto thenBranchResult = parseStatement();
+
+        std::unique_ptr<StatementNode> elseBranch; // nullptr if no else branch
+
+        if (match(TokenKind::ELSE)) {
+            auto elseBranchResult = parseStatement();
+            elseBranch = std::move(elseBranchResult.statement);
+        }
+
+        Token lastToken = peek();
+
+        if (conditionDeclaration != nullptr) {
+            return IfStatementParsingResult{
+                .statement = std::make_unique<IfStatementNode>(std::move(conditionDeclaration), std::move(thenBranchResult.statement), std::move(elseBranch), firstToken, lastToken),
+            };
+        }
+
+        return IfStatementParsingResult{
+            .statement = std::make_unique<IfStatementNode>(std::move(condition), std::move(thenBranchResult.statement), std::move(elseBranch), firstToken, lastToken),
+        };
+    }
+
+    SwitchStatementParsingResult Parser::parseSwitchStatement() {
+        Token firstToken = peek();
+
+        std::optional<SwitchStatementKind> switchKind;
+        std::vector<SwitchStatementItem::LiteralMatchItem> literalMatchItems;
+        std::vector<SwitchStatementItem::TypeMatchItem> typeMatchItems;
+        std::unique_ptr<StatementNode> defaultCase; // nullptr if no default case
+
+        if (!match(TokenKind::SWITCH)) {
+            throw SyntaxError("Expected 'switch' to start switch statement", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after 'switch'", peek().getLine(), peek().getColumn());
+        }
+
+        auto expressionResult = parseExpression();
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after switch expression", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_BRACE)) {
+            throw SyntaxError("Expected '{' to start switch body", peek().getLine(), peek().getColumn());
+        }
+
+        while (check(TokenKind::CASE)) {
+            std::size_t caseBeginLine = peek().getLine();
+            std::size_t caseBeginColumn = peek().getColumn();
+            auto caseResult = parseSwitchCase();
+
+            if (switchKind.has_value() && caseResult.kind != switchKind.value()) {
+                throw SyntaxError("Cannot mix different types of switch cases in the same switch statement", caseBeginLine, caseBeginColumn);
+            }
+
+            if (!switchKind.has_value()) {
+                switchKind.emplace(caseResult.kind);
+            }
+
+            if (!match(TokenKind::ARROW)) {
+                throw SyntaxError("Expected '->' after case label", peek().getLine(), peek().getColumn());
+            }
+
+            auto caseBodyResult = parseStatement();
+
+            if (caseResult.kind == SwitchStatementKind::LITERAL_MATCH) {
+                literalMatchItems.push_back({ .literal = std::move(caseResult.literal), .body = std::move(caseBodyResult.statement) });
+            } else if (caseResult.kind == SwitchStatementKind::TYPE_MATCH) {
+                typeMatchItems.push_back({ .type = std::move(caseResult.type), .body = std::move(caseBodyResult.statement), .guardExpression = std::move(caseResult.guardExpression) });
+            }
+        }
+
+        if (match(TokenKind::DEFAULT)) {
+            if (!match(TokenKind::ARROW)) {
+                throw SyntaxError("Expected '->' after 'default'", peek().getLine(), peek().getColumn());
+            }
+
+            auto defaultBodyResult = parseStatement();
+
+            defaultCase = std::move(defaultBodyResult.statement);
+        }
+
+        if (!match(TokenKind::RIGHT_BRACE)) {
+            throw SyntaxError("Expected '}' to end switch body", peek().getLine(), peek().getColumn());
+        }
+
+        Token lastToken = peek();
+
+        if (switchKind == SwitchStatementKind::LITERAL_MATCH) {
+            return SwitchStatementParsingResult{
+                .statement = std::make_unique<SwitchStatementNode>(std::move(expressionResult.expression), std::move(literalMatchItems), std::move(defaultCase), firstToken, lastToken),
+            };
+        } else {
+            return SwitchStatementParsingResult{
+                .statement = std::make_unique<SwitchStatementNode>(std::move(expressionResult.expression), std::move(typeMatchItems), std::move(defaultCase), firstToken, lastToken),
+            };
+        }
+    }
+
+    WhileStatementParsingResult Parser::parseWhileStatement(WhileStatementParsingContext context) {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::WHILE)) {
+            throw SyntaxError("Expected 'while' to start while statement", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after 'while'", peek().getLine(), peek().getColumn());
+        }
+
+        auto conditionResult = parseExpression();
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after while condition", peek().getLine(), peek().getColumn());
+        }
+
+        auto bodyResult = parseStatement();
+
+        Token lastToken = peek();
+
+        if (context.label != nullptr) {
+            return WhileStatementParsingResult{
+                .statement = std::make_unique<WhileStatementNode>(std::move(context.label), std::move(conditionResult.expression), std::move(bodyResult.statement), firstToken, lastToken),
+            };
+        } else {
+            return WhileStatementParsingResult{
+                .statement = std::make_unique<WhileStatementNode>(std::move(conditionResult.expression), std::move(bodyResult.statement), firstToken, lastToken),
+            };
+        }
+    }
+
+    ForStatementParsingResult Parser::parseForStatement(ForStatementParsingContext context) {
+        Token firstToken = peek();
+
+        std::unique_ptr<ValueDeclarationNode> loopVariable;
+        std::unique_ptr<ExpressionNode> iterableExpression;
+        std::unique_ptr<StatementNode> body;
+
+        if (!match(TokenKind::FOR)) {
+            throw SyntaxError("Expected 'for' to start for statement", peek().getLine(), peek().getColumn());
+        }
+
+        if (!match(TokenKind::LEFT_PARENTHESIS)) {
+            throw SyntaxError("Expected '(' after 'for'", peek().getLine(), peek().getColumn());
+        }
+
+        Token variableFirstToken = peek();
+        LetPrimaryParsingContext variableContext{
+            .kind = ValueDeclarationKind::Kind::LOOP_VARIABLE,
+        };
+        auto LetPrimaryResult = parseLetPrimary(variableContext);
+        Token variableLastToken = peek();
+        loopVariable = std::make_unique<ValueDeclarationNode>(
+            LetPrimaryResult.kind,
+            ValueDeclarationKind::Context::BLOCK,
+            ValueDeclarationKind::AccessModifier::PUBLIC,
+            std::move(LetPrimaryResult.name),
+            std::move(LetPrimaryResult.type),
+            nullptr,
+            variableFirstToken,
+            variableLastToken
+        );
+
+        if (!match(TokenKind::IN_KEYWORD)) {
+            throw SyntaxError("Expected 'in' after loop variable declaration", peek().getLine(), peek().getColumn());
+        }
+
+        auto iterableExpressionResult = parseExpression();
+        iterableExpression = std::move(iterableExpressionResult.expression);
+
+        if (!match(TokenKind::RIGHT_PARENTHESIS)) {
+            throw SyntaxError("Expected ')' after for statement", peek().getLine(), peek().getColumn());
+        }
+
+        auto bodyResult = parseStatement();
+        body = std::move(bodyResult.statement);
+
+        Token lastToken = peek();
+
+        if (context.label != nullptr) {
+            return ForStatementParsingResult{
+                .statement = std::make_unique<ForStatementNode>(std::move(context.label), std::move(loopVariable), std::move(iterableExpression), std::move(body), firstToken, lastToken),
+            };
+        } else {
+            return ForStatementParsingResult{
+                .statement = std::make_unique<ForStatementNode>(std::move(loopVariable), std::move(iterableExpression), std::move(body), firstToken, lastToken),
+            };
+        }
+    }
+
+    ReturnStatementParsingResult Parser::parseReturnStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::RETURN)) {
+            throw SyntaxError("Expected 'return' to start return statement", peek().getLine(), peek().getColumn());
+        }
+
+        std::unique_ptr<ExpressionNode> returnValue; // nullptr if no return value
+
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+            auto returnValueResult = parseExpression();
+            returnValue = std::move(returnValueResult.expression);
+        }
+
+        Token lastToken = peek();
+
+        if (returnValue != nullptr) {
+            return ReturnStatementParsingResult{
+                .statement = std::make_unique<ReturnStatementNode>(std::move(returnValue), firstToken, lastToken),
+            };
+        } else {
+            return ReturnStatementParsingResult{
+                .statement = std::make_unique<ReturnStatementNode>(firstToken, lastToken),
+            };
+        }
+    }
+
+    BreakStatementParsingResult Parser::parseBreakStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::BREAK)) {
+            throw SyntaxError("Expected 'break' to start break statement", peek().getLine(), peek().getColumn());
+        }
+
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
+
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier after 'break'", peek().getLine(), peek().getColumn());
+            } else {
+                label = constructCurrentIdentifierNode();
+            }
+        }
+
+        Token lastToken = peek();
+
+        if (label != nullptr) {
+            return BreakStatementParsingResult{
+                .statement = std::make_unique<BreakStatementNode>(std::move(label), firstToken, lastToken),
+            };
+        } else {
+            return BreakStatementParsingResult{
+                .statement = std::make_unique<BreakStatementNode>(firstToken, lastToken),
+            };
+        }
+    }
+
+    ContinueStatementParsingResult Parser::parseContinueStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::CONTINUE)) {
+            throw SyntaxError("Expected 'continue' to start continue statement", peek().getLine(), peek().getColumn());
+        }
+
+        std::unique_ptr<IdentifierNode> label; // nullptr if no label
+
+        if (!(tokenStream.endsWithNewlineOrEOF() || peek().getKind() == TokenKind::RIGHT_BRACE)) {
+            if (!check(TokenKind::IDENTIFIER)) {
+                throw SyntaxError("Expected identifier after 'continue'", peek().getLine(), peek().getColumn());
+            } else {
+                label = constructCurrentIdentifierNode();
+            }
+        }
+
+        Token lastToken = peek();
+
+        if (label != nullptr) {
+            return ContinueStatementParsingResult{
+                .statement = std::make_unique<ContinueStatementNode>(std::move(label), firstToken, lastToken),
+            };
+        } else {
+            return ContinueStatementParsingResult{
+                .statement = std::make_unique<ContinueStatementNode>(firstToken, lastToken),
+            };
+        }
+    }
+
+    ReloadStatementParsingResult Parser::parseReloadStatement() {
+        Token firstToken = peek();
+
+        if (!match(TokenKind::RELOAD)) {
+            throw SyntaxError("Expected 'reload' to start reload statement", peek().getLine(), peek().getColumn());
+        }
+
+        Token lastToken = peek();
+
+        return ReloadStatementParsingResult{
+            .statement = std::make_unique<ReloadStatementNode>(firstToken, lastToken),
+        };
+    }
+
+    SwitchCaseParsingResult Parser::parseSwitchCase() {
+        if (!match(TokenKind::CASE)) {
+            throw SyntaxError("Expected 'case' to start switch case", peek().getLine(), peek().getColumn());
+        }
+
+        static const std::unordered_set<TokenKind> literalStarters = {
+            TokenKind::PLUS,   TokenKind::MINUS, TokenKind::TILDE,        TokenKind::EXCLAMATION,   TokenKind::NUMBER,
+            TokenKind::STRING, TokenKind::CHAR,  TokenKind::TRUE_LITERAL, TokenKind::FALSE_LITERAL,
+        };
+
+        if (checkAny(literalStarters)) {
+            auto literalExpressionResult = parseExpression();
+
+            return SwitchCaseParsingResult{
+                .kind = SwitchStatementKind::LITERAL_MATCH,
+                .literal = std::move(literalExpressionResult.expression),
+            };
+        } else if (check(TokenKind::IDENTIFIER)) {
+            auto typeResult = parseType();
+
+            std::unique_ptr<ExpressionNode> guardExpression; // nullptr if no guard expression
+            if (match(TokenKind::WHEN)) {
+                auto guardResult = parseExpression();
+                guardExpression = std::move(guardResult.expression);
+            }
+
+            return SwitchCaseParsingResult{
+                .kind = SwitchStatementKind::TYPE_MATCH,
+                .type = std::move(typeResult.type),
+                .guardExpression = std::move(guardExpression),
+            };
+        } else {
+            throw SyntaxError("Expected literal or type identifier after 'case'", peek().getLine(), peek().getColumn());
+        }
+    }
+} // namespace vnlc

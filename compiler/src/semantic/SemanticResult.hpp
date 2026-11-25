@@ -1,0 +1,80 @@
+#pragma once
+
+#include "ast/AstNode.hpp"
+#include "ast/declaration/FunctionDeclarationNode.hpp"
+#include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
+#include "ast/expression/ExpressionNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
+#include "diagnostic/Diagnostic.hpp"
+#include "inheritance/InheritanceNode.hpp"
+#include "scope/Scope.hpp"
+#include "semantic/ExpressionAnalysisResult.hpp"
+#include "type/CustomizedType.hpp"
+#include "type/Type.hpp"
+#include "vni/import/ImportedIdentifier.hpp"
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace vnlc {
+    class SemanticResult {
+    private:
+        std::vector<Diagnostic> errors;
+        std::vector<Diagnostic> warnings;
+        std::vector<Diagnostic> notes;
+
+        std::unordered_map<std::string, std::unique_ptr<CustomizedType>> customizedTypes;
+        std::unordered_map<const AstNode*, std::unique_ptr<Scope>> localScopeMap;
+        std::unordered_map<const ImportedItem*, std::unique_ptr<Scope>> importedScopeMap;
+        std::unordered_map<const TypeAnnotationNode*, const Type*> typeMap;
+        std::unordered_map<const ValueDeclarationNode*, const Type*> inferredValueTypeMap;
+        std::unordered_map<const FunctionDeclarationNode*, const Type*> inferredFunctionReturnTypeMap;
+        std::unordered_map<const OperatorDeclarationNode*, const Type*> inferredOperatorReturnTypeMap;
+        std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult> expressionAnalysisResultMap;
+        std::vector<std::unique_ptr<InheritanceNode>> inheritanceNodes;
+        std::unordered_map<const TypeDeclarationNode*, InheritanceNode*> localInheritanceMap;
+        std::unordered_map<const ImportedIdentifier*, InheritanceNode*> importedInheritanceMap;
+
+    public:
+        SemanticResult(
+            std::vector<Diagnostic>&& errors,
+            std::vector<Diagnostic>&& warnings,
+            std::vector<Diagnostic>&& notes,
+            std::unordered_map<std::string, std::unique_ptr<CustomizedType>>&& customizedTypes,
+            std::unordered_map<const AstNode*, std::unique_ptr<Scope>>&& localScopeMap,
+            std::unordered_map<const ImportedItem*, std::unique_ptr<Scope>>&& importedScopeMap,
+            std::unordered_map<const TypeAnnotationNode*, const Type*>&& typeMap,
+            std::unordered_map<const ValueDeclarationNode*, const Type*>&& inferredValueTypeMap,
+            std::unordered_map<const FunctionDeclarationNode*, const Type*>&& inferredFunctionReturnTypeMap,
+            std::unordered_map<const OperatorDeclarationNode*, const Type*>&& inferredOperatorReturnTypeMap,
+            std::unordered_map<const ExpressionNode*, ExpressionAnalysisResult>&& expressionAnalysisResultMap,
+            std::vector<std::unique_ptr<InheritanceNode>>&& inheritanceNodes,
+            std::unordered_map<const TypeDeclarationNode*, InheritanceNode*>&& localInheritanceMap,
+            std::unordered_map<const ImportedIdentifier*, InheritanceNode*>&& importedInheritanceMap
+        );
+        SemanticResult(const SemanticResult&) = delete;
+        SemanticResult& operator=(const SemanticResult&) = delete;
+        SemanticResult(SemanticResult&&) noexcept = default;
+        SemanticResult& operator=(SemanticResult&&) noexcept = default;
+
+        [[nodiscard]] bool hasErrors() const;
+        [[nodiscard]] bool hasWarnings() const;
+        [[nodiscard]] bool hasNotes() const;
+        [[nodiscard]] const std::vector<Diagnostic>& getErrors() const;
+        [[nodiscard]] const std::vector<Diagnostic>& getWarnings() const;
+        [[nodiscard]] const std::vector<Diagnostic>& getNotes() const;
+
+        [[nodiscard]] const CustomizedType* getCustomizedTypeByFullTypeName(const std::string& fullTypeName) const;
+        [[nodiscard]] const Scope* getScopeByAstNode(const AstNode& node) const;
+        [[nodiscard]] const Scope* getScopeByImportedNode(const ImportedItem& node) const;
+        [[nodiscard]] const Type* getTypeByTypeAnnotationNode(const TypeAnnotationNode* typeNode) const;
+        [[nodiscard]] const Type* getInferredValueType(const ValueDeclarationNode* valueDeclaration) const;
+        [[nodiscard]] const Type* getInferredFunctionReturnType(const FunctionDeclarationNode* functionDeclaration) const;
+        [[nodiscard]] const Type* getInferredOperatorReturnType(const OperatorDeclarationNode* operatorDeclaration) const;
+        [[nodiscard]] const ExpressionAnalysisResult* getExpressionAnalysisResult(const ExpressionNode* expressionNode) const;
+        [[nodiscard]] const InheritanceNode* getInheritanceNodeByLocalNode(const TypeDeclarationNode* localNode) const;
+        [[nodiscard]] const InheritanceNode* getInheritanceNodeByImportedNode(const ImportedIdentifier* importedNode) const;
+    };
+} // namespace vnlc

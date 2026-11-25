@@ -1,0 +1,30 @@
+#pragma once
+
+#include "token/Token.hpp"
+#include <utility>
+
+namespace vnlc {
+    class AstNode {
+    private:
+        void resetPosition(const Token& firstToken, const Token& lastToken) noexcept;
+
+    protected:
+        std::size_t offset;
+        std::size_t length;
+
+        std::size_t line;
+        std::size_t column;
+
+        AstNode(const Token& firstToken, const Token& lastToken); // lastToken is the first token of the next node
+
+    public:
+        AstNode() = delete;
+
+        [[nodiscard]] std::pair<std::size_t, std::size_t> locate() const noexcept;
+        [[nodiscard]] std::size_t getOffset() const noexcept;
+        [[nodiscard]] std::size_t getLength() const noexcept;
+
+        virtual ~AstNode() = default;
+        friend class Parser;
+    };
+} // namespace vnlc

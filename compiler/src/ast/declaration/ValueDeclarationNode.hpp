@@ -1,0 +1,52 @@
+#pragma once
+
+#include "ast/declaration/DeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationKind.hpp"
+#include "ast/expression/ExpressionNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
+#include <memory>
+
+namespace vnlc {
+    class ValueDeclarationNode : public DeclarationNode {
+    private:
+        ValueDeclarationKind::Kind kind;
+        ValueDeclarationKind::Context context;
+        ValueDeclarationKind::AccessModifier accessModifier;
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> type;    // nullptr if no type annotation
+        std::unique_ptr<ExpressionNode> initializer; // nullptr if no initializer
+
+    public:
+        ValueDeclarationNode() = delete;
+
+        ValueDeclarationNode(
+            ValueDeclarationKind::Kind kind,
+            ValueDeclarationKind::Context context,
+            ValueDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::unique_ptr<TypeAnnotationNode>&& type,
+            std::unique_ptr<ExpressionNode>&& initializer,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        ValueDeclarationNode(
+            ValueDeclarationKind::Kind kind,
+            ValueDeclarationKind::Context context,
+            ValueDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::unique_ptr<TypeAnnotationNode>&& type,
+            std::unique_ptr<ExpressionNode>&& initializer,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        [[nodiscard]] ValueDeclarationKind::Kind getKind() const noexcept;
+        [[nodiscard]] ValueDeclarationKind::Context getContext() const noexcept;
+        [[nodiscard]] ValueDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
+        [[nodiscard]] const TypeAnnotationNode* getType() const noexcept;
+        [[nodiscard]] const ExpressionNode* getInitializer() const noexcept;
+    };
+} // namespace vnlc

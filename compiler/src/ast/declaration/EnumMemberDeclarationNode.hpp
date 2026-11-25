@@ -1,0 +1,34 @@
+#pragma once
+
+#include "ast/declaration/TypeDeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
+#include <vector>
+
+namespace vnlc {
+    class EnumMemberDeclarationNode : public TypeDeclarationNode {
+    private:
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> associatedValues;
+
+    public:
+        EnumMemberDeclarationNode() = delete;
+
+        EnumMemberDeclarationNode(
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        EnumMemberDeclarationNode(
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getAssociatedValues() const noexcept;
+    };
+} // namespace vnlc

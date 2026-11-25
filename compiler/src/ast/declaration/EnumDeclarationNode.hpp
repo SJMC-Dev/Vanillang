@@ -1,0 +1,42 @@
+#pragma once
+
+#include "ast/declaration/EnumMemberDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
+#include "ast/declaration/TypeDeclarationNode.hpp"
+
+namespace vnlc {
+    class EnumDeclarationNode : public TypeDeclarationNode {
+    private:
+        TypeDeclarationKind::AccessModifier accessModifier;
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::vector<std::unique_ptr<EnumMemberDeclarationNode>> memberDeclarations;
+
+    public:
+        EnumDeclarationNode() = delete;
+
+        EnumDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        EnumDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<EnumMemberDeclarationNode>>& getMemberDeclarations() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
+    };
+} // namespace vnlc

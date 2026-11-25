@@ -1,0 +1,31 @@
+#pragma once
+
+#include "ast/declaration/TypeDeclarationNode.hpp"
+#include "inheritance/InheritanceOrigin.hpp"
+#include "vni/import/ImportedIdentifier.hpp"
+
+namespace vnlc {
+    class InheritanceNode {
+    private:
+        InheritanceOrigin origin;
+        const TypeDeclarationNode* localNode;
+        const ImportedIdentifier* importedNode;
+
+    protected:
+        InheritanceNode(const TypeDeclarationNode* localNode);
+        InheritanceNode(const ImportedIdentifier* importedNode);
+
+    public:
+        InheritanceNode() = delete;
+        InheritanceNode(const InheritanceNode&) = delete;
+        InheritanceNode(InheritanceNode&&) noexcept = default;
+
+        virtual ~InheritanceNode() = default;
+
+        [[nodiscard]] InheritanceOrigin getOrigin() const noexcept;
+        [[nodiscard]] virtual const TypeDeclarationNode* getLocalNode() const noexcept;
+        [[nodiscard]] virtual const ImportedIdentifier* getImportedNode() const noexcept;
+        [[nodiscard]] virtual const InheritanceNode* findParent() const noexcept;
+        [[nodiscard]] virtual bool hasCycle() const noexcept;
+    };
+} // namespace vnlc

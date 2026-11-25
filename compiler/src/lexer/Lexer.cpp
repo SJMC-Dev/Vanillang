@@ -1,0 +1,950 @@
+#include "Lexer.hpp"
+#include "error/OutOfRangeError.hpp"
+#include <string>
+#include <string_view>
+#include <unordered_map>
+
+namespace vnlc {
+    const std::unordered_map<std::string_view, TokenKind>& Lexer::getKeywords() {
+        static const std::unordered_map<std::string_view, TokenKind> keywords{
+            { "var", TokenKind::VAR },
+            { "let", TokenKind::LET },
+            { "const", TokenKind::CONST_KEYWORD },
+            { "byte", TokenKind::BYTE_TYPE },
+            { "ubyte", TokenKind::UBYTE_TYPE },
+            { "short", TokenKind::SHORT_TYPE },
+            { "ushort", TokenKind::USHORT_TYPE },
+            { "int", TokenKind::INT_TYPE },
+            { "uint", TokenKind::UINT_TYPE },
+            { "long", TokenKind::LONG_TYPE },
+            { "ulong", TokenKind::ULONG_TYPE },
+            { "float", TokenKind::FLOAT_TYPE },
+            { "double", TokenKind::DOUBLE_TYPE },
+            { "bool", TokenKind::BOOL_TYPE },
+            { "func", TokenKind::FUNC },
+            { "init", TokenKind::INIT },
+            { "op", TokenKind::OP },
+            { "return", TokenKind::RETURN },
+            { "if", TokenKind::IF },
+            { "else", TokenKind::ELSE },
+            { "for", TokenKind::FOR },
+            { "while", TokenKind::WHILE },
+            { "label", TokenKind::LABEL },
+            { "break", TokenKind::BREAK },
+            { "continue", TokenKind::CONTINUE },
+            { "switch", TokenKind::SWITCH },
+            { "case", TokenKind::CASE },
+            { "default", TokenKind::DEFAULT },
+            { "when", TokenKind::WHEN },
+            { "context", TokenKind::CONTEXT },
+            { "void", TokenKind::VOID_KEYWORD },
+            { "native", TokenKind::NATIVE },
+            { "callee", TokenKind::CALLEE },
+            { "in", TokenKind::IN_KEYWORD },
+            { "reload", TokenKind::RELOAD },
+            { "class", TokenKind::CLASS },
+            { "interface", TokenKind::INTERFACE },
+            { "abstract", TokenKind::ABSTRACT },
+            { "type", TokenKind::TYPE },
+            { "enum", TokenKind::ENUM },
+            { "record", TokenKind::RECORD },
+            { "extends", TokenKind::EXTENDS },
+            { "implements", TokenKind::IMPLEMENTS },
+            { "this", TokenKind::THIS },
+            { "super", TokenKind::SUPER },
+            { "private", TokenKind::PRIVATE },
+            { "protected", TokenKind::PROTECTED },
+            { "public", TokenKind::PUBLIC },
+            { "static", TokenKind::STATIC },
+            { "instanceof", TokenKind::INSTANCEOF },
+            { "final", TokenKind::FINAL },
+            { "override", TokenKind::OVERRIDE },
+            { "none", TokenKind::NONE },
+            { "true", TokenKind::TRUE_LITERAL },
+            { "false", TokenKind::FALSE_LITERAL },
+            { "import", TokenKind::IMPORT },
+            { "export", TokenKind::EXPORT },
+            { "as", TokenKind::AS },
+            { "self", TokenKind::SELF },
+            { "lambda", TokenKind::LAMBDA },
+            { "command", TokenKind::COMMAND },
+            { "async", TokenKind::ASYNC },
+            { "await", TokenKind::AWAIT },
+            { "generator", TokenKind::GENERATOR },
+            { "yield", TokenKind::YIELD },
+            { "from", TokenKind::FROM },
+            { "decorator", TokenKind::DECORATOR },
+            { "decorate", TokenKind::DECORATE },
+            { "panic", TokenKind::PANIC },
+            { "assert", TokenKind::ASSERT },
+            { "typeof", TokenKind::TYPEOF },
+            { "defer", TokenKind::DEFER },
+            { "asset", TokenKind::ASSET },
+            { "define", TokenKind::DEFINE },
+            { "metadata", TokenKind::METADATA },
+        };
+        return keywords;
+    }
+
+    Lexer::Lexer(std::istream& input) : source(input) {
+        readline();
+    }
+
+    int Lexer::peek() const {
+        return peek(0);
+    }
+
+    int Lexer::peek(std::size_t offset) const {
+        std::size_t targetColumn = column + offset;
+        if (targetColumn <= currentLine.length()) {
+            return static_cast<char>(currentLine[targetColumn - 1]);
+        }
+
+        return std::char_traits<char>::eof();
+    }
+
+    bool Lexer::blank() const {
+        if (eof()) {
+            return false;
+        }
+        char ch = static_cast<char>(peek());
+        return ch == ' ' || ch == '\t' || ch == '\r';
+    }
+
+    bool Lexer::number() const {
+        if (eof()) {
+            return false;
+        }
+        char ch = static_cast<char>(peek());
+        return ch >= '0' && ch <= '9';
+    }
+
+    bool Lexer::special() const {
+        if (eof()) {
+            return false;
+        }
+        char c = static_cast<char>(peek());
+        constexpr std::string_view specialChars = "+-*/=!<>|&^%~?:.,;(){}[]#@$\\`\"'";
+        return specialChars.find(c) != std::string_view::npos;
+    }
+
+    bool Lexer::newline() const {
+        if (eof()) {
+            return false;
+        }
+        char ch = static_cast<char>(peek());
+        return ch == '\n';
+    }
+
+    bool Lexer::eof() const {
+        return peek() == std::char_traits<char>::eof();
+    }
+
+    bool Lexer::separator() const {
+        return eof() || blank() || special() || newline();
+    }
+
+    bool Lexer::readline() {
+        currentLine.clear();
+
+        int ch = source.get();
+        if (ch == std::char_traits<char>::eof()) {
+            return false;
+        }
+
+        line++;
+
+        while (true) {
+            currentLine.push_back(static_cast<char>(ch));
+            if (ch == '\n') {
+                break;
+            }
+
+            ch = source.get();
+            if (ch == std::char_traits<char>::eof()) {
+                break;
+            }
+        }
+
+        column = 1;
+        return true;
+    }
+
+    void Lexer::advance() {
+        if (exhausted) {
+            throw OutOfRangeError("No more tokens to read.");
+        }
+
+        offset++;
+
+        if (eof()) {
+            exhausted = true;
+            return;
+        }
+
+        std::size_t len = currentLine.length();
+
+        if (column < len) {
+            column++;
+            return;
+        }
+
+        if (readline()) {
+            return;
+        }
+
+        column = len + 1;
+    }
+
+    void Lexer::collect(std::string& tokenValue) {
+        char c = static_cast<char>(peek());
+        tokenValue.push_back(c);
+        advance();
+    }
+
+    bool Lexer::hasNext() const {
+        return !exhausted;
+    }
+
+    Token Lexer::scanTokenStartsWithBlank(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        while (blank()) {
+            if (peek() != '\r') {
+                collect(tokenValue);
+            } else {
+                advance();
+            }
+        }
+
+        return { TokenKind::BLANK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanTokenStartsWithNumber(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        enum class Base : std::uint8_t {
+            DEC,
+            BIN,
+            OCT,
+            HEX,
+        };
+
+        static const std::unordered_map<char, Base> baseFlags{
+            { 'b', Base::BIN }, { 'B', Base::BIN }, { 'o', Base::OCT }, { 'O', Base::OCT }, { 'x', Base::HEX }, { 'X', Base::HEX },
+        };
+
+        bool existE = false;
+        bool existDot = mode == LexerMode::NUMBER_STARTS_WITH_DOT;
+        bool nonDecimal = false;
+        Base base = Base::DEC;
+
+        mode = LexerMode::DEFAULT;
+
+        std::string_view hexDigits = "0123456789abcdefABCDEF";
+        std::string_view octalDigits = "01234567";
+        std::string_view binaryDigits = "01";
+        std::string_view nonDecimalFlags = "xobXOB";
+        std::string_view exponentFlags = "eE";
+        std::string_view signSuffixes = "sSuU";
+        std::string_view integerSuffixes = "bBsSiIlL";
+        std::string_view floatSuffixes = "fFdD";
+
+        const auto lexicalError = [&]() -> Token {
+            while (!separator()) {
+                collect(tokenValue);
+            }
+
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        };
+
+        const auto digit = [&]() {
+            switch (base) {
+                case Base::BIN:
+                    return binaryDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::OCT:
+                    return octalDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::HEX:
+                    return hexDigits.find(static_cast<char>(peek())) != std::string_view::npos;
+                case Base::DEC:
+                    return number();
+            }
+
+            return false;
+        };
+
+        while (true) {
+            if (peek() != '.' && separator()) {
+                break;
+            }
+
+            if (tokenValue.empty() && peek() == '0' && nonDecimalFlags.find(static_cast<char>(peek(1))) != std::string_view::npos) {
+                nonDecimal = true;
+                collect(tokenValue);
+                base = baseFlags.at(static_cast<char>(peek()));
+                collect(tokenValue);
+
+                if (base == Base::BIN && separator()) {
+                    break;
+                }
+
+                if (!digit()) {
+                    return lexicalError();
+                }
+
+                continue;
+            }
+
+            if (peek() == '.') {
+                if (peek(1) == '.') {
+                    break;
+                }
+
+                collect(tokenValue);
+
+                if (nonDecimal || existE || existDot) {
+                    return lexicalError();
+                }
+
+                existDot = true;
+                continue;
+            }
+
+            if (!nonDecimal && exponentFlags.find(static_cast<char>(peek())) != std::string_view::npos) {
+                collect(tokenValue);
+
+                if (existE) {
+                    return lexicalError();
+                }
+
+                if (peek() == '+' || peek() == '-') {
+                    collect(tokenValue);
+                }
+
+                if (!number()) {
+                    return lexicalError();
+                }
+
+                collect(tokenValue);
+                existE = true;
+                continue;
+            }
+
+            if (!digit()) {
+                if (existDot || existE) {
+                    if (floatSuffixes.find(static_cast<char>(peek())) == std::string_view::npos) {
+                        return lexicalError();
+                    }
+                } else {
+                    if (signSuffixes.find(static_cast<char>(peek())) != std::string_view::npos && integerSuffixes.find(static_cast<char>(peek(1))) != std::string_view::npos) {
+                        collect(tokenValue);
+                    }
+
+                    if (integerSuffixes.find(static_cast<char>(peek())) == std::string_view::npos) {
+                        return lexicalError();
+                    }
+                }
+
+                collect(tokenValue);
+
+                if (!separator()) {
+                    return lexicalError();
+                }
+
+                break;
+            }
+
+            collect(tokenValue);
+        }
+
+        return { TokenKind::NUMBER, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanTokenStartsWithSpecial(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        if (peek() == '+') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::PLUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '+') {
+                collect(tokenValue);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::PLUS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '-') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::MINUS_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '-') {
+                collect(tokenValue);
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '>') {
+                collect(tokenValue);
+                return { TokenKind::ARROW, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::MINUS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '*') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '*') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::DOUBLE_ASTERISK_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else {
+                return { TokenKind::ASTERISK, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '/') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '/') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::DOUBLE_SLASH_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else {
+                return { TokenKind::SLASH, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '%') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::PERCENT_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::PERCENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '<') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+
+                if (peek() == '>') {
+                    collect(tokenValue);
+                    return { TokenKind::LEFT_ANGLE_EQUAL_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else if (peek() == '<') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::DOUBLE_LEFT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else {
+                return { TokenKind::LEFT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '>') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '>') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::DOUBLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else if (peek() == '>') {
+                    collect(tokenValue);
+
+                    if (peek() == '=') {
+                        collect(tokenValue);
+                        return { TokenKind::TRIPLE_RIGHT_ANGLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    } else {
+                        return { TokenKind::TRIPLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    }
+                } else {
+                    return { TokenKind::DOUBLE_RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else {
+                return { TokenKind::RIGHT_ANGLE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '=') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::TRIPLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else {
+                return { TokenKind::EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '?') {
+            collect(tokenValue);
+
+            if (peek() == '?') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::DOUBLE_QUESTION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else if (peek() == '.') {
+                collect(tokenValue);
+                return { TokenKind::QUESTION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::QUESTION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '!') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+
+                if (peek() == '=') {
+                    collect(tokenValue);
+                    return { TokenKind::EXCLAMATION_DOUBLE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::EXCLAMATION_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else if (peek() == '.') {
+                collect(tokenValue);
+                return { TokenKind::EXCLAMATION_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::EXCLAMATION, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '&') {
+            collect(tokenValue);
+
+            if (peek() == '&') {
+                collect(tokenValue);
+                return { TokenKind::DOUBLE_AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::AMPERSAND_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::AMPERSAND, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '|') {
+            collect(tokenValue);
+
+            if (peek() == '|') {
+                collect(tokenValue);
+                return { TokenKind::DOUBLE_PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::PIPE_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::PIPE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '^') {
+            collect(tokenValue);
+
+            if (peek() == '=') {
+                collect(tokenValue);
+                return { TokenKind::CARET_EQUAL, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::CARET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '~') {
+            collect(tokenValue);
+            return { TokenKind::TILDE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '.') {
+            collect(tokenValue);
+
+            if (peek() == '.') {
+                collect(tokenValue);
+
+                if (peek() == '.') {
+                    collect(tokenValue);
+                    return { TokenKind::TRIPLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                } else {
+                    return { TokenKind::DOUBLE_DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+            } else if (number()) {
+                mode = LexerMode::NUMBER_STARTS_WITH_DOT;
+                return scanTokenStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
+            } else {
+                return { TokenKind::DOT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == ',') {
+            collect(tokenValue);
+            return { TokenKind::COMMA, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == ';') {
+            collect(tokenValue);
+            return { TokenKind::SEMICOLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == ':') {
+            collect(tokenValue);
+
+            if (peek() == ':') {
+                collect(tokenValue);
+                return { TokenKind::DOUBLE_COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                return { TokenKind::COLON, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '(') {
+            collect(tokenValue);
+
+            if (parenthesisCounter >= 0) {
+                parenthesisCounter++;
+            }
+
+            return { TokenKind::LEFT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == ')') {
+            collect(tokenValue);
+
+            if (parenthesisCounter > 0) {
+                parenthesisCounter--;
+                if (parenthesisCounter == 0) {
+                    parenthesisCounter = parenthesisCounterStack.top();
+                    parenthesisCounterStack.pop();
+
+                    mode = LexerMode::FORMAT_STRING;
+                }
+            }
+
+            return { TokenKind::RIGHT_PARENTHESIS, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '{') {
+            collect(tokenValue);
+            return { TokenKind::LEFT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '}') {
+            collect(tokenValue);
+            return { TokenKind::RIGHT_BRACE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '[') {
+            collect(tokenValue);
+            return { TokenKind::LEFT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == ']') {
+            collect(tokenValue);
+            return { TokenKind::RIGHT_BRACKET, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '#') {
+            collect(tokenValue);
+
+            if (peek() == '*') {
+                collect(tokenValue);
+
+                while (true) {
+                    if (eof()) {
+                        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                    }
+
+                    if (peek() == '*' && peek(1) == '#') {
+                        collect(tokenValue);
+                        collect(tokenValue);
+                        break;
+                    }
+
+                    collect(tokenValue);
+                }
+
+                return { TokenKind::MULTI_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                while (!eof() && !newline() && peek() != '\r') {
+                    collect(tokenValue);
+                }
+
+                return { TokenKind::SINGLE_LINE_COMMENT, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '@') {
+            collect(tokenValue);
+
+            std::string_view selectorPrefixes = "praesn";
+
+            if (selectorPrefixes.find(static_cast<char>(peek())) != std::string_view::npos) {
+                collect(tokenValue);
+
+                if (!separator()) {
+                    while (!separator()) {
+                        collect(tokenValue);
+                    }
+
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+
+                return { TokenKind::SELECTOR_PREFIX, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                while (!separator()) {
+                    collect(tokenValue);
+                }
+
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '$') {
+            collect(tokenValue);
+
+            if (mode == LexerMode::INTERPOLATION_BEGIN && peek() == '(') {
+                collect(tokenValue);
+
+                parenthesisCounterStack.push(parenthesisCounter);
+                parenthesisCounter = 1;
+                mode = LexerMode::DEFAULT;
+
+                return { TokenKind::INTERPOLATION_START, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            } else {
+                while (!separator()) {
+                    collect(tokenValue);
+                }
+
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+        } else if (peek() == '\'') {
+            collect(tokenValue);
+
+            bool error = false;
+            int charCount = 0;
+            std::string_view escapeChars = "0bfnrst\\\"'";
+
+            while (true) {
+                if (eof() || newline() || peek() == '\r') {
+                    return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+                }
+
+                if (peek() == '\\') {
+                    collect(tokenValue);
+
+                    if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
+                        error = true;
+                    }
+
+                    collect(tokenValue);
+                    charCount++;
+                    continue;
+                }
+
+                if (peek() == '\'') {
+                    collect(tokenValue);
+                    break;
+                }
+
+                collect(tokenValue);
+                charCount++;
+            }
+
+            error |= (charCount != 1);
+
+            if (error) {
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+
+            return { TokenKind::CHAR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (peek() == '"') {
+            collect(tokenValue);
+            mode = LexerMode::STRING;
+            return scanStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
+        } else {
+            collect(tokenValue);
+
+            while (!separator()) {
+                collect(tokenValue);
+            }
+
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        }
+    }
+
+    Token Lexer::scanTokenStartsWithNewline(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        collect(tokenValue);
+        return { TokenKind::NEWLINE, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanTokenStartsWithEof(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        advance();
+        return { TokenKind::END_OF_FILE, "", currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanTokenStartsWithIdentifier(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        bool error = false;
+
+        if ((peek() == 'f' || peek() == 'F') && peek(1) == '"') {
+            collect(tokenValue);
+            collect(tokenValue);
+
+            mode = LexerMode::FORMAT_STRING;
+            return scanFormatStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
+        }
+
+        if ((peek() == 'r' || peek() == 'R') && peek(1) == '"') {
+            collect(tokenValue);
+            collect(tokenValue);
+
+            mode = LexerMode::RAW_STRING;
+            return scanRawStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
+        }
+
+        while (!eof() && !blank() && !special() && !newline()) {
+            char ch = static_cast<char>(peek());
+
+            bool isNumber = (ch >= '0' && ch <= '9');
+            bool isUpperCase = (ch >= 'A' && ch <= 'Z');
+            bool isLowerCase = (ch >= 'a' && ch <= 'z');
+            bool isUnderline = (ch == '_');
+
+            if (!(isNumber || isUpperCase || isLowerCase || isUnderline)) {
+                collect(tokenValue);
+                error = true;
+                break;
+            }
+
+            collect(tokenValue);
+        }
+
+        if (error) {
+            while (!separator()) {
+                collect(tokenValue);
+            }
+
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else if (auto keyword = getKeywords().find(tokenValue); keyword != getKeywords().end()) {
+            return { keyword->second, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        } else {
+            return { TokenKind::IDENTIFIER, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        }
+    }
+
+    Token Lexer::scanStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        bool error = false;
+        std::string_view escapeChars = "bfnrst\\\"'";
+
+        while (true) {
+            if (eof() || newline()) {
+                mode = LexerMode::DEFAULT;
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+
+            if (peek() == '\\') {
+                collect(tokenValue);
+
+                if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
+                    error = true;
+                }
+
+                collect(tokenValue);
+                continue;
+            }
+
+            if (peek() == '"') {
+                collect(tokenValue);
+                break;
+            }
+
+            collect(tokenValue);
+        }
+
+        mode = LexerMode::DEFAULT;
+
+        if (error) {
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        }
+
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanFormatStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        bool error = false;
+        std::string_view escapeChars = "bfnrst\\\"'$";
+
+        while (true) {
+            if (eof() || newline()) {
+                mode = LexerMode::DEFAULT;
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+
+            if (peek() == '\\') {
+                collect(tokenValue);
+
+                if (escapeChars.find(static_cast<char>(peek())) == std::string_view::npos) {
+                    error = true;
+                }
+
+                collect(tokenValue);
+                continue;
+            }
+
+            if (peek() == '"') {
+                collect(tokenValue);
+                mode = LexerMode::DEFAULT;
+                break;
+            }
+
+            if (peek() == '$' && peek(1) == '(') {
+                mode = LexerMode::INTERPOLATION_BEGIN;
+                break;
+            }
+
+            collect(tokenValue);
+        }
+
+        if (error) {
+            return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+        }
+
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::scanRawStringLiteral(std::string& tokenValue, std::size_t currentLine, std::size_t currentColumn, std::size_t currentOffset) {
+        while (true) {
+            if (eof() || newline()) {
+                mode = LexerMode::DEFAULT;
+                return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+            }
+
+            if (peek() == '"') {
+                collect(tokenValue);
+                break;
+            }
+
+            collect(tokenValue);
+        }
+
+        mode = LexerMode::DEFAULT;
+        return { TokenKind::STRING, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+
+    Token Lexer::next() {
+        if (!hasNext()) {
+            throw OutOfRangeError("No more tokens to read.");
+        }
+
+        std::string tokenValue;
+        std::size_t currentOffset = offset;
+        std::size_t currentLine = line;
+        std::size_t currentColumn = column;
+
+        if (mode == LexerMode::FORMAT_STRING) {
+            return scanFormatStringLiteral(tokenValue, currentLine, currentColumn, currentOffset);
+        } else {
+            if (eof()) {
+                return scanTokenStartsWithEof(tokenValue, currentLine, currentColumn, currentOffset);
+            } else if (blank()) {
+                return scanTokenStartsWithBlank(tokenValue, currentLine, currentColumn, currentOffset);
+            } else if (newline()) {
+                return scanTokenStartsWithNewline(tokenValue, currentLine, currentColumn, currentOffset);
+            } else if (special()) {
+                return scanTokenStartsWithSpecial(tokenValue, currentLine, currentColumn, currentOffset);
+            } else if (number()) {
+                return scanTokenStartsWithNumber(tokenValue, currentLine, currentColumn, currentOffset);
+            } else {
+                return scanTokenStartsWithIdentifier(tokenValue, currentLine, currentColumn, currentOffset);
+            }
+        }
+
+        return { TokenKind::LEXICAL_ERROR, std::move(tokenValue), currentLine, currentColumn, currentOffset };
+    }
+} // namespace vnlc

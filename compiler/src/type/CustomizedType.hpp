@@ -1,0 +1,36 @@
+#pragma once
+
+#include "ast/declaration/TypeDeclarationNode.hpp"
+#include "type/CustomizedTypeKind.hpp"
+#include "type/CustomizedTypeOrigin.hpp"
+#include "type/Type.hpp"
+#include "vni/import/ImportedIdentifier.hpp"
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace vnlc {
+    class CustomizedType : public Type {
+    private:
+        CustomizedTypeKind customizedKind;
+        CustomizedTypeOrigin origin;
+        std::string fullTypeName;
+        std::vector<const Type*> genericArguments;
+
+        const TypeDeclarationNode* localNode;
+        const ImportedIdentifier* importedNode;
+
+    public:
+        CustomizedType(CustomizedTypeKind customizedKind, std::string_view fullTypeName, std::vector<const Type*>&& genericArguments, const TypeDeclarationNode* localNode);
+        CustomizedType(CustomizedTypeKind customizedKind, std::string_view fullTypeName, std::vector<const Type*>&& genericArguments, const ImportedIdentifier* importedNode);
+
+        [[nodiscard]] std::string_view getFullTypeName() const noexcept override;
+        [[nodiscard]] bool canConvertTo(const Type& other) const noexcept override;
+        [[nodiscard]] std::vector<const Type*> getGenericArguments() const noexcept;
+        [[nodiscard]] CustomizedTypeKind getCustomizedKind() const noexcept;
+        [[nodiscard]] CustomizedTypeOrigin getOrigin() const noexcept;
+
+        [[nodiscard]] const TypeDeclarationNode* getLocalNode() const noexcept;
+        [[nodiscard]] const ImportedIdentifier* getImportedNode() const noexcept;
+    };
+} // namespace vnlc

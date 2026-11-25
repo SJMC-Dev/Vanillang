@@ -1,0 +1,126 @@
+#include "OperatorDeclarationNode.hpp"
+
+namespace vnlc {
+    OperatorDeclarationNode::OperatorDeclarationNode(
+        OperatorDeclarationKind::Kind kind,
+        OperatorDeclarationKind::Implementation implementation,
+        OperatorDeclarationKind::Context context,
+        OperatorDeclarationKind::AccessModifier accessModifier,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
+        std::unique_ptr<TypeAnnotationNode>&& returnType,
+        std::unique_ptr<BlockStatementNode>&& body,
+        const Token& firstToken,
+        const Token& lastToken
+    )
+        : DeclarationNode(firstToken, lastToken),
+          kind(kind),
+          implementation(implementation),
+          context(context),
+          accessModifier(accessModifier),
+          parameters(std::move(parameters)),
+          returnType(std::move(returnType)),
+          body(std::move(body)),
+          internalName("") {}
+
+    OperatorDeclarationNode::OperatorDeclarationNode(
+        OperatorDeclarationKind::Kind kind,
+        OperatorDeclarationKind::Implementation implementation,
+        OperatorDeclarationKind::Context context,
+        OperatorDeclarationKind::AccessModifier accessModifier,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
+        std::unique_ptr<TypeAnnotationNode>&& returnType,
+        std::unique_ptr<BlockStatementNode>&& body,
+        const Token& firstToken,
+        const Token& lastToken,
+        std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+    )
+        : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+          kind(kind),
+          implementation(implementation),
+          context(context),
+          accessModifier(accessModifier),
+          parameters(std::move(parameters)),
+          returnType(std::move(returnType)),
+          body(std::move(body)),
+          internalName("") {}
+
+    OperatorDeclarationKind::Kind OperatorDeclarationNode::getKind() const noexcept {
+        return kind;
+    }
+
+    OperatorDeclarationKind::Implementation OperatorDeclarationNode::getImplementation() const noexcept {
+        return implementation;
+    }
+
+    OperatorDeclarationKind::Context OperatorDeclarationNode::getContext() const noexcept {
+        return context;
+    }
+
+    OperatorDeclarationKind::AccessModifier OperatorDeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
+
+    std::string_view OperatorDeclarationNode::getInternalName() const noexcept {
+        return internalName;
+    }
+
+    std::string_view OperatorDeclarationNode::getOperatorName() const noexcept {
+        switch (kind) {
+            case OperatorDeclarationKind::Kind::ADDITION:
+                return "addition";
+            case OperatorDeclarationKind::Kind::SUBTRACTION:
+                return "subtraction";
+            case OperatorDeclarationKind::Kind::MULTIPLICATION:
+                return "multiplication";
+            case OperatorDeclarationKind::Kind::DIVISION:
+                return "division";
+            case OperatorDeclarationKind::Kind::INTEGER_DIVISION:
+                return "integerDivision";
+            case OperatorDeclarationKind::Kind::MODULO:
+                return "modulo";
+            case OperatorDeclarationKind::Kind::EXPONENT:
+                return "exponent";
+            case OperatorDeclarationKind::Kind::EQUAL:
+                return "equality";
+            case OperatorDeclarationKind::Kind::COMPARISON:
+                return "comparison";
+            case OperatorDeclarationKind::Kind::BITWISE_AND:
+                return "bitwiseAnd";
+            case OperatorDeclarationKind::Kind::BITWISE_OR:
+                return "bitwiseOr";
+            case OperatorDeclarationKind::Kind::BITWISE_XOR:
+                return "bitwiseXor";
+            case OperatorDeclarationKind::Kind::BITWISE_NOT:
+                return "bitwiseNot";
+            case OperatorDeclarationKind::Kind::SHIFT_LEFT:
+                return "shiftLeft";
+            case OperatorDeclarationKind::Kind::SHIFT_RIGHT:
+                return "shiftRight";
+            case OperatorDeclarationKind::Kind::SHIFT_RIGHT_UNSIGNED:
+                return "unsignedShiftRight";
+            case OperatorDeclarationKind::Kind::CALL:
+                return "call";
+            case OperatorDeclarationKind::Kind::SUBSCRIPT:
+                return "subscript";
+            case OperatorDeclarationKind::Kind::RANGE:
+                return "range";
+        }
+        return {};
+    }
+
+    const std::vector<std::unique_ptr<ValueDeclarationNode>>& OperatorDeclarationNode::getParameters() const noexcept {
+        return parameters;
+    }
+
+    const TypeAnnotationNode* OperatorDeclarationNode::getReturnType() const noexcept {
+        return returnType.get();
+    }
+
+    const BlockStatementNode* OperatorDeclarationNode::getBody() const noexcept {
+        return body.get();
+    }
+
+    void OperatorDeclarationNode::setInternalName(std::string_view internalName) const {
+        this->internalName = std::string(internalName);
+    }
+} // namespace vnlc

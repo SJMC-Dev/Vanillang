@@ -1,0 +1,39 @@
+#pragma once
+
+#include "ast/declaration/ValueDeclarationNode.hpp"
+#include "ast/expression/ExpressionNode.hpp"
+#include "ast/statement/LoopStatementNode.hpp"
+#include <memory>
+
+namespace vnlc {
+    class ForStatementNode : public LoopStatementNode {
+    private:
+        std::unique_ptr<ValueDeclarationNode> loopVariable;
+        std::unique_ptr<ExpressionNode> iterableExpression;
+        std::unique_ptr<StatementNode> body;
+
+    public:
+        ForStatementNode() = delete;
+
+        ForStatementNode(
+            std::unique_ptr<ValueDeclarationNode>&& loopVariable,
+            std::unique_ptr<ExpressionNode>&& iterableExpression,
+            std::unique_ptr<StatementNode>&& body,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        ForStatementNode(
+            std::unique_ptr<IdentifierNode>&& label,
+            std::unique_ptr<ValueDeclarationNode>&& loopVariable,
+            std::unique_ptr<ExpressionNode>&& iterableExpression,
+            std::unique_ptr<StatementNode>&& body,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        [[nodiscard]] const ValueDeclarationNode& getLoopVariable() const noexcept;
+        [[nodiscard]] const ExpressionNode& getIterableExpression() const noexcept;
+        [[nodiscard]] const StatementNode& getBody() const noexcept;
+    };
+} // namespace vnlc

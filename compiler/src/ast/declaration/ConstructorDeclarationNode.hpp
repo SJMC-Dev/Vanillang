@@ -1,0 +1,47 @@
+#pragma once
+
+#include "ast/declaration/ConstructorDeclarationKind.hpp"
+#include "ast/declaration/DeclarationNode.hpp"
+#include "ast/declaration/ValueDeclarationNode.hpp"
+#include "ast/statement/BlockStatementNode.hpp"
+#include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace vnlc {
+    class ConstructorDeclarationNode : public DeclarationNode {
+    private:
+        mutable std::string internalName;
+        ConstructorDeclarationKind::AccessModifier accessModifier;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
+        std::unique_ptr<BlockStatementNode> body;
+
+    public:
+        ConstructorDeclarationNode() = delete;
+
+        ConstructorDeclarationNode(
+            ConstructorDeclarationKind::AccessModifier accessModifier,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
+            std::unique_ptr<BlockStatementNode>&& body,
+            const Token& firstToken,
+            const Token& lastToken
+        );
+
+        ConstructorDeclarationNode(
+            ConstructorDeclarationKind::AccessModifier accessModifier,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& parameters,
+            std::unique_ptr<BlockStatementNode>&& body,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        );
+
+        [[nodiscard]] std::string_view getInternalName() const noexcept;
+        [[nodiscard]] ConstructorDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
+        [[nodiscard]] const BlockStatementNode& getBody() const noexcept;
+
+        void setInternalName(std::string_view internalName) const;
+    };
+} // namespace vnlc

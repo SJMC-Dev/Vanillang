@@ -1,0 +1,180 @@
+#pragma once
+
+#include <cstdint>
+
+namespace vnlc {
+    enum class TokenKind : std::uint8_t {
+        IDENTIFIER,
+
+        NUMBER,
+        CHAR,
+        STRING,
+
+        VAR,
+        LET,
+        CONST_KEYWORD,
+
+        BYTE_TYPE,
+        UBYTE_TYPE,
+        SHORT_TYPE,
+        USHORT_TYPE,
+        INT_TYPE,
+        UINT_TYPE,
+        LONG_TYPE,
+        ULONG_TYPE,
+        FLOAT_TYPE,
+        DOUBLE_TYPE,
+        BOOL_TYPE,
+
+        FUNC,
+        INIT,
+        OP,
+        RETURN,
+        IF,
+        ELSE,
+        FOR,
+        WHILE,
+        LABEL,
+        BREAK,
+        CONTINUE,
+        SWITCH,
+        CASE,
+        DEFAULT,
+        WHEN,
+        CONTEXT,
+        VOID_KEYWORD,
+        NATIVE,
+        CALLEE,
+        IN_KEYWORD,
+        RELOAD,
+
+        CLASS,
+        INTERFACE,
+        ABSTRACT,
+        TYPE,
+        ENUM,
+        RECORD,
+        EXTENDS,
+        IMPLEMENTS,
+        THIS,
+        SUPER,
+        PRIVATE,
+        PROTECTED,
+        PUBLIC,
+        STATIC,
+        INSTANCEOF,
+        FINAL,
+        OVERRIDE,
+        NONE,
+
+        TRUE_LITERAL,
+        FALSE_LITERAL,
+
+        IMPORT,
+        EXPORT,
+        AS,
+        MODULE,
+        PARENT,
+        SELF,
+
+        LAMBDA,
+        COMMAND,
+        ASYNC,
+        AWAIT,
+        GENERATOR,
+        YIELD,
+        FROM,
+        DECORATOR,
+        DECORATE,
+        PANIC,
+        ASSERT,
+        TYPEOF,
+        DEFER,
+
+        ASSET,
+        DEFINE,
+
+        METADATA,
+
+        PLUS,                  // +
+        MINUS,                 // -
+        ASTERISK,              // *
+        SLASH,                 // /
+        DOUBLE_SLASH,          // //
+        PERCENT,               // %
+        DOUBLE_ASTERISK,       // **
+        PLUS_EQUAL,            // +=
+        MINUS_EQUAL,           // -=
+        ASTERISK_EQUAL,        // *=
+        SLASH_EQUAL,           // /=
+        DOUBLE_SLASH_EQUAL,    // //=
+        PERCENT_EQUAL,         // %=
+        DOUBLE_ASTERISK_EQUAL, // **=
+
+        EQUAL,                 // =
+        DOUBLE_QUESTION_EQUAL, // ??=
+
+        DOUBLE_EQUAL,                 // ==
+        TRIPLE_EQUAL,                 // ===
+        EXCLAMATION_EQUAL,            // !=
+        EXCLAMATION_DOUBLE_EQUAL,     // !==
+        RIGHT_ANGLE,                  // >
+        RIGHT_ANGLE_EQUAL,            // >=
+        LEFT_ANGLE,                   // <
+        LEFT_ANGLE_EQUAL,             // <=
+        LEFT_ANGLE_EQUAL_RIGHT_ANGLE, // <=>
+
+        DOUBLE_AMPERSAND, // &&
+        DOUBLE_PIPE,      // ||
+        DOUBLE_QUESTION,  // ??
+        EXCLAMATION,      // !
+
+        ARROW, // ->
+
+        AMPERSAND,                // &
+        PIPE,                     // |
+        CARET,                    // ^
+        TILDE,                    // ~
+        DOUBLE_LEFT_ANGLE,        // <<
+        DOUBLE_RIGHT_ANGLE,       // >>
+        TRIPLE_RIGHT_ANGLE,       // >>>
+        AMPERSAND_EQUAL,          // &=
+        PIPE_EQUAL,               // |=
+        CARET_EQUAL,              // ^=
+        DOUBLE_LEFT_ANGLE_EQUAL,  // <<=
+        DOUBLE_RIGHT_ANGLE_EQUAL, // >>=
+        TRIPLE_RIGHT_ANGLE_EQUAL, // >>>=
+
+        DOT,             // .
+        COMMA,           // ,
+        SEMICOLON,       // ;
+        COLON,           // :
+        DOUBLE_COLON,    // ::
+        QUESTION,        // ?
+        QUESTION_DOT,    // ?.
+        EXCLAMATION_DOT, // !.
+        DOUBLE_DOT,      // ..
+        TRIPLE_DOT,      // ...
+
+        LEFT_PARENTHESIS,  // (
+        RIGHT_PARENTHESIS, // )
+        LEFT_BRACE,        // {
+        RIGHT_BRACE,       // }
+        LEFT_BRACKET,      // [
+        RIGHT_BRACKET,     // ]
+
+        SELECTOR_PREFIX, // @p, @r, @a, @e, @s, @n
+
+        INTERPOLATION_START, // $(
+
+        SINGLE_LINE_COMMENT, // # comment
+        MULTI_LINE_COMMENT,  // #* comment *#
+
+        BLANK,
+        NEWLINE,
+
+        LEXICAL_ERROR,
+
+        END_OF_FILE,
+    };
+}

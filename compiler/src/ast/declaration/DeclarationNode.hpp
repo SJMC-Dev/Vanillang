@@ -1,0 +1,23 @@
+#pragma once
+
+#include "ast/AstNode.hpp"
+#include "ast/declaration/DeclarationItem.hpp"
+#include <vector>
+
+namespace vnlc {
+    class DeclarationNode : public AstNode {
+    private:
+        bool includeMetadata;
+        std::vector<DeclarationItem::MetadataTerm> metadataTerms;
+
+    protected:
+        DeclarationNode(const Token& firstToken, const Token& lastToken);
+        DeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<DeclarationItem::MetadataTerm>&& metadataTerms) noexcept;
+
+    public:
+        DeclarationNode() = delete;
+
+        [[nodiscard]] bool doesIncludeMetadata() const noexcept;
+        [[nodiscard]] const std::vector<DeclarationItem::MetadataTerm>& getMetadataTerms() const noexcept;
+    };
+} // namespace vnlc

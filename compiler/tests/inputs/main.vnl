@@ -1,0 +1,133 @@
+#*
+    This demonstration file is intended solely
+    for testing the compiler and does not represent
+    the actual design of the standard library.
+*#
+
+import vanillang.std.{
+    self,
+    *,
+    VnlEntity as Entity,
+    Random
+}
+
+class Vec3<T> {
+    x: int
+    y: int
+    z: int
+}
+
+interface Movable<T> {
+    func move(targetPos: Vec3<T>) -> void
+}
+
+# the class of player
+metadata(gameversion "1.20.4..26.1.2")
+class VnlPlayer extends Entity implements Movable<Entity> {
+    private name: String
+    private health: int
+
+    static entityType: String = "player"
+
+    init() {
+        super.init()
+        # implement the letructor
+    }
+
+    func getName() -> String {
+        return this.name
+    }
+
+    func getHealth() -> int {
+        return this.health
+    }
+}
+
+let foo = 1
+let bar1 = [I; buz, qux]
+let bar2 = [a, b, c]
+let bar3 = [d]
+let bar4 = [1, 2, 3]
+let bar5 = [B;]
+
+let text: Dict = {
+    text: "test",
+    color: "gold",
+    bold: true
+}
+
+native func setWeatherToClear() -> void
+
+func onLoad() {
+    let vec = Vec3<int>(0, 0, 0)
+
+    let entity: Entity = @n[tag="candidate"]
+    switch (entity) {
+        case VnlPlayer when entity.getHealth() >= 10 -> world.print("1", entity)
+        case VnlPlayer -> { world.print("2", entity) }
+        default -> {
+            world.print("error: found non-player candidate", @a)
+            reload
+        }
+    }
+
+    let rand = Random.randint(0..4)
+    switch (rand) {
+        case 1 -> { world.print(1, @p) }
+        case 2 -> {
+            world.print(add(2, 2), @a)
+        }
+        default -> {
+            return
+        }
+    }
+
+    let noneVariable: int? = none
+
+    for (let player in @a) {
+        world.print(f"Welcome $(player.getName()) to this world!", @a)
+    }
+
+    while (Random.randint(0..10) % 2 == 0) {
+        world.showActionbar("even", @a)
+    }
+
+    world.showActionbar(add(Random.randint(), Random.randint()), @r, context={ as: @r, at: @p })
+
+    world.print("Hello, Vanillang!", @a)
+    world.print(Player.entityType)
+    return
+}
+
+func onTick() {
+    let worldTime = world.getCurrentWorldTime()
+
+    if (worldTime % 24000 == 0) {
+        world.print(f"A new day begins. Today is Day $(worldTime // 24000)", @a)
+    }
+
+    setWeatherToClear(context={ as: @r })
+
+    label outer
+    for (let i in 1..5) {
+        for (let j in 1..i) {
+            continue outer
+        }
+    }
+
+    f1()
+    (x + y).f2()
+
+    f1()(
+        x + y,
+        z
+    ).f2()
+}
+
+func add(a: int, b: int) -> int {
+    return a + b
+}
+
+func refEqual(a: Vec3<int>, b: Vec3<int>) -> bool {
+    return a === b
+}

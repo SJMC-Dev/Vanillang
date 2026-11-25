@@ -1,0 +1,68 @@
+#pragma once
+
+#include "ast/declaration/FunctionDeclarationNode.hpp"
+#include "ast/declaration/OperatorDeclarationNode.hpp"
+#include "ast/declaration/TypeDeclarationKind.hpp"
+#include "ast/declaration/TypeDeclarationNode.hpp"
+#include <memory>
+#include <vector>
+
+namespace vnlc {
+    class InterfaceDeclarationNode : public TypeDeclarationNode {
+    private:
+        TypeDeclarationKind::AccessModifier accessModifier;
+        std::unique_ptr<IdentifierNode> name;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameterNames;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<OperatorDeclarationNode>> operators;
+
+    public:
+        InterfaceDeclarationNode() = delete;
+
+        InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operators,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        InterfaceDeclarationNode(
+            TypeDeclarationKind::AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameterNames,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<OperatorDeclarationNode>>&& operators,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<DeclarationItem::MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        [[nodiscard]] TypeDeclarationKind::AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameterNames() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<OperatorDeclarationNode>>& getOperatorDeclarations() const noexcept;
+    };
+} // namespace vnlc

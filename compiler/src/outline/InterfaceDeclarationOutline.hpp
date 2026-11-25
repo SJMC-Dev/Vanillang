@@ -1,0 +1,19 @@
+#pragma once
+
+#include "outline/TypeDeclarationOutline.hpp"
+#include <string>
+#include <string_view>
+
+namespace vnlc {
+    class InterfaceDeclarationOutline : public TypeDeclarationOutline {
+    private:
+        std::string name;
+
+    public:
+        InterfaceDeclarationOutline() = delete;
+
+        InterfaceDeclarationOutline(std::string&& name, const Token& firstToken, const Token& lastToken) noexcept;
+
+        [[nodiscard]] std::string_view getName() const noexcept;
+    };
+} // namespace vnlc

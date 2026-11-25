@@ -1,0 +1,19 @@
+#pragma once
+
+#include <exception>
+#include <string>
+#include <string_view>
+
+namespace vnlc {
+    class Error : public std::exception {
+    private:
+        std::string message;
+
+    public:
+        Error(std::string_view message) : message(message) {}
+
+        [[nodiscard]] const char* what() const noexcept override {
+            return message.c_str();
+        }
+    };
+} // namespace vnlc

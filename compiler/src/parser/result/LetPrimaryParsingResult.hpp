@@ -1,0 +1,14 @@
+#pragma once
+
+#include "ast/declaration/ValueDeclarationKind.hpp"
+#include "ast/identifier/IdentifierNode.hpp"
+#include "ast/typeannotation/TypeAnnotationNode.hpp"
+#include <memory>
+
+namespace vnlc {
+    struct LetPrimaryParsingResult {
+        ValueDeclarationKind::Kind kind;
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> type; // nullptr if no type annotation
+    };
+} // namespace vnlc
