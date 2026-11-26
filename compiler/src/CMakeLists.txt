@@ -1,7 +1,5 @@
 add_executable(
     vnlc
-    main.cpp
-    app/App.cpp
     lexer/Lexer.cpp
     log/Logger.cpp
     session/Session.cpp
