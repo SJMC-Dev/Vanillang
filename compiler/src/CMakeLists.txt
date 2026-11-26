@@ -7,7 +7,6 @@ add_executable(
     session/Session.cpp
     token/Token.cpp
     config/RunningModeUtil.cpp
-    token/TokenKindUtil.cpp
     ast/AstNode.cpp
     ast/module/ModuleNode.cpp
     ast/expression/BinaryExpressionNode.cpp
@@ -109,7 +108,6 @@ add_executable(
     vni/export/ModuleInterfaceFileGenerator.cpp
     utils/Utils.cpp
     vni/import/ImportedRootPackageMap.cpp
-    token/TokenStream.cpp
     ast/typeannotation/VoidTypeAnnotationNode.cpp
     type/VoidType.cpp
 )

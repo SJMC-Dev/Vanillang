@@ -65,10 +65,8 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
-    ${PROJECT_SOURCE_DIR}/src/token/TokenStream.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/ParseResult.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
-    ${PROJECT_SOURCE_DIR}/src/token/TokenKindUtil.cpp
     ${AST_FILES}
     ${VNI_IMPORT_FILES}
     ${OUTLINE_FILES}
@@ -82,7 +80,6 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
-    ${PROJECT_SOURCE_DIR}/src/token/TokenStream.cpp
     ${VNI_IMPORT_FILES}
     ${OUTLINE_FILES}
     ${COLLECTOR_FILES}
@@ -95,10 +92,8 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/diagnostic/Diagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/lexer/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/token/Token.cpp
-    ${PROJECT_SOURCE_DIR}/src/token/TokenStream.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/ParseResult.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
-    ${PROJECT_SOURCE_DIR}/src/token/TokenKindUtil.cpp
     ${INHERITANCE_FILES}
     ${AST_FILES}
     ${SEMANTIC_FILES}
