@@ -1,5 +1,6 @@
 #include "Lexer.hpp"
 #include "error/OutOfRangeError.hpp"
+#include "token/Token.hpp"
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -762,5 +763,15 @@ namespace vnlc {
         }
 
         return { TokenKind::LEXICAL_ERROR, value(), lastLine, lastColumn, lastOffset };
+    }
+
+    Tokens Lexer::scan() {
+        Tokens tokens{};
+
+        while(hasNext()) {
+            tokens.emplace_back(next());
+        }
+
+        return tokens;
     }
 } // namespace vnlc
