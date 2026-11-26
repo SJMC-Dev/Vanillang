@@ -76,6 +76,7 @@ Vanillang 关键字具有特殊用途，不可作用标识符，下面的表格�
 | `hasop`      | 表示泛型必须对某个运算符可用                             | `where T hasop <=>(T) -> Ordering?`                                                     |
 | `notnone`    | 表示泛型类型非空，即不能是 `vanillang.types.Optional<T>` | `where T notnone`                                                                       |
 | `void`       | 表示函数没有返回值                                       | `func onLoad() -> void`                                                                 |
+| `any`        | 表示任意非空类型                                         | `op [](index: int) -> any?`                                                             |
 
 ## 字面量关键字
 
