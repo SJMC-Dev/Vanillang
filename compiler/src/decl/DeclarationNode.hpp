@@ -329,6 +329,60 @@ namespace vnlc {
         [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
+    class OpaqueDeclarationNode : public TypeDeclarationNode {
+    private:
+        AccessModifier accessModifier;
+
+        std::unique_ptr<IdentifierNode> name;
+        std::unique_ptr<TypeAnnotationNode> baseOpaqueType;                     // nullptr if no base type
+        std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces; // empty if no implemented interfaces
+
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> operators;
+
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
+        std::vector<GenericConstraintTerm> genericConstraints;
+
+    public:
+        OpaqueDeclarationNode() = delete;
+
+        OpaqueDeclarationNode(
+            AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::unique_ptr<TypeAnnotationNode>&& baseOpaqueType,
+            std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::vector<GenericConstraintTerm>&& genericConstraints,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        OpaqueDeclarationNode(
+            AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            std::unique_ptr<TypeAnnotationNode>&& baseOpaqueType,
+            std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::vector<GenericConstraintTerm>&& genericConstraints,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<MetadataTerm>&& metadataTerms
+        ) noexcept;
+
+        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
+        [[nodiscard]] const TypeAnnotationNode* getBaseOpaqueType() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getImplementedInterfaces() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getOperators() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
+        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
+    };
+
     class TypeAliasDeclarationNode : public TypeDeclarationNode {
     private:
         AccessModifier accessModifier;
@@ -345,7 +399,6 @@ namespace vnlc {
         TypeAliasDeclarationNode(
             AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& aliasName,
-
             std::unique_ptr<TypeAnnotationNode>&& originalType,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,

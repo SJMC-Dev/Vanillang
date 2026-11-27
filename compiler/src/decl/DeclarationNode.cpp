@@ -428,6 +428,83 @@ namespace vnlc {
         return genericConstraints;
     }
 
+    OpaqueDeclarationNode::OpaqueDeclarationNode(
+        AccessModifier accessModifier,
+        std::unique_ptr<IdentifierNode>&& name,
+        std::unique_ptr<TypeAnnotationNode>&& baseOpaqueType,
+        std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
+        std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+        std::vector<GenericConstraintTerm>&& genericConstraints,
+        const Token& firstToken,
+        const Token& lastToken
+    ) noexcept
+        : TypeDeclarationNode(firstToken, lastToken),
+          accessModifier(accessModifier),
+          name(std::move(name)),
+          baseOpaqueType(std::move(baseOpaqueType)),
+          implementedInterfaces(std::move(implementedInterfaces)),
+          methods(std::move(methods)),
+          operators(std::move(operators)),
+          genericParameters(std::move(genericParameters)),
+          genericConstraints(std::move(genericConstraints)) {}
+
+    OpaqueDeclarationNode::OpaqueDeclarationNode(
+        AccessModifier accessModifier,
+        std::unique_ptr<IdentifierNode>&& name,
+        std::unique_ptr<TypeAnnotationNode>&& baseOpaqueType,
+        std::vector<std::unique_ptr<TypeAnnotationNode>>&& implementedInterfaces,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
+        std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+        std::vector<GenericConstraintTerm>&& genericConstraints,
+        const Token& firstToken,
+        const Token& lastToken,
+        std::vector<MetadataTerm>&& metadataTerms
+    ) noexcept
+        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+          accessModifier(accessModifier),
+          name(std::move(name)),
+          baseOpaqueType(std::move(baseOpaqueType)),
+          implementedInterfaces(std::move(implementedInterfaces)),
+          methods(std::move(methods)),
+          operators(std::move(operators)),
+          genericParameters(std::move(genericParameters)),
+          genericConstraints(std::move(genericConstraints)) {}
+
+    AccessModifier OpaqueDeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
+
+    const IdentifierNode& OpaqueDeclarationNode::getName() const noexcept {
+        return *name;
+    }
+
+    const TypeAnnotationNode* OpaqueDeclarationNode::getBaseOpaqueType() const noexcept {
+        return baseOpaqueType.get();
+    }
+
+    const std::vector<std::unique_ptr<TypeAnnotationNode>>& OpaqueDeclarationNode::getImplementedInterfaces() const noexcept {
+        return implementedInterfaces;
+    }
+
+    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& OpaqueDeclarationNode::getMethods() const noexcept {
+        return methods;
+    }
+
+    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& OpaqueDeclarationNode::getOperators() const noexcept {
+        return operators;
+    }
+
+    const std::vector<std::unique_ptr<IdentifierNode>>& OpaqueDeclarationNode::getGenericParameters() const noexcept {
+        return genericParameters;
+    }
+
+    const std::vector<GenericConstraintTerm>& OpaqueDeclarationNode::getGenericConstraints() const noexcept {
+        return genericConstraints;
+    }
+
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& aliasName,
