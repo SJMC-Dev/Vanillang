@@ -507,7 +507,7 @@ namespace vnlc {
 
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
         AccessModifier accessModifier,
-        std::unique_ptr<IdentifierNode>&& aliasName,
+        std::unique_ptr<IdentifierNode>&& name,
         std::unique_ptr<TypeAnnotationNode>&& originalType,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
@@ -516,14 +516,14 @@ namespace vnlc {
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken),
           accessModifier(accessModifier),
-          aliasName(std::move(aliasName)),
+          name(std::move(name)),
           originalType(std::move(originalType)),
           genericParameters(std::move(genericParameters)),
           genericConstraints(std::move(genericConstraints)) {}
 
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
         AccessModifier accessModifier,
-        std::unique_ptr<IdentifierNode>&& aliasName,
+        std::unique_ptr<IdentifierNode>&& name,
         std::unique_ptr<TypeAnnotationNode>&& originalType,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
@@ -533,7 +533,7 @@ namespace vnlc {
     ) noexcept
         : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
           accessModifier(accessModifier),
-          aliasName(std::move(aliasName)),
+          name(std::move(name)),
           originalType(std::move(originalType)),
           genericParameters(std::move(genericParameters)),
           genericConstraints(std::move(genericConstraints)) {}
@@ -542,8 +542,8 @@ namespace vnlc {
         return accessModifier;
     }
 
-    const IdentifierNode& TypeAliasDeclarationNode::getAliasName() const noexcept {
-        return *aliasName;
+    const IdentifierNode& TypeAliasDeclarationNode::getName() const noexcept {
+        return *name;
     }
 
     const TypeAnnotationNode& TypeAliasDeclarationNode::getOriginalType() const noexcept {

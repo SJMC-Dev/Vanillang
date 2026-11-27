@@ -387,7 +387,7 @@ namespace vnlc {
     private:
         AccessModifier accessModifier;
 
-        std::unique_ptr<IdentifierNode> aliasName;
+        std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> originalType;
 
         std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
@@ -398,7 +398,7 @@ namespace vnlc {
 
         TypeAliasDeclarationNode(
             AccessModifier accessModifier,
-            std::unique_ptr<IdentifierNode>&& aliasName,
+            std::unique_ptr<IdentifierNode>&& name,
             std::unique_ptr<TypeAnnotationNode>&& originalType,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
@@ -408,7 +408,7 @@ namespace vnlc {
 
         TypeAliasDeclarationNode(
             AccessModifier accessModifier,
-            std::unique_ptr<IdentifierNode>&& aliasName,
+            std::unique_ptr<IdentifierNode>&& name,
             std::unique_ptr<TypeAnnotationNode>&& originalType,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
@@ -418,7 +418,7 @@ namespace vnlc {
         ) noexcept;
 
         [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getAliasName() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeAnnotationNode& getOriginalType() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
         [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
