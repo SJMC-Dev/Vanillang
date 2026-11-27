@@ -2,12 +2,33 @@
 #include "metadata/MetadataTerm.hpp"
 
 namespace vnlc {
-    DeclarationNode::DeclarationNode(const Token& firstToken, const Token& lastToken) : AstNode(firstToken, lastToken), includeMetadata(false), metadataTerms() {}
-
-    DeclarationNode::DeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<MetadataTerm>&& metadataTerms) noexcept
+    DeclarationNode::DeclarationNode(AccessModifier accessModifier, std::unique_ptr<IdentifierNode>&& name, const Token& firstToken, const Token& lastToken) noexcept
         : AstNode(firstToken, lastToken),
+          accessModifier(accessModifier),
+          name(std::move(name)),
+          includeMetadata(false),
+          metadataTerms() {}
+
+    DeclarationNode::DeclarationNode(
+        AccessModifier accessModifier,
+        std::unique_ptr<IdentifierNode>&& name,
+        const Token& firstToken,
+        const Token& lastToken,
+        std::vector<MetadataTerm>&& metadataTerms
+    ) noexcept
+        : AstNode(firstToken, lastToken),
+          accessModifier(accessModifier),
+          name(std::move(name)),
           includeMetadata(true),
           metadataTerms(std::move(metadataTerms)) {}
+
+    AccessModifier DeclarationNode::getAccessModifier() const noexcept {
+        return accessModifier;
+    }
+
+    const IdentifierNode& DeclarationNode::getName() const noexcept {
+        return *name;
+    }
 
     bool DeclarationNode::doesIncludeMetadata() const noexcept {
         return includeMetadata;
@@ -28,11 +49,9 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : DeclarationNode(firstToken, lastToken),
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken),
           kind(kind),
           context(context),
-          accessModifier(accessModifier),
-          name(std::move(name)),
           type(std::move(type)),
           initializer(std::move(initializer)),
           includeTryKeyword(includeTryKeyword) {}
@@ -49,11 +68,9 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           kind(kind),
           context(context),
-          accessModifier(accessModifier),
-          name(std::move(name)),
           type(std::move(type)),
           initializer(std::move(initializer)),
           includeTryKeyword(includeTryKeyword) {}
@@ -64,14 +81,6 @@ namespace vnlc {
 
     Context ValueDeclarationNode::getContext() const noexcept {
         return context;
-    }
-
-    AccessModifier ValueDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
-    const IdentifierNode& ValueDeclarationNode::getName() const noexcept {
-        return *name;
     }
 
     const TypeAnnotationNode* ValueDeclarationNode::getType() const noexcept {
@@ -100,12 +109,10 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : DeclarationNode(firstToken, lastToken),
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken),
           implementation(implementation),
           context(context),
-          accessModifier(accessModifier),
           binding(binding),
-          name(std::move(name)),
           parameters(std::move(parameters)),
           returnType(std::move(returnType)),
           body(std::move(body)),
@@ -127,12 +134,10 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           implementation(implementation),
           context(context),
-          accessModifier(accessModifier),
           binding(binding),
-          name(std::move(name)),
           parameters(std::move(parameters)),
           returnType(std::move(returnType)),
           body(std::move(body)),
@@ -147,16 +152,8 @@ namespace vnlc {
         return context;
     }
 
-    AccessModifier FunctionDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
     FunctionReceiverKind FunctionDeclarationNode::getBinding() const noexcept {
         return binding;
-    }
-
-    const IdentifierNode& FunctionDeclarationNode::getName() const noexcept {
-        return *name;
     }
 
     const std::vector<std::unique_ptr<ValueDeclarationNode>>& FunctionDeclarationNode::getParameters() const noexcept {
@@ -179,10 +176,38 @@ namespace vnlc {
         return genericConstraints;
     }
 
-    TypeDeclarationNode::TypeDeclarationNode(const Token& firstToken, const Token& lastToken) noexcept : DeclarationNode(firstToken, lastToken) {}
+    TypeDeclarationNode::TypeDeclarationNode(
+        std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+        std::vector<GenericConstraintTerm>&& genericConstraints,
+        AccessModifier accessModifier,
+        std::unique_ptr<IdentifierNode>&& name,
+        const Token& firstToken,
+        const Token& lastToken
+    ) noexcept
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken),
+          genericParameters(std::move(genericParameters)),
+          genericConstraints(std::move(genericConstraints)) {}
 
-    TypeDeclarationNode::TypeDeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<MetadataTerm>&& metadataTerms) noexcept
-        : DeclarationNode(firstToken, lastToken, std::move(metadataTerms)) {}
+    TypeDeclarationNode::TypeDeclarationNode(
+        std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+        std::vector<GenericConstraintTerm>&& genericConstraints,
+        AccessModifier accessModifier,
+        std::unique_ptr<IdentifierNode>&& name,
+        const Token& firstToken,
+        const Token& lastToken,
+        std::vector<MetadataTerm>&& metadataTerms
+    ) noexcept
+        : DeclarationNode(accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
+          genericParameters(std::move(genericParameters)),
+          genericConstraints(std::move(genericConstraints)) {}
+
+    const std::vector<std::unique_ptr<IdentifierNode>>& TypeDeclarationNode::getGenericParameters() const noexcept {
+        return genericParameters;
+    }
+
+    const std::vector<GenericConstraintTerm>& TypeDeclarationNode::getGenericConstraints() const noexcept {
+        return genericConstraints;
+    }
 
     ClassDeclarationNode::ClassDeclarationNode(
         AccessModifier accessModifier,
@@ -199,18 +224,14 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          accessModifier(accessModifier),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
           final(final),
-          name(std::move(name)),
           baseClass(std::move(baseClass)),
           implementedInterfaces(std::move(implementedInterfaces)),
           properties(std::move(properties)),
           methods(std::move(methods)),
           constructors(std::move(constructors)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+          operators(std::move(operators)) {}
 
     ClassDeclarationNode::ClassDeclarationNode(
         AccessModifier accessModifier,
@@ -228,29 +249,17 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          accessModifier(accessModifier),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           final(final),
-          name(std::move(name)),
           baseClass(std::move(baseClass)),
           implementedInterfaces(std::move(implementedInterfaces)),
           properties(std::move(properties)),
           methods(std::move(methods)),
           constructors(std::move(constructors)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
-
-    AccessModifier ClassDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
+          operators(std::move(operators)) {}
 
     bool ClassDeclarationNode::isFinal() const noexcept {
         return final;
-    }
-
-    const IdentifierNode& ClassDeclarationNode::getName() const noexcept {
-        return *name;
     }
 
     const TypeAnnotationNode* ClassDeclarationNode::getBaseClass() const noexcept {
@@ -277,14 +286,6 @@ namespace vnlc {
         return operators;
     }
 
-    const std::vector<std::unique_ptr<IdentifierNode>>& ClassDeclarationNode::getGenericParameters() const noexcept {
-        return genericParameters;
-    }
-
-    const std::vector<GenericConstraintTerm>& ClassDeclarationNode::getGenericConstraints() const noexcept {
-        return genericConstraints;
-    }
-
     InterfaceDeclarationNode::InterfaceDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
@@ -295,13 +296,9 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          accessModifier(accessModifier),
-          name(std::move(name)),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
           methods(std::move(methods)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+          operators(std::move(operators)) {}
 
     InterfaceDeclarationNode::InterfaceDeclarationNode(
         AccessModifier accessModifier,
@@ -314,21 +311,9 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          accessModifier(accessModifier),
-          name(std::move(name)),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           methods(std::move(methods)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
-
-    AccessModifier InterfaceDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
-    const IdentifierNode& InterfaceDeclarationNode::getName() const noexcept {
-        return *name;
-    }
+          operators(std::move(operators)) {}
 
     const std::vector<std::unique_ptr<FunctionDeclarationNode>>& InterfaceDeclarationNode::getMethods() const noexcept {
         return methods;
@@ -338,94 +323,56 @@ namespace vnlc {
         return operators;
     }
 
-    const std::vector<std::unique_ptr<IdentifierNode>>& InterfaceDeclarationNode::getGenericParameters() const noexcept {
-        return genericParameters;
-    }
-
-    const std::vector<GenericConstraintTerm>& InterfaceDeclarationNode::getGenericConstraints() const noexcept {
-        return genericConstraints;
-    }
-
-    EnumMemberDeclarationNode::EnumMemberDeclarationNode(
+    EnumMemberNode::EnumMemberNode(
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          name(std::move(name)),
+        : TypeDeclarationNode({}, {}, AccessModifier::PUBLIC, std::move(name), firstToken, lastToken),
           associatedValues(std::move(associatedValues)) {}
 
-    EnumMemberDeclarationNode::EnumMemberDeclarationNode(
+    EnumMemberNode::EnumMemberNode(
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          name(std::move(name)),
+        : TypeDeclarationNode({}, {}, AccessModifier::PUBLIC, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           associatedValues(std::move(associatedValues)) {}
 
-    const IdentifierNode& EnumMemberDeclarationNode::getName() const noexcept {
-        return *name;
-    }
-
-    const std::vector<std::unique_ptr<ValueDeclarationNode>>& EnumMemberDeclarationNode::getAssociatedValues() const noexcept {
+    const std::vector<std::unique_ptr<ValueDeclarationNode>>& EnumMemberNode::getAssociatedValues() const noexcept {
         return associatedValues;
     }
 
     EnumDeclarationNode::EnumDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
-        std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+        std::vector<std::unique_ptr<EnumMemberNode>>&& members,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          accessModifier(accessModifier),
-          name(std::move(name)),
-          memberDeclarations(std::move(memberDeclarations)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
+          members(std::move(members)) {}
 
     EnumDeclarationNode::EnumDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
-        std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+        std::vector<std::unique_ptr<EnumMemberNode>>&& members,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
         const Token& firstToken,
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          accessModifier(accessModifier),
-          name(std::move(name)),
-          memberDeclarations(std::move(memberDeclarations)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
+          members(std::move(members)) {}
 
-    AccessModifier EnumDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
-    const IdentifierNode& EnumDeclarationNode::getName() const noexcept {
-        return *name;
-    }
-
-    const std::vector<std::unique_ptr<EnumMemberDeclarationNode>>& EnumDeclarationNode::getMemberDeclarations() const noexcept {
-        return memberDeclarations;
-    }
-
-    const std::vector<std::unique_ptr<IdentifierNode>>& EnumDeclarationNode::getGenericParameters() const noexcept {
-        return genericParameters;
-    }
-
-    const std::vector<GenericConstraintTerm>& EnumDeclarationNode::getGenericConstraints() const noexcept {
-        return genericConstraints;
+    const std::vector<std::unique_ptr<EnumMemberNode>>& EnumDeclarationNode::getMembers() const noexcept {
+        return members;
     }
 
     OpaqueDeclarationNode::OpaqueDeclarationNode(
@@ -440,15 +387,11 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          accessModifier(accessModifier),
-          name(std::move(name)),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
           baseOpaqueType(std::move(baseOpaqueType)),
           implementedInterfaces(std::move(implementedInterfaces)),
           methods(std::move(methods)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+          operators(std::move(operators)) {}
 
     OpaqueDeclarationNode::OpaqueDeclarationNode(
         AccessModifier accessModifier,
@@ -463,23 +406,11 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          accessModifier(accessModifier),
-          name(std::move(name)),
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
           baseOpaqueType(std::move(baseOpaqueType)),
           implementedInterfaces(std::move(implementedInterfaces)),
           methods(std::move(methods)),
-          operators(std::move(operators)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
-
-    AccessModifier OpaqueDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
-    const IdentifierNode& OpaqueDeclarationNode::getName() const noexcept {
-        return *name;
-    }
+          operators(std::move(operators)) {}
 
     const TypeAnnotationNode* OpaqueDeclarationNode::getBaseOpaqueType() const noexcept {
         return baseOpaqueType.get();
@@ -497,14 +428,6 @@ namespace vnlc {
         return operators;
     }
 
-    const std::vector<std::unique_ptr<IdentifierNode>>& OpaqueDeclarationNode::getGenericParameters() const noexcept {
-        return genericParameters;
-    }
-
-    const std::vector<GenericConstraintTerm>& OpaqueDeclarationNode::getGenericConstraints() const noexcept {
-        return genericConstraints;
-    }
-
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
@@ -514,12 +437,8 @@ namespace vnlc {
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken),
-          accessModifier(accessModifier),
-          name(std::move(name)),
-          originalType(std::move(originalType)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
+          originalType(std::move(originalType)) {}
 
     TypeAliasDeclarationNode::TypeAliasDeclarationNode(
         AccessModifier accessModifier,
@@ -531,35 +450,15 @@ namespace vnlc {
         const Token& lastToken,
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
-        : TypeDeclarationNode(firstToken, lastToken, std::move(metadataTerms)),
-          accessModifier(accessModifier),
-          name(std::move(name)),
-          originalType(std::move(originalType)),
-          genericParameters(std::move(genericParameters)),
-          genericConstraints(std::move(genericConstraints)) {}
-
-    AccessModifier TypeAliasDeclarationNode::getAccessModifier() const noexcept {
-        return accessModifier;
-    }
-
-    const IdentifierNode& TypeAliasDeclarationNode::getName() const noexcept {
-        return *name;
-    }
+        : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
+          originalType(std::move(originalType)) {}
 
     const TypeAnnotationNode& TypeAliasDeclarationNode::getOriginalType() const noexcept {
         return *originalType;
     }
 
-    const std::vector<std::unique_ptr<IdentifierNode>>& TypeAliasDeclarationNode::getGenericParameters() const noexcept {
-        return genericParameters;
-    }
-
-    const std::vector<GenericConstraintTerm>& TypeAliasDeclarationNode::getGenericConstraints() const noexcept {
-        return genericConstraints;
-    }
-
     ImportDeclarationNode::ImportDeclarationNode(ImportPathTerm&& paths, const Token& firstToken, const Token& lastToken) noexcept
-        : DeclarationNode(firstToken, lastToken),
+        : DeclarationNode(AccessModifier::PUBLIC, std::make_unique<IdentifierNode>("", firstToken, lastToken), firstToken, lastToken),
           paths(std::move(paths)) {}
 
     const ImportPathTerm& ImportDeclarationNode::getNamePartsListWithAliases() const noexcept {

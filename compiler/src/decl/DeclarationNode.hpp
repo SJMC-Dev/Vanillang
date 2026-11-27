@@ -17,16 +17,27 @@ namespace vnlc {
 
     class DeclarationNode : public AstNode {
     private:
+        AccessModifier accessModifier;
+        std::unique_ptr<IdentifierNode> name; // empty identifier string if not specified
+
         bool includeMetadata;
         std::vector<MetadataTerm> metadataTerms;
 
     protected:
-        DeclarationNode(const Token& firstToken, const Token& lastToken);
-        DeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<MetadataTerm>&& metadataTerms) noexcept;
+        DeclarationNode(AccessModifier accessModifier, std::unique_ptr<IdentifierNode>&& name, const Token& firstToken, const Token& lastToken) noexcept;
+        DeclarationNode(
+            AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<MetadataTerm>&& metadataTerms
+        ) noexcept;
 
     public:
         DeclarationNode() = delete;
 
+        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
+        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] bool doesIncludeMetadata() const noexcept;
         [[nodiscard]] const std::vector<MetadataTerm>& getMetadataTerms() const noexcept;
     };
@@ -35,9 +46,7 @@ namespace vnlc {
     private:
         ValueKind kind;
         Context context;
-        AccessModifier accessModifier;
 
-        std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> type;    // nullptr if no type annotation
         std::unique_ptr<ExpressionNode> initializer; // nullptr if no initializer
 
@@ -73,8 +82,6 @@ namespace vnlc {
 
         [[nodiscard]] ValueKind getKind() const noexcept;
         [[nodiscard]] Context getContext() const noexcept;
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeAnnotationNode* getType() const noexcept;
         [[nodiscard]] const ExpressionNode* getInitializer() const noexcept;
         [[nodiscard]] bool doesIncludeTryKeyword() const noexcept;
@@ -84,16 +91,14 @@ namespace vnlc {
     private:
         FunctionImplementation implementation;
         Context context;
-        AccessModifier accessModifier;
         FunctionReceiverKind binding;
 
-        std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> parameters;
         std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted or declared as a constructor
         std::unique_ptr<BlockStatementNode> body;       // nullptr if native or declared in an interface
 
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameters; // nullptr if no generic parameters
+        std::vector<GenericConstraintTerm> genericConstraints;          // nullptr if no generic constraints
 
     public:
         FunctionDeclarationNode() = delete;
@@ -131,9 +136,7 @@ namespace vnlc {
 
         [[nodiscard]] FunctionImplementation getImplementation() const noexcept;
         [[nodiscard]] Context getContext() const noexcept;
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] FunctionReceiverKind getBinding() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getParameters() const noexcept;
         [[nodiscard]] const TypeAnnotationNode* getReturnType() const noexcept;
         [[nodiscard]] const BlockStatementNode* getBody() const noexcept;
@@ -142,20 +145,40 @@ namespace vnlc {
     };
 
     class TypeDeclarationNode : public DeclarationNode {
+    private:
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameters; // empty if no generic parameters
+        std::vector<GenericConstraintTerm> genericConstraints;          // empty if no generic constraints
+
     protected:
-        TypeDeclarationNode(const Token& firstToken, const Token& lastToken) noexcept;
-        TypeDeclarationNode(const Token& firstToken, const Token& lastToken, std::vector<MetadataTerm>&& metadataTerms) noexcept;
+        TypeDeclarationNode(
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::vector<GenericConstraintTerm>&& genericConstraints,
+            AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+        TypeDeclarationNode(
+            std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
+            std::vector<GenericConstraintTerm>&& genericConstraints,
+            AccessModifier accessModifier,
+            std::unique_ptr<IdentifierNode>&& name,
+            const Token& firstToken,
+            const Token& lastToken,
+            std::vector<MetadataTerm>&& metadataTerms
+        ) noexcept;
 
     public:
         TypeDeclarationNode() = delete;
+
+        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
+        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
     class ClassDeclarationNode : public TypeDeclarationNode {
     private:
-        AccessModifier accessModifier;
         bool final;
 
-        std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> baseClass;                          // nullptr if no base class
         std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces; // empty if no implemented interfaces
 
@@ -163,9 +186,6 @@ namespace vnlc {
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> constructors;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> operators;
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
 
     public:
         ClassDeclarationNode() = delete;
@@ -203,29 +223,19 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
         [[nodiscard]] bool isFinal() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeAnnotationNode* getBaseClass() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getImplementedInterfaces() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getProperties() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getConstructors() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getOperators() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
-        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
     class InterfaceDeclarationNode : public TypeDeclarationNode {
     private:
-        AccessModifier accessModifier;
-
-        std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> operators;
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
 
     public:
         InterfaceDeclarationNode() = delete;
@@ -253,30 +263,20 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getOperators() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
-        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
-    class EnumMemberDeclarationNode : public TypeDeclarationNode {
+    class EnumMemberNode : public TypeDeclarationNode {
     private:
-        std::unique_ptr<IdentifierNode> name;
         std::vector<std::unique_ptr<ValueDeclarationNode>> associatedValues;
 
     public:
-        EnumMemberDeclarationNode() = delete;
+        EnumMemberNode() = delete;
 
-        EnumMemberDeclarationNode(
-            std::unique_ptr<IdentifierNode>&& name,
-            std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
-            const Token& firstToken,
-            const Token& lastToken
-        ) noexcept;
+        EnumMemberNode(std::unique_ptr<IdentifierNode>&& name, std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues, const Token& firstToken, const Token& lastToken) noexcept;
 
-        EnumMemberDeclarationNode(
+        EnumMemberNode(
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<ValueDeclarationNode>>&& associatedValues,
             const Token& firstToken,
@@ -284,19 +284,12 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getAssociatedValues() const noexcept;
     };
 
     class EnumDeclarationNode : public TypeDeclarationNode {
     private:
-        AccessModifier accessModifier;
-
-        std::unique_ptr<IdentifierNode> name;
-        std::vector<std::unique_ptr<EnumMemberDeclarationNode>> memberDeclarations;
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
+        std::vector<std::unique_ptr<EnumMemberNode>> members;
 
     public:
         EnumDeclarationNode() = delete;
@@ -304,7 +297,7 @@ namespace vnlc {
         EnumDeclarationNode(
             AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
-            std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+            std::vector<std::unique_ptr<EnumMemberNode>>&& members,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
             const Token& firstToken,
@@ -314,7 +307,7 @@ namespace vnlc {
         EnumDeclarationNode(
             AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
-            std::vector<std::unique_ptr<EnumMemberDeclarationNode>>&& memberDeclarations,
+            std::vector<std::unique_ptr<EnumMemberNode>>&& members,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
             const Token& firstToken,
@@ -322,26 +315,16 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<EnumMemberDeclarationNode>>& getMemberDeclarations() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
-        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<EnumMemberNode>>& getMembers() const noexcept;
     };
 
     class OpaqueDeclarationNode : public TypeDeclarationNode {
     private:
-        AccessModifier accessModifier;
-
-        std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> baseOpaqueType;                     // nullptr if no base type
         std::vector<std::unique_ptr<TypeAnnotationNode>> implementedInterfaces; // empty if no implemented interfaces
 
         std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
         std::vector<std::unique_ptr<FunctionDeclarationNode>> operators;
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
 
     public:
         OpaqueDeclarationNode() = delete;
@@ -373,25 +356,15 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeAnnotationNode* getBaseOpaqueType() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<TypeAnnotationNode>>& getImplementedInterfaces() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
         [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getOperators() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
-        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
     class TypeAliasDeclarationNode : public TypeDeclarationNode {
     private:
-        AccessModifier accessModifier;
-
-        std::unique_ptr<IdentifierNode> name;
         std::unique_ptr<TypeAnnotationNode> originalType;
-
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters;
-        std::vector<GenericConstraintTerm> genericConstraints;
 
     public:
         TypeAliasDeclarationNode() = delete;
@@ -417,11 +390,7 @@ namespace vnlc {
             std::vector<MetadataTerm>&& metadataTerms
         ) noexcept;
 
-        [[nodiscard]] AccessModifier getAccessModifier() const noexcept;
-        [[nodiscard]] const IdentifierNode& getName() const noexcept;
         [[nodiscard]] const TypeAnnotationNode& getOriginalType() const noexcept;
-        [[nodiscard]] const std::vector<std::unique_ptr<IdentifierNode>>& getGenericParameters() const noexcept;
-        [[nodiscard]] const std::vector<GenericConstraintTerm>& getGenericConstraints() const noexcept;
     };
 
     class ImportDeclarationNode : public DeclarationNode {
