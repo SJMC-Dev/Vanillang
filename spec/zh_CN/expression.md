@@ -171,11 +171,12 @@ false
 
 包含函数调用、下标操作和成员访问：
 
-| 运算符 | 操作数类型                                   | 表达式类型                       | 表达式的值                       | 是否产生新值             |
-| ------ | -------------------------------------------- | -------------------------------- | -------------------------------- | ------------------------ |
-| `()`   | 可调用类型                                   | 函数的返回类型                   | 函数的返回值（为 `void` 时无值） | 是（返回 `void` 时除外） |
-| `[]`   | 实现了相应重载的类型                         | 以重载返回类型为准               | 以重载的返回值为准               | 是（赋值语句左边时除外） |
-| `.`    | 适用于任意能访问成员的标识符，不一定要有类型 | 取决于被访问的成员，不一定有类型 | 取决于被访问的成员，不一定有值   | 否                       |
+| 运算符 | 操作数类型                                   | 表达式类型                                                 | 表达式的值                                    | 是否产生新值                   |
+| ------ | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ------------------------------ |
+| `()`   | 可调用类型                                   | 函数的返回类型                                             | 函数的返回值（为 `void` 时无值）              | 是（返回 `void` 时除外）       |
+| `[]`   | 实现了相应重载的类型                         | 以重载返回类型为准                                         | 以重载的返回值为准                            | 是（赋值语句左边时除外）       |
+| `.`    | 适用于任意能访问成员的标识符，不一定要有类型 | 取决于被访问的成员，不一定有类型                           | 取决于被访问的成员，不一定有值                | 否                             |
+| `?.`   | `Optional<T>`                                | 被访问的成员对应的可选类型，链式调用时始终以最后的成员为准 | 操作数非空时为 `Some(value)`，为空时为 `None` | 否（但为 `None` 时可能会产生） |
 
 注：
 
@@ -225,7 +226,7 @@ AdditiveExpression ::= MultiplicativeExpression (('+' | '-') MultiplicativeExpre
 MultiplicativeExpression ::= UnaryExpression (('*' | '/' | '//' | '%') UnaryExpression)*;
 UnaryExpression ::= ['!' | '~' | '-' | '+'] ExponentialExpression;
 ExponentialExpression ::= PostfixExpression ['**' UnaryExpression];
-PostfixExpression ::= PrimaryExpression (('.' (GeneralizedIdentifier | IdentifierLike)) | ('(' [ArgumentList] ')') | ('[' Expression ']'))*;
+PostfixExpression ::= PrimaryExpression (('.' (GeneralizedIdentifier | IdentifierLike)) | ('?.' GeneralizedIdentifier) | ('(' [ArgumentList] ')') | ('[' Expression ']'))*;
 PrimaryExpression ::= '(' Expression ')' | Literal | IdentifierLike | PrimitiveType | ExpressionKeyword;
 
 IdentifierLike ::= Identifier {if peek() is not a type declaration else} Identifier ['<' GenericArgumentList '>'];
