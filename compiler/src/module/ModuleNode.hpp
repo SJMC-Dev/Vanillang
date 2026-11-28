@@ -1,0 +1,34 @@
+#pragma once
+
+#include "ast/AstNode.hpp"
+#include "decl/DeclarationNode.hpp"
+#include <memory>
+#include <vector>
+
+namespace vnlc {
+    class ModuleNode : public AstNode {
+    private:
+        std::string name;
+        std::string fullName;
+
+        std::vector<std::unique_ptr<ImportDeclarationNode>> importDeclarations;
+        std::vector<std::unique_ptr<DeclarationNode>> topIdentifierDeclarations;
+
+    public:
+        ModuleNode() = delete;
+
+        ModuleNode(
+            std::string&& name,
+            std::string&& fullName,
+            std::vector<std::unique_ptr<ImportDeclarationNode>>&& importDeclarations,
+            std::vector<std::unique_ptr<DeclarationNode>>&& topIdentifierDeclarations,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
+
+        [[nodiscard]] std::string_view getName() const noexcept;
+        [[nodiscard]] std::string_view getFullName() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<ImportDeclarationNode>>& getImportDeclarations() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<DeclarationNode>>& getTopIdentifierDeclarations() const noexcept;
+    };
+} // namespace vnlc
