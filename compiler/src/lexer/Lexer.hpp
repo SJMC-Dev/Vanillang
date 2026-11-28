@@ -40,15 +40,14 @@ namespace vnlc {
 
         [[nodiscard]] std::string_view value() const noexcept;
 
-        [[nodiscard]] bool blank() const noexcept;
-        [[nodiscard]] bool number() const noexcept;
-        [[nodiscard]] bool special() const noexcept;
-        [[nodiscard]] bool newline() const noexcept;
-        [[nodiscard]] bool eof() const noexcept;
-        [[nodiscard]] bool separator() const noexcept;
+        [[nodiscard]] bool blank(std::size_t index = 0) const noexcept;
+        [[nodiscard]] bool number(std::size_t index = 0) const noexcept;
+        [[nodiscard]] bool special(std::size_t index = 0) const noexcept;
+        [[nodiscard]] bool newline(std::size_t index = 0) const noexcept;
+        [[nodiscard]] bool eof(std::size_t index = 0) const noexcept;
+        [[nodiscard]] bool separator(std::size_t index = 0) const noexcept;
 
-        [[nodiscard]] char peek() const noexcept;
-        [[nodiscard]] char peek(std::size_t index) const noexcept;
+        [[nodiscard]] char peek(std::size_t index = 0) const noexcept;
 
         [[nodiscard]] Token scanTokenStartsWithNumber();
         [[nodiscard]] Token scanTokenStartsWithSpecial();

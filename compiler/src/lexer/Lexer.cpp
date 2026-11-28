@@ -8,10 +8,6 @@
 namespace vnlc {
     Lexer::Lexer(std::string_view code) : code(code) {}
 
-    char Lexer::peek() const noexcept {
-        return peek(0);
-    }
-
     char Lexer::peek(std::size_t index) const noexcept {
         std::size_t target = currentOffset + index;
         if (target < code.size()) {
@@ -21,33 +17,33 @@ namespace vnlc {
         return static_cast<char>(std::char_traits<char>::eof());
     }
 
-    bool Lexer::blank() const noexcept {
-        char ch = peek();
+    bool Lexer::blank(std::size_t index) const noexcept {
+        char ch = peek(index);
         return ch == ' ' || ch == '\t' || ch == '\r';
     }
 
-    bool Lexer::number() const noexcept {
-        char ch = peek();
+    bool Lexer::number(std::size_t index) const noexcept {
+        char ch = peek(index);
         return ch >= '0' && ch <= '9';
     }
 
-    bool Lexer::special() const noexcept {
+    bool Lexer::special(std::size_t index) const noexcept {
         static constexpr std::string_view specialChars = "+-*/=!<>|&^%~?:.,;(){}[]#@$\\`\"'";
 
-        char ch = peek();
+        char ch = peek(index);
         return specialChars.find(ch) != std::string_view::npos;
     }
 
-    bool Lexer::newline() const noexcept {
-        return peek() == '\n';
+    bool Lexer::newline(std::size_t index) const noexcept {
+        return peek(index) == '\n';
     }
 
-    bool Lexer::eof() const noexcept {
-        return peek() == static_cast<char>(std::char_traits<char>::eof());
+    bool Lexer::eof(std::size_t index) const noexcept {
+        return peek(index) == static_cast<char>(std::char_traits<char>::eof());
     }
 
-    bool Lexer::separator() const noexcept {
-        return eof() || blank() || special() || newline();
+    bool Lexer::separator(std::size_t index) const noexcept {
+        return eof(index) || blank(index) || special(index) || newline(index);
     }
 
     void Lexer::advance() {
@@ -365,7 +361,7 @@ namespace vnlc {
                 } else {
                     return { TokenKind::DOUBLE_QUESTION, value(), lastLine, lastColumn, lastOffset };
                 }
-            } else if (peek() == '.') {
+            } else if (peek() == '.' && !number(1)) {
                 advance();
                 return { TokenKind::QUESTION_DOT, value(), lastLine, lastColumn, lastOffset };
             } else {
@@ -768,7 +764,7 @@ namespace vnlc {
     Tokens Lexer::scan() {
         Tokens tokens{};
 
-        while(hasNext()) {
+        while (hasNext()) {
             tokens.emplace_back(next());
         }
 
