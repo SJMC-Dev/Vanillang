@@ -274,14 +274,23 @@ namespace vnlc {
 
     class MemberAccessExpressionNode : public ExpressionNode {
     private:
+        MemberAccessKind kind;
+
         std::unique_ptr<ExpressionNode> object;
         std::unique_ptr<IdentifierLikeExpressionNode> member;
 
     public:
         MemberAccessExpressionNode() = delete;
 
-        MemberAccessExpressionNode(std::unique_ptr<ExpressionNode>&& object, std::unique_ptr<IdentifierLikeExpressionNode>&& member, const Token& firstToken, const Token& lastToken) noexcept;
+        MemberAccessExpressionNode(
+            MemberAccessKind kind,
+            std::unique_ptr<ExpressionNode>&& object,
+            std::unique_ptr<IdentifierLikeExpressionNode>&& member,
+            const Token& firstToken,
+            const Token& lastToken
+        ) noexcept;
 
+        [[nodiscard]] MemberAccessKind getKind() const noexcept;
         [[nodiscard]] const ExpressionNode& getObject() const noexcept;
         [[nodiscard]] const IdentifierLikeExpressionNode& getMember() const noexcept;
     };

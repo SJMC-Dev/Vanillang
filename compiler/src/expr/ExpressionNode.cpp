@@ -1,4 +1,5 @@
 #include "ExpressionNode.hpp"
+#include "prop/LanguageProperty.hpp"
 #include <utility>
 
 namespace vnlc {
@@ -255,14 +256,20 @@ namespace vnlc {
     }
 
     MemberAccessExpressionNode::MemberAccessExpressionNode(
+        MemberAccessKind kind,
         std::unique_ptr<ExpressionNode>&& object,
         std::unique_ptr<IdentifierLikeExpressionNode>&& member,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
         : ExpressionNode(firstToken, lastToken),
+          kind(kind),
           object(std::move(object)),
           member(std::move(member)) {}
+
+    MemberAccessKind MemberAccessExpressionNode::getKind() const noexcept {
+        return kind;
+    }
 
     const ExpressionNode& MemberAccessExpressionNode::getObject() const noexcept {
         return *object;

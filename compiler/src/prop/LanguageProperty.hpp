@@ -133,6 +133,11 @@ namespace vnlc {
         NULLISH_COALESCING,
     };
 
+    enum class MemberAccessKind : std::uint8_t {
+        MEMBER_ACCESS,
+        OPTIONAL_MEMBER_ACCESS,
+    };
+
     enum class PrimitiveTypeKind : std::uint8_t {
         BYTE,
         UNSIGNED_BYTE,
