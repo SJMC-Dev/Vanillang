@@ -350,18 +350,27 @@ namespace vnlc {
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<EnumMemberNode>>&& members,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& staticProperties,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
         const Token& firstToken,
         const Token& lastToken
     ) noexcept
         : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken),
-          members(std::move(members)) {}
+          members(std::move(members)),
+          staticProperties(std::move(staticProperties)),
+          methods(std::move(methods)),
+          operators(std::move(operators)) {}
 
     EnumDeclarationNode::EnumDeclarationNode(
         AccessModifier accessModifier,
         std::unique_ptr<IdentifierNode>&& name,
         std::vector<std::unique_ptr<EnumMemberNode>>&& members,
+        std::vector<std::unique_ptr<ValueDeclarationNode>>&& staticProperties,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+        std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
         std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
         std::vector<GenericConstraintTerm>&& genericConstraints,
         const Token& firstToken,
@@ -369,10 +378,25 @@ namespace vnlc {
         std::vector<MetadataTerm>&& metadataTerms
     ) noexcept
         : TypeDeclarationNode(std::move(genericParameters), std::move(genericConstraints), accessModifier, std::move(name), firstToken, lastToken, std::move(metadataTerms)),
-          members(std::move(members)) {}
+          members(std::move(members)),
+          staticProperties(std::move(staticProperties)),
+          methods(std::move(methods)),
+          operators(std::move(operators)) {}
 
     const std::vector<std::unique_ptr<EnumMemberNode>>& EnumDeclarationNode::getMembers() const noexcept {
         return members;
+    }
+
+    const std::vector<std::unique_ptr<ValueDeclarationNode>>& EnumDeclarationNode::getStaticProperties() const noexcept {
+        return staticProperties;
+    }
+
+    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& EnumDeclarationNode::getMethods() const noexcept {
+        return methods;
+    }
+
+    const std::vector<std::unique_ptr<FunctionDeclarationNode>>& EnumDeclarationNode::getOperators() const noexcept {
+        return operators;
     }
 
     OpaqueDeclarationNode::OpaqueDeclarationNode(

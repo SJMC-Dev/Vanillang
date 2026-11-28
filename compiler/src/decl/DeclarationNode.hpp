@@ -97,8 +97,8 @@ namespace vnlc {
         std::unique_ptr<TypeAnnotationNode> returnType; // nullptr if the return type is omitted or declared as a constructor
         std::unique_ptr<BlockStatementNode> body;       // nullptr if native or declared in an interface
 
-        std::vector<std::unique_ptr<IdentifierNode>> genericParameters; // nullptr if no generic parameters
-        std::vector<GenericConstraintTerm> genericConstraints;          // nullptr if no generic constraints
+        std::vector<std::unique_ptr<IdentifierNode>> genericParameters; // empty if no generic parameters
+        std::vector<GenericConstraintTerm> genericConstraints;          // empty if no generic constraints
 
     public:
         FunctionDeclarationNode() = delete;
@@ -290,6 +290,9 @@ namespace vnlc {
     class EnumDeclarationNode : public TypeDeclarationNode {
     private:
         std::vector<std::unique_ptr<EnumMemberNode>> members;
+        std::vector<std::unique_ptr<ValueDeclarationNode>> staticProperties;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> methods;
+        std::vector<std::unique_ptr<FunctionDeclarationNode>> operators;
 
     public:
         EnumDeclarationNode() = delete;
@@ -298,6 +301,9 @@ namespace vnlc {
             AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<EnumMemberNode>>&& members,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& staticProperties,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
             const Token& firstToken,
@@ -308,6 +314,9 @@ namespace vnlc {
             AccessModifier accessModifier,
             std::unique_ptr<IdentifierNode>&& name,
             std::vector<std::unique_ptr<EnumMemberNode>>&& members,
+            std::vector<std::unique_ptr<ValueDeclarationNode>>&& staticProperties,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& methods,
+            std::vector<std::unique_ptr<FunctionDeclarationNode>>&& operators,
             std::vector<std::unique_ptr<IdentifierNode>>&& genericParameters,
             std::vector<GenericConstraintTerm>&& genericConstraints,
             const Token& firstToken,
@@ -316,6 +325,9 @@ namespace vnlc {
         ) noexcept;
 
         [[nodiscard]] const std::vector<std::unique_ptr<EnumMemberNode>>& getMembers() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<ValueDeclarationNode>>& getStaticProperties() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getMethods() const noexcept;
+        [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclarationNode>>& getOperators() const noexcept;
     };
 
     class OpaqueDeclarationNode : public TypeDeclarationNode {

@@ -34,6 +34,7 @@ namespace vnlc {
         PARAMETER,
         INSTANCE_PROPERTY,
         STATIC_PROPERTY,
+        STATIC_CONST_PROPERTY,
         ENUM_ASSOCIATED_VALUE,
     };
 
