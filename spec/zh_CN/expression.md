@@ -225,11 +225,12 @@ MultiplicativeExpression ::= UnaryExpression (('*' | '/' | '//' | '%') UnaryExpr
 UnaryExpression ::= ['!' | '~' | '-' | '+'] ExponentialExpression;
 ExponentialExpression ::= PostfixExpression ['**' UnaryExpression];
 PostfixExpression ::= PrimaryExpression (('.' (GeneralizedIdentifier | IdentifierLike)) | ('(' [ArgumentList] ')') | ('[' Expression ']'))*;
-PrimaryExpression ::= '(' Expression ')' | Literal | IdentifierLike | PrimitiveType | 'this' | 'super' | 'none';
+PrimaryExpression ::= '(' Expression ')' | Literal | IdentifierLike | PrimitiveType | ExpressionKeyword;
 
 IdentifierLike ::= Identifier {if peek() is not a type declaration else} Identifier ['<' GenericArgumentList '>'];
 Literal ::= Number | String | Boolean | ListLikeLiteral | DictLiteral | Selector;
 PrimitiveType ::= 'byte' | 'ubyte' | 'short' | 'ushort' | 'int' | 'uint' | 'long' | 'ulong' | 'float' | 'double' | 'bool';
+ExpressionKeyword ::= 'this' | 'super' | 'none' | 'callee';
 
 String ::= StringLiteral [(StringLiteral | Interpolation)*];
 Boolean ::= 'true' | 'false';
