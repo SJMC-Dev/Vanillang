@@ -39,9 +39,9 @@ T hasop <=>(T) -> Ordering?
 
 ```ebnf
 GenericParameterList ::= Identifier (',' Identifier)*;
-GenericArgumentList ::= Type (',' Type)*;
+GenericArgumentList ::= TypeList;
 GenericConstraint ::= 'where' ConstraintClauseList;
 ConstraintClauseList ::= ConstraintClause (',' ConstraintClause)*;
-ConstraintClause ::= Identifier ('notnone' | ('extends' | 'implements') Type | 'hasop' OperatorRequirement);
+ConstraintClause ::= Identifier ('notnone' | 'extends' Type | 'implements' TypeList | 'hasop' OperatorRequirement);
 OperatorRequirement ::= OverloadableOperator '(' [TypeList] ')' '->' ReturnType;
 ```
